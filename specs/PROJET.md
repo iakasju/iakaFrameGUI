@@ -133,7 +133,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | Cadrage forge + audit moteur CLI | `specs/instructions/cadrage-iakaframegui-et-moteur.md` | **validé (jalon)** |
 | P0 — Contrat de concepts | `specs/contrat-concepts.md` | **livré (P0)** |
 | P0 — Glossaire de concepts étendu | `specs/glossaire-concepts.md` | **livré (P0)** |
-| P1 — Coquille forge + authoring persona/team | à écrire (développeur-devops) | prochaine étape |
+| P1 — Coquille forge + authoring persona/team | `specs/instructions/P1-coquille-forge-authoring.md` | **cadré — à valider (jalon)** |
 
 ---
 
