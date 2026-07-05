@@ -1,0 +1,39 @@
+{
+  "_comment": "Données neutres du vocabulaire canonique iakaframe (cœur partagé). SOURCE DE VÉRITÉ des enums. Le CLI (@naonedge/iakaframe, zéro-dép) en tient un MIROIR JS pur dans cli/src/lib/vocab.js, vérifié par le test de parité cli/test/vocab-parity.test.js (stratégie ALIGN, cf. P2 § 5). Ne PAS éditer une valeur ici sans mettre à jour le miroir — le test de parité échouera sinon.",
+  "runnerKinds": ["claude-code", "ollama", "litellm", "codex"],
+  "nodeKinds": ["claude", "codex", "ollama-localhost", "ollama-lan"],
+  "kitFormats": ["claude-md", "agents-md"],
+  "runnerAliases": {
+    "ps": "claude-code",
+    "iakaide": "claude-code",
+    "claude-code": "claude-code",
+    "ollama": "ollama",
+    "litellm": "litellm",
+    "codex": "codex"
+  },
+  "deprecatedRunnerAliases": ["ps", "iakaide"],
+  "legacyRunnerLaunchers": ["aider"],
+  "nodeAliases": {
+    "claude": "claude",
+    "codex": "codex",
+    "ollama": "ollama-localhost",
+    "ollama-localhost": "ollama-localhost",
+    "ollama-lan": "ollama-lan"
+  },
+  "contractFileByFormat": {
+    "claude-md": "CLAUDE.md",
+    "agents-md": "AGENTS.md"
+  },
+  "formatByNode": {
+    "claude": "claude-md",
+    "codex": "agents-md",
+    "ollama-localhost": "agents-md",
+    "ollama-lan": "agents-md"
+  },
+  "kitNameByNode": {
+    "claude": "kit-claude",
+    "codex": "kit-codex",
+    "ollama-localhost": "kit-ollama",
+    "ollama-lan": "kit-ollama"
+  }
+}
