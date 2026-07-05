@@ -1,0 +1,32 @@
+//! iakaFrameGUI — backend Tauri 2 (mince) de la forge.
+//!
+//! P1 : socle minimal calqué sur l'esprit L0 du Cockpit — `paths` (chapeau + workspace
+//! cross-OS), `pathguard` (anti-traversal), `teams_store` (persistance des teams PURES en
+//! fichiers JSON sous `<workspace>/teams/`). AUCUNE commande réseau, AUCUN secret, AUCUN
+//! appel runner (AR-1/AR-6). Le front tient le schéma via `@iakaframe/core` ; Rust est un
+//! passe-plat.
+
+pub mod pathguard;
+pub mod paths;
+pub mod teams_store;
+
+/// Commande de santé minimale — prouve le pont front↔back sans logique métier.
+#[tauri::command]
+fn ping() -> String {
+    "pong".to_string()
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            ping,
+            teams_store::team_list,
+            teams_store::team_read,
+            teams_store::team_write,
+            teams_store::team_delete,
+            teams_store::workspace_path,
+        ])
+        .run(tauri::generate_context!())
+        .expect("erreur au lancement d'iakaFrameGUI");
+}

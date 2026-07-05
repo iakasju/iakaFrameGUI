@@ -1,0 +1,22 @@
+[package]
+name = "iakaframegui"
+version = "0.1.0"
+description = "iakaFrameGUI - la forge de la methode iakaframe (authoring de teams pures)"
+authors = ["Stephane / iakateam"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+# Le suffixe `_lib` evite un conflit de nom lib/bin sur Windows
+# (cf. https://github.com/rust-lang/cargo/issues/8519).
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.2", features = [] }
+
+[dependencies]
+# Alignes sur les versions eprouvees du Cockpit (deja builde sur cet OS).
+tauri = { version = "2.11.2", features = [] }
+# Resolution du home cross-OS (chapeau + workspace), zero constante Windows.
+dirs = "5"
