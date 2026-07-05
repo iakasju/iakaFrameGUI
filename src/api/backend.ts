@@ -1,0 +1,80 @@
+/**
+ * backend.ts — FAÇADE UNIQUE d'accès au backend Tauri (calque garde D7 du Cockpit).
+ *
+ * Règle d'architecture : **tout** appel `invoke` vers Rust passe par ce module. Aucun
+ * composant ni hook n'importe `@tauri-apps/api/core` directement (grep `invoke(` hors ce
+ * fichier = 0 — critère C-8). Ce cloisonnement rend le backend mockable (tests) et empêche
+ * un god-component mêlant I/O et rendu.
+ *
+ * P1 = persistance de teams PURES par **fichiers JSON** (un fichier par team), via les
+ * commandes Rust `teams_store` (pathguard). Le front tient le schéma (`@iakaframe/core`) ;
+ * Rust est un passe-plat (aucune connaissance de runner/model — AR-1).
+ *
+ * Sérialisation : les args passés à `call` reprennent les noms des paramètres Rust
+ * (snake_case). `team_write(id, json)` → `{ id, json }`.
+ */
+import { invoke } from "@tauri-apps/api/core";
+
+/** Wrapper typé minimal autour de `invoke`. SEUL endroit autorisé à l'appeler. */
+export async function call<T>(
+  command: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  return invoke<T>(command, args);
+}
+
+/**
+ * Détecte un contexte Tauri (fenêtre native) vs simple navigateur (dev front pur / tests).
+ * Évite de crasher hors Tauri (le hook dégrade alors en mémoire).
+ */
+export function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+// --- Persistance des teams (fichiers JSON sous le workspace, commandes Rust) ---
+
+/**
+ * Liste le contenu JSON brut de chaque fichier team du workspace
+ * (`<workspace>/teams/*.json`). Le front parse chaque entrée via `parseTeamText`
+ * (`@iakaframe/core`) — un fichier illisible est ignoré. Ne rejette pas si le dossier
+ * est vide/absent (Rust renvoie `[]`).
+ */
+export function teamList(): Promise<string[]> {
+  return call<string[]>("team_list");
+}
+
+/** Lit le contenu JSON d'une team (`null` si le fichier n'existe pas). */
+export function teamRead(id: string): Promise<string | null> {
+  return call<string | null>("team_read", { id });
+}
+
+/** Écrit (ou remplace) le fichier `<workspace>/teams/<id>.json`. `json` = team sérialisée. */
+export function teamWrite(id: string, json: string): Promise<void> {
+  return call<void>("team_write", { id, json });
+}
+
+/** Supprime le fichier team `<id>.json` (no-op si absent). */
+export function teamDelete(id: string): Promise<void> {
+  return call<void>("team_delete", { id });
+}
+
+/** Chemin absolu du dossier de travail des teams (`<workspace>/teams`) — affichage Réglages. */
+export function workspacePath(): Promise<string> {
+  return call<string>("workspace_path");
+}
+
+/**
+ * Façade backend en objet — facilite le mock dans les tests (le hook `useForgeTeams`
+ * accepte une implémentation de `Backend` en dépendance injectable).
+ */
+export const backend = {
+  call,
+  isTauri,
+  teamList,
+  teamRead,
+  teamWrite,
+  teamDelete,
+  workspacePath,
+};
+
+export type Backend = typeof backend;
