@@ -4,3 +4,12 @@ node_modules/
 dist/
 build/
 target/
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Divers
+.DS_Store
+coverage/
+*.log
