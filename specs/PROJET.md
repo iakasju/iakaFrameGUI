@@ -134,6 +134,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | P0 — Contrat de concepts | `specs/contrat-concepts.md` | **livré (P0)** |
 | P0 — Glossaire de concepts étendu | `specs/glossaire-concepts.md` | **livré (P0)** |
 | P1 — Coquille forge + authoring persona/team | `specs/instructions/P1-coquille-forge-authoring.md` | **cadré — à valider (jalon)** |
+| P2 — Cœur partagé + refactor vocabulaire CLI | `specs/instructions/P2-coeur-partage-refactor-cli.md` | **cadré — à valider (jalon)** |
 
 ---
 
