@@ -15,6 +15,7 @@ import {
   generateOllamaLocalhostKit,
 } from "./agentsMd";
 import { generateClaudeCodeKit } from "./claudeCode";
+import { generateOpenWebUIKit } from "./openwebui";
 import type { RunnerAdapter } from "./types";
 
 /** Adaptateur de référence : le nœud Claude Code (hooks + `CLAUDE.md`, P3 inchangé). */
@@ -49,12 +50,21 @@ export const ollamaLanAdapter: RunnerAdapter = {
   generate: generateOllamaLanKit,
 };
 
-/** Registre { nœud → adaptateur } couvrant TOUS les `NodeKind` (les 4 implémentés, P3b). */
+/** Adaptateur **openwebui** (`openwebui-models` : N Models JSON, un par persona — P3c). */
+export const openWebUIAdapter: RunnerAdapter = {
+  node: "openwebui",
+  kitFormat: kitFormatForNode("openwebui"),
+  implemented: true,
+  generate: generateOpenWebUIKit,
+};
+
+/** Registre { nœud → adaptateur } couvrant TOUS les `NodeKind` (les 5 implémentés, P3c). */
 export const RUNNER_ADAPTERS: Readonly<Record<NodeKind, RunnerAdapter>> = {
   claude: claudeCodeAdapter,
   codex: codexAdapter,
   "ollama-localhost": ollamaLocalhostAdapter,
   "ollama-lan": ollamaLanAdapter,
+  openwebui: openWebUIAdapter,
 };
 
 /** Adaptateur d'un nœud (toujours défini : les `NodeKind` sont tous couverts). */

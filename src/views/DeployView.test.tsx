@@ -58,7 +58,9 @@ describe("DeployView (P4 — Générer & Déployer)", () => {
       .map((o) => o.value)
       .filter((v) => v !== "");
     expect(values).toEqual(implementedNodes());
-    expect(values).toHaveLength(4);
+    // 5 nœuds implémentés depuis P3c (openwebui apparaît automatiquement via implementedNodes()).
+    expect(values).toHaveLength(5);
+    expect(values).toContain("openwebui");
   });
 
   it("U-1 — ollama-lan révèle le champ host", () => {

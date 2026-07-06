@@ -14,6 +14,7 @@ const NODE_LABELS: Readonly<Record<NodeKind, string>> = {
   codex: "Codex",
   "ollama-localhost": "Ollama (localhost)",
   "ollama-lan": "Ollama (LAN)",
+  openwebui: "Open WebUI",
 };
 
 export function NodeSelector({
