@@ -137,6 +137,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | P2 — Cœur partagé + refactor vocabulaire CLI | `specs/instructions/P2-coeur-partage-refactor-cli.md` | **cadré — à valider (jalon)** |
 | P3 — Adaptateur runner Claude Code + génération + déploiement | `specs/instructions/P3-adaptateur-runner-generation-deploiement.md` | **cadré — à valider (jalon)** |
 | P3b — Adaptateurs codex + ollama (localhost/lan) | `specs/instructions/P3b-adaptateurs-codex-ollama.md` | **cadré — à valider (jalon)** |
+| P3c — Adaptateur Open WebUI (Models JSON) | `specs/instructions/P3c-adaptateur-openwebui.md` | **cadré — à valider (jalon)** |
 | P4 — UI « Générer & Déployer » (chaînon authoring→prod) | `specs/instructions/P4-ui-generer-deployer.md` | **cadré — à valider (jalon)** |
 
 ---
