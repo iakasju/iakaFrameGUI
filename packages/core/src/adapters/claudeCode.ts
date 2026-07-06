@@ -1,0 +1,184 @@
+/**
+ * claudeCode.ts — **adaptateur de runner Claude Code** (pur) : `team pure → KitFileTree`.
+ *
+ * Première capacité de PRODUCTION de la forge : on **génère** l'arborescence `.claude/`
+ * réelle depuis le modèle (au lieu de copier un kit statique). Fonction **PURE** — aucun
+ * `fs`, aucun accès disque : l'arbre est un dictionnaire { chemin → contenu } inspectable en
+ * mémoire, donc testable **sans nœud réel**. L'écriture disque est la responsabilité de la
+ * forge Rust (`kit_deploy`).
+ *
+ * Invariants tenus (§ 7) :
+ *  - **Team PURE en entrée** : aucun `runner`/`model` n'est lu ni émis (G-5). Le `model` du
+ *    frontmatter subagent est **OMIS** (liaison run-time = Cockpit).
+ *  - **Déterminisme** : personas triées par `roleIndex` puis `id` ; skills/connecteurs triés.
+ *  - **Nœud/format via P2** : `claude → claude-md → CLAUDE.md` résolu par les helpers, jamais
+ *    réécrit.
+ *  - **Canal d'identité câblé, jamais réécrit** : les scripts de garde sont copiés verbatim
+ *    (voir `guardScripts.generated.ts`), le câblage vit dans `guards.ts`.
+ *
+ * Schémas de fichiers conformes à l'étape 0 (`specs/notes/claude-code-schemas-2026-07-06.md`).
+ */
+
+import type { Persona } from "../persona";
+import { personaBadge } from "../persona";
+import { roleLabel } from "../roles";
+import { CATALOG_SKILLS } from "../skill";
+import type { Team } from "../team";
+import { GUARD_SCRIPTS } from "./guardScripts.generated";
+import { buildClaudeSettings, buildGuardrailWiring } from "./guards";
+import type { KitFileTree, KitGenOptions } from "./types";
+
+/** Tri déterministe des personas : rôle (casting) puis id (stabilité). */
+function byRoleThenId(a: Persona, b: Persona): number {
+  return a.roleIndex - b.roleIndex || a.id.localeCompare(b.id);
+}
+
+/** Sérialise un objet en JSON indenté (2 espaces) avec `\n` final (lisible sur disque). */
+function json(value: unknown): string {
+  return JSON.stringify(value, null, 2) + "\n";
+}
+
+/**
+ * `.claude/agents/<id>.md` — subagent Claude Code. Frontmatter **minimal** : `name`,
+ * `description`. **`model` OMIS** (invariant). `tools` **absent** au MVP (non dérivable des
+ * données pures → hérite des outils courants, cf. étape 0). Corps = system prompt du rôle.
+ */
+function renderAgent(team: Team, p: Persona): string {
+  const role = roleLabel(p.roleKey);
+  const badge = personaBadge(p);
+  const skills =
+    p.skills.length > 0
+      ? p.skills.map((s) => `- \`${s}\``).join("\n")
+      : "_Aucune skill attachée (déclaration MVP)._";
+  // NB : ni `model:` ni `runner:` — l'omission est volontaire (invariant G-5, AR-1).
+  return `---
+name: ${p.name}
+description: Persona incarnant le rôle « ${role} » de la team « ${team.name} ». À solliciter pour les tâches de ${role.toLowerCase()}.
+---
+
+# ${p.name} — rôle ${role}
+
+Pastille d'identité (canal d'identité iakaframe) : \`${badge}\`.
+Ouverture = pastille AVANT le bloc, en première ligne ; clôture = pastille APRÈS le bloc.
+
+## Périmètre
+Tu incarnes le rôle **${role}** de la team « ${team.name} ». Tiens ton périmètre ;
+en cas de doute, remonte à la coordination plutôt que d'improviser.
+
+## Skills attachées
+${skills}
+`;
+}
+
+/**
+ * `.claude/skills/<id>/SKILL.md` — frontmatter minimal (`name`, `description`) + corps
+ * **stub** (le corps riche des skills n'est pas éditable au MVP P1 → on référence le
+ * skill-rôle, pas de faux contenu).
+ */
+function renderSkill(skillId: string): string {
+  const known = CATALOG_SKILLS.find((s) => s.id === skillId);
+  const role = known ? roleLabel(known.roleKey) : "";
+  const description = known
+    ? `${known.label} — outillage du rôle « ${role} ».`
+    : `Skill « ${skillId} » (déclaration MVP).`;
+  const roleLine = known
+    ? `Cette skill outille le rôle **${role}**.`
+    : `Skill hors catalogue connu.`;
+  return `---
+name: ${skillId}
+description: ${description}
+---
+
+# Skill ${skillId}
+
+> Stub généré (MVP P1) : le corps riche des skills n'est pas encore éditable dans la forge.
+> Référence de skill-rôle : \`${skillId}\`.
+
+${roleLine}
+`;
+}
+
+/**
+ * `CLAUDE.md` — fichier-contrat du nœud Claude Code : contexte de la team (rôles présents,
+ * coordination) + corps de méthode fourni par l'appelant. Les intervenants sont désignés par
+ * leur **rôle** (jamais un nom de code) ; le `name` reste une donnée d'affichage.
+ */
+function renderClaudeMd(team: Team, personas: Persona[], opts?: KitGenOptions): string {
+  const coord = personas.find((p) => p.id === team.coordinator);
+  const coordLine = coord
+    ? `${coord.name} (rôle ${roleLabel(coord.roleKey)})`
+    : "_non désigné_";
+  const rolesLines = personas
+    .map((p) => `- **${roleLabel(p.roleKey)}** : ${p.name} \`${personaBadge(p)}\``)
+    .join("\n");
+  const method =
+    opts?.methodInstructions && opts.methodInstructions.trim().length > 0
+      ? opts.methodInstructions.trim()
+      : `Méthode « ${team.methodId} » : chaque intervenant tient son rôle, s'identifie par sa\npastille à l'ouverture et à la clôture, et ne sort pas de son périmètre.`;
+  return `# ${team.name} — kit Claude Code
+
+> Fichier-contrat généré par la forge iakaFrameGUI depuis une **team PURE**.
+> Généré, non écrit à la main. Méthode : ${team.methodId}.
+
+## Team
+- **Coordination (chef de projet)** : ${coordLine}
+- **Rôles présents** (${personas.length}) :
+
+${rolesLines}
+
+## Méthode
+
+${method}
+`;
+}
+
+/**
+ * `.mcp.json` — **stub de déclaration** conditionnel. Généré **seulement si** la team
+ * déclare ≥ 1 connecteur (G-4). Au MVP, la team ne porte que des **ids** de connecteurs
+ * (config complète différée) : on émet une entrée `stdio` minimale par id (déclaration à
+ * compléter côté déploiement/Cockpit), jamais de secret.
+ */
+function renderMcp(connectors: string[]): string {
+  const ids = [...new Set(connectors)].sort();
+  const mcpServers: Record<string, { type: "stdio"; command: string }> = {};
+  for (const id of ids) mcpServers[id] = { type: "stdio", command: id };
+  return json({ mcpServers });
+}
+
+/**
+ * **Adaptateur Claude Code (pur)** : team pure → arborescence `.claude/` déployable.
+ * Aucune I/O. Voir la liste EXACTE des fichiers dans l'instruction P3 § 5.1.
+ */
+export function generateClaudeCodeKit(team: Team, opts?: KitGenOptions): KitFileTree {
+  const files: Record<string, string> = {};
+  const personas = [...team.personas].sort(byRoleThenId);
+
+  // 1. Un subagent par persona.
+  for (const p of personas) {
+    files[`.claude/agents/${p.id}.md`] = renderAgent(team, p);
+  }
+
+  // 2. Une SKILL.md par skill référencée (dédupliquée, triée).
+  const skillIds = [...new Set(personas.flatMap((p) => p.skills))].sort();
+  for (const sid of skillIds) {
+    files[`.claude/skills/${sid}/SKILL.md`] = renderSkill(sid);
+  }
+
+  // 3. Fichier-contrat de méthode.
+  files["CLAUDE.md"] = renderClaudeMd(team, personas, opts);
+
+  // 4. Gardes-fous → hooks + permissions, et copie des scripts référencés.
+  const wiring = buildGuardrailWiring(team);
+  files[".claude/settings.json"] = json(buildClaudeSettings(wiring));
+  for (const script of wiring.scripts) {
+    const content = GUARD_SCRIPTS[script];
+    if (content !== undefined) files[`.claude/hooks/${script}`] = content;
+  }
+
+  // 5. `.mcp.json` conditionnel.
+  if (team.connectors.length > 0) {
+    files[".mcp.json"] = renderMcp(team.connectors);
+  }
+
+  return { files };
+}
