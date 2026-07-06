@@ -14,6 +14,7 @@
  * (snake_case). `team_write(id, json)` → `{ id, json }`.
  */
 import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 
 /** Wrapper typé minimal autour de `invoke`. SEUL endroit autorisé à l'appeler. */
 export async function call<T>(
@@ -79,9 +80,24 @@ export function kitDeploy(
   return call<string[]>("kit_deploy", { destDir, files, force });
 }
 
+// --- Sélecteur de dossier natif (P4 : plugin Tauri `dialog`, option Q-1 = a) ---
+
 /**
- * Façade backend en objet — facilite le mock dans les tests (le hook `useForgeTeams`
- * accepte une implémentation de `Backend` en dépendance injectable).
+ * Ouvre le sélecteur de dossier natif (plugin `dialog`) et renvoie le chemin choisi,
+ * ou `null` si l'utilisateur annule. **SEUL** endroit autorisé à toucher au plugin
+ * `dialog` (même cloisonnement que `invoke` : aucun composant ne l'importe — invariant P1).
+ * Le dialog ne fait que **fournir un chemin** ; `kit_deploy` reste l'autorité de l'écriture
+ * non destructive + pathguard (le chemin choisi n'esquive aucune garde). Hors Tauri (dev
+ * front pur / tests), le plugin est mocké.
+ */
+export async function pickDirectory(): Promise<string | null> {
+  const selection = await openDialog({ directory: true, multiple: false });
+  return typeof selection === "string" ? selection : null;
+}
+
+/**
+ * Façade backend en objet — facilite le mock dans les tests (les hooks `useForgeTeams`
+ * et `useForgeDeploy` acceptent une implémentation de `Backend` en dépendance injectable).
  */
 export const backend = {
   call,
@@ -92,6 +108,7 @@ export const backend = {
   teamDelete,
   workspacePath,
   kitDeploy,
+  pickDirectory,
 };
 
 export type Backend = typeof backend;

@@ -20,6 +20,9 @@ fn ping() -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Plugin `dialog` (P4) : sélecteur de dossier natif pour choisir la destination
+        // de déploiement. Seule capacité backend ajoutée par P4 ; `kit_deploy` inchangé.
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             ping,
             teams_store::team_list,

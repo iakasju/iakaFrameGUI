@@ -18,5 +18,8 @@ tauri-build = { version = "2.6.2", features = [] }
 [dependencies]
 # Alignes sur les versions eprouvees du Cockpit (deja builde sur cet OS).
 tauri = { version = "2.11.2", features = [] }
+# Selecteur de dossier natif (P4) — meme montage que le Cockpit. Ne fournit qu'un
+# chemin ; l'ecriture non destructive reste portee par kit_deploy (pathguard).
+tauri-plugin-dialog = "2"
 # Resolution du home cross-OS (chapeau + workspace), zero constante Windows.
 dirs = "5"
