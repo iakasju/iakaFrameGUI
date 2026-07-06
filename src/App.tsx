@@ -9,13 +9,15 @@ import { useState } from "react";
 import { useForgeTeams } from "./hooks/useForgeTeams";
 import { PersonasView } from "./views/PersonasView";
 import { TeamsView } from "./views/TeamsView";
+import { DeployView } from "./views/DeployView";
 import { SettingsView } from "./views/SettingsView";
 
-type Nav = "personas" | "teams" | "settings";
+type Nav = "personas" | "teams" | "deploy" | "settings";
 
 const TABS: { key: Nav; label: string }[] = [
   { key: "personas", label: "Personas" },
   { key: "teams", label: "Teams" },
+  { key: "deploy", label: "Générer & Déployer" },
   { key: "settings", label: "Réglages" },
 ];
 
@@ -44,6 +46,7 @@ export default function App() {
 
       {nav === "personas" && <PersonasView forge={forge} />}
       {nav === "teams" && <TeamsView forge={forge} />}
+      {nav === "deploy" && <DeployView forge={forge} />}
       {nav === "settings" && <SettingsView />}
     </div>
   );
