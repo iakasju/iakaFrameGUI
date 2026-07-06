@@ -28,6 +28,12 @@ export interface KitFileTree {
 export interface KitGenOptions {
   /** Corps du fichier-contrat de méthode (inséré tel quel dans `CLAUDE.md`). */
   methodInstructions?: string;
+  /**
+   * Host LAN pour le nœud `ollama-lan` (Q-5 : champ de nœud paramétrable). Injecté à la
+   * génération ; si absent, l'`AGENTS.md` porte le **placeholder documenté** `<host-lan>` à
+   * compléter par l'utilisateur. Ignoré par les autres nœuds.
+   */
+  lanHost?: string;
 }
 
 /**

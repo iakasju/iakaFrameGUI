@@ -185,12 +185,13 @@ describe("G-9 — extensibilité : interface RunnerAdapter + registre", () => {
     }
   });
 
-  it("claude est le seul implémenté ; codex/ollama sont déclarés non implémentés", () => {
-    expect(implementedNodes()).toEqual(["claude"]);
-    expect(getAdapter("claude").implemented).toBe(true);
-    for (const node of ["codex", "ollama-localhost", "ollama-lan"] as const) {
-      expect(getAdapter(node).implemented).toBe(false);
-      expect(() => getAdapter(node).generate(gabaritTeam())).toThrow(/non implémenté/);
+  it("les 4 nœuds sont implémentés (P3b) ; chacun génère un arbre", () => {
+    expect(implementedNodes()).toEqual([...NODE_KINDS]);
+    for (const node of NODE_KINDS) {
+      expect(getAdapter(node).implemented).toBe(true);
+      const tree = getAdapter(node).generate(gabaritTeam());
+      expect(typeof tree.files).toBe("object");
+      expect(Object.keys(tree.files).length).toBeGreaterThan(0);
     }
   });
 

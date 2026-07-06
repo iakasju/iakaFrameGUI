@@ -7,6 +7,8 @@
 
 export * from "./types";
 export * from "./guards";
+export * from "./mcp";
 export * from "./claudeCode";
+export * from "./agentsMd";
 export * from "./registry";
 export { GUARD_SCRIPTS } from "./guardScripts.generated";

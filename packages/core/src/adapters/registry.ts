@@ -1,18 +1,23 @@
 /**
  * registry.ts — **registre des adaptateurs de runner** par nœud (extensibilité AR-4).
  *
- * Au MVP, seul le nœud `claude` a un adaptateur **réel** (`generateClaudeCodeKit`). Les nœuds
- * `codex` / `ollama-localhost` / `ollama-lan` sont **déclarés** mais **non implémentés**
- * (P3b) : leur adaptateur existe (archi ouverte) et expose `implemented: false` ; appeler
- * `generate` lève une erreur explicite. On garde ainsi l'archi extensible **sans** coder ces
- * nœuds.
+ * P3b : **4 nœuds implémentés**. Le nœud `claude` a un adaptateur **hooks** (`CLAUDE.md` +
+ * `settings.json`, P3, inchangé) ; `codex` / `ollama-localhost` / `ollama-lan` ont des
+ * adaptateurs **`AGENTS.md`** (nœuds sans hooks, gardes en prose). L'interface `RunnerAdapter`
+ * est **stable** (aucune signature changée) ; la seule variation entre les 3 nœuds `agents-md`
+ * est le **rendu** (endpoint / entête), porté par leur `generate` respectif.
  */
 
 import { kitFormatForNode, NODE_KINDS, type NodeKind } from "../node";
+import {
+  generateCodexKit,
+  generateOllamaLanKit,
+  generateOllamaLocalhostKit,
+} from "./agentsMd";
 import { generateClaudeCodeKit } from "./claudeCode";
 import type { RunnerAdapter } from "./types";
 
-/** Adaptateur de référence : le nœud Claude Code (seul implémenté au MVP). */
+/** Adaptateur de référence : le nœud Claude Code (hooks + `CLAUDE.md`, P3 inchangé). */
 export const claudeCodeAdapter: RunnerAdapter = {
   node: "claude",
   kitFormat: kitFormatForNode("claude"),
@@ -20,27 +25,36 @@ export const claudeCodeAdapter: RunnerAdapter = {
   generate: generateClaudeCodeKit,
 };
 
-/** Fabrique un adaptateur **déclaré non implémenté** (P3b) pour un nœud différé. */
-function notImplementedAdapter(node: NodeKind): RunnerAdapter {
-  return {
-    node,
-    kitFormat: kitFormatForNode(node),
-    implemented: false,
-    generate() {
-      throw new Error(
-        `Adaptateur de nœud « ${node} » non implémenté (différé P3b). ` +
-          `Seul « claude » est disponible au MVP.`,
-      );
-    },
-  };
-}
+/** Adaptateur **codex** (`AGENTS.md`, nœud sans hooks — gardes en prose). */
+export const codexAdapter: RunnerAdapter = {
+  node: "codex",
+  kitFormat: kitFormatForNode("codex"),
+  implemented: true,
+  generate: generateCodexKit,
+};
 
-/** Registre { nœud → adaptateur } couvrant TOUS les `NodeKind` (implémentés ou déclarés). */
+/** Adaptateur **ollama-localhost** (`AGENTS.md`, endpoint `http://localhost:11434`). */
+export const ollamaLocalhostAdapter: RunnerAdapter = {
+  node: "ollama-localhost",
+  kitFormat: kitFormatForNode("ollama-localhost"),
+  implemented: true,
+  generate: generateOllamaLocalhostKit,
+};
+
+/** Adaptateur **ollama-lan** (`AGENTS.md`, endpoint `http://<host-lan>:11434`, host paramétrable Q-5). */
+export const ollamaLanAdapter: RunnerAdapter = {
+  node: "ollama-lan",
+  kitFormat: kitFormatForNode("ollama-lan"),
+  implemented: true,
+  generate: generateOllamaLanKit,
+};
+
+/** Registre { nœud → adaptateur } couvrant TOUS les `NodeKind` (les 4 implémentés, P3b). */
 export const RUNNER_ADAPTERS: Readonly<Record<NodeKind, RunnerAdapter>> = {
   claude: claudeCodeAdapter,
-  codex: notImplementedAdapter("codex"),
-  "ollama-localhost": notImplementedAdapter("ollama-localhost"),
-  "ollama-lan": notImplementedAdapter("ollama-lan"),
+  codex: codexAdapter,
+  "ollama-localhost": ollamaLocalhostAdapter,
+  "ollama-lan": ollamaLanAdapter,
 };
 
 /** Adaptateur d'un nœud (toujours défini : les `NodeKind` sont tous couverts). */
