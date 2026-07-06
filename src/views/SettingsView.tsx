@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import { backend } from "../api/backend";
+import { CharteSelector } from "../components/CharteSelector";
 
 export function SettingsView() {
   const [workspace, setWorkspace] = useState<string>("");
@@ -24,6 +25,15 @@ export function SettingsView() {
     <div className="view">
       <h2>Réglages</h2>
       <p className="sub">Forge iakaFrameGUI — MVP.</p>
+
+      <div className="panel">
+        <h3 style={{ marginTop: 0 }}>Charte visuelle</h3>
+        <p className="sub" style={{ marginBottom: 8 }}>
+          Habille l'UI de la forge. Cinabre par défaut ; le choix est mémorisé et
+          réappliqué au prochain lancement.
+        </p>
+        <CharteSelector />
+      </div>
 
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Dossier de travail (workspace)</h3>
