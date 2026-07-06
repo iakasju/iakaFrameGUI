@@ -2,11 +2,18 @@
  * guardrail.ts — le **garde-fou** (concept de 1re classe, AR-8) — cœur partagé 🟦.
  *
  * Contrat § 2.5 : une contrainte exécutée qui fait respecter la discipline (canal
- * d'identité, garde de périmètre, délégation, permissions). En P1, le cœur ne porte que
- * l'**intention** (id + kind) ; la génération du mécanisme propre au nœud (hooks
- * `settings.json` + permissions pour Claude Code) est **différée en P3**. Les gardes de
- * méthode existantes (`global/hooks/identity-guard.mjs`, `perimeter-guard.mjs`) sont
- * **référencées** ici comme intentions, **branchées seulement en P3**.
+ * d'identité, garde de périmètre, délégation, permissions). En P1, le cœur ne portait que
+ * l'**intention** (id + kind). P3 a câblé le rendu **hook** (Claude Code). **P3b** ajoute le
+ * point structurant : **une intention, DEUX rendus**. Les nœuds à hooks (`claude`) rendent la
+ * garde en **hooks + scripts** ; les nœuds **sans hooks** (`codex`, `ollama-*`) ne peuvent pas
+ * câbler de mécanisme → la garde est **embarquée en TEXTE comportemental** dans `AGENTS.md`.
+ *
+ * Le garde-fou porte donc désormais un `rendering` à deux facettes optionnelles
+ * (`hook` / `prose`) : l'adaptateur **choisit** la facette selon la famille de son nœud, **sans
+ * dupliquer l'intention**. La `prose` du canal d'identité **reproduit fidèlement** les mêmes
+ * règles que le hook (badge `[ROYAUME][Persona]`, position ouverture/clôture, START/STOP
+ * bannis, chaîne de badges, verbatim/anti-ventriloquie) — texte issu de l'éprouvé
+ * `iakaframe/kit-openwebui/AGENTS.md` (§ Identité), jamais dénaturé (invariant § 7).
  */
 
 /** Nature d'un garde-fou (intention, agnostique du nœud). */
@@ -20,7 +27,26 @@ export type GuardrailKind =
 /** Portée d'application d'un garde-fou. */
 export type GuardrailScope = "team" | "persona" | "role";
 
-/** Déclaration d'un garde-fou (MVP = intention ; mécanisme runner généré en P3). */
+/**
+ * **Deux rendus d'une même intention de garde** (P3b). L'adaptateur choisit selon la famille
+ * du nœud : Claude Code lit `hook` (nœud à hooks, P3) ; codex/ollama lisent `prose` (nœud sans
+ * hooks). **Au moins un** des deux est présent pour une garde canonique rendue.
+ */
+export interface GuardrailRendering {
+  /**
+   * Rendu **HOOK** (nœud à hooks) : descripteur du câblage principal (évènement + matcher +
+   * script). Résumé de premier plan — le câblage COMPLET (identité = 3 évènements) reste porté
+   * par `adapters/guards.ts` (source de vérité de la génération Claude Code, inchangée en P3b).
+   */
+  hook?: { event: string; matcher?: string; script: string };
+  /**
+   * Rendu **TEXTE** (nœud sans hooks) : prose comportementale injectée telle quelle dans une
+   * section de l'`AGENTS.md`. Reproduit fidèlement les règles de la garde.
+   */
+  prose?: { heading: string; body: string };
+}
+
+/** Déclaration d'un garde-fou (intention + rendus disponibles, P3b). */
 export interface Guardrail {
   /** Id stable du garde-fou (ex. "identity-guard"). */
   id: string;
@@ -30,12 +56,65 @@ export interface Guardrail {
   label: string;
   /** Portée par défaut (indicatif au MVP). */
   scope: GuardrailScope;
+  /** Rendus disponibles (au moins un). Les gardes de méthode fournissent `hook` **et** `prose`. */
+  rendering: GuardrailRendering;
 }
 
 /**
- * Catalogue des gardes de méthode connues (référence les hooks existants du dépôt).
- * P1 = **déclaration** uniquement : on attache un id de garde à une persona ; la forge
- * ne génère RIEN à ce stade (AR-6).
+ * Prose du **canal d'identité** — rituel comportemental (nœud sans hooks). Reproduit
+ * fidèlement les règles du hook `identity-guard.mjs` (badge, position ouverture/clôture,
+ * START/STOP bannis) et de `iakaframe/kit-openwebui/AGENTS.md` § Identité (chaîne de badges,
+ * verbatim/anti-ventriloquie). Texte éprouvé — **jamais dénaturé** (invariant § 7).
+ */
+const IDENTITY_PROSE_BODY = `> Ce nœud n'offre **pas de hook garde d'identité** : le rituel ci-dessous est **purement
+> comportemental**, porté par le contrat, appliqué par chaque persona à chaque prise de parole.
+> Aucun watcher ne le vérifie — la discipline est humaine et contractuelle.
+
+Badge \`<pastille> [ROYAUME][Persona]\` sur **toute** prise de parole adressée au décideur (toute
+réponse, même un simple compte rendu) — \`ROYAUME\` = nom du projet en **MAJUSCULE** (sauf le rôle
+portefeuille : \`PORTEFEUILLE\`) ; **pastille = la phase** : 🔵 cadrage · 🔴 dev · 🟢 staging ·
+🟣 prod · 🟡 portefeuille · 🟠 transverse. **Jamais** sur les logs ni les traces de réflexion ;
+seulement les messages destinés au décideur.
+
+**La POSITION de la pastille porte le sens** (jamais un mot-clé) :
+- pastille **AVANT** le bloc = **ouverture** : \`<pastille> [ROYAUME][Persona] — <annonce de ce que tu vas faire>\` (première ligne) ;
+- pastille **APRÈS** le bloc = **clôture** : \`<texte final> [ROYAUME][Persona] <pastille>\` (dernière ligne, **rien après la pastille**).
+
+Les mots « START » / « STOP » (et toutes leurs variantes) sont **bannis** des badges et messages :
+redondants avec la position. (Ils n'apparaissent ici que pour être explicitement proscrits.)
+
+**Chaîne de badges sans interjection** (orchestrateurs — rôles portefeuille / coordination) :
+délégation A→B : A ouvre + annonce qu'il délègue, A clôt, **immédiatement** B ouvre et parle à la
+1ʳᵉ personne, B travaille puis clôt, **ensuite seulement** A rouvre. Entre l'ouverture et la
+clôture de B, A ne place **aucune phrase dans sa voix**. Sans dispatch natif, la chaîne est
+**narrative** (le décideur change de persona, ou l'orchestrateur cite) — jamais un vrai routage.
+
+**Restitution verbatim / anti-ventriloquie** : toute restitution du travail d'un persona se fait
+**sous le badge de l'agent émetteur**, **citée VERBATIM** ; on n'écrit **jamais** le badge d'un
+persona pour lui faire dire des mots qu'il n'a pas produits. Toute reformulation/synthèse est la
+voix de l'orchestrateur, sous **son** badge.`;
+
+/** Prose de la **garde de périmètre** — comportementale (nœud sans hooks). */
+const PERIMETER_PROSE_BODY = `Chaque persona **tient son périmètre** et ne déborde pas : pas de « tant qu'on y est » hors de
+l'instruction en cours. On ne juge pas sa propre qualité, on ne s'auto-valide pas : la revue
+(rôle tests) est une **passe distincte**. En cas de doute sur le périmètre d'une tâche, on
+**remonte à la coordination / au cadrage** plutôt que d'improviser une extension de portée.
+
+Avant toute action vraiment destructive (hors garde-fous automatiques), **demander confirmation
+par message** avant d'agir. Jamais de \`git reset --hard\` ni de \`push --force\` côté agent.`;
+
+/** Prose de la **garde de délégation** — comportementale (nœud sans hooks). */
+const DELEGATION_PROSE_BODY = `La délégation est réservée aux **orchestrateurs** (rôles portefeuille / coordination). Un
+orchestrateur ne fait pas le travail à la place du persona délégué : il **annonce** la délégation,
+laisse le persona incarner son rôle à la 1ʳᵉ personne, puis **restitue** son travail verbatim sous
+le badge de l'émetteur (cf. rituel d'identité). Sur un nœud sans dispatch natif, la délégation est
+**narrative** : on change de persona, on ne route pas automatiquement.`;
+
+/**
+ * Catalogue des gardes de méthode connues (référence les hooks existants du dépôt **et** la
+ * prose comportementale P3b). Chaque garde canonique porte **les deux rendus** (`hook` +
+ * `prose`) : l'adaptateur choisit selon la famille de son nœud. Le descripteur `hook` résume
+ * le câblage principal (câblage complet = `adapters/guards.ts`, inchangé).
  */
 export const CATALOG_GUARDRAILS: readonly Guardrail[] = [
   {
@@ -43,20 +122,50 @@ export const CATALOG_GUARDRAILS: readonly Guardrail[] = [
     kind: "identity",
     label: "Canal d'identité (badges/pastilles)",
     scope: "persona",
+    rendering: {
+      hook: { event: "Stop", matcher: "*", script: "identity-guard.mjs" },
+      prose: {
+        heading: "Identité — rituel comportemental (pas de hook garde sur ce nœud)",
+        body: IDENTITY_PROSE_BODY,
+      },
+    },
   },
   {
     id: "perimeter-guard",
     kind: "perimeter",
     label: "Garde de périmètre",
     scope: "persona",
+    rendering: {
+      hook: {
+        event: "PreToolUse",
+        matcher: "Edit|Write|Bash|NotebookEdit",
+        script: "perimeter-guard.mjs",
+      },
+      prose: {
+        heading: "Périmètre — garde comportementale",
+        body: PERIMETER_PROSE_BODY,
+      },
+    },
   },
   {
     id: "delegation-guard",
     kind: "delegation",
     label: "Garde de délégation",
     scope: "team",
+    rendering: {
+      hook: { event: "PreToolUse", matcher: "Task", script: "delegation-guard.mjs" },
+      prose: {
+        heading: "Délégation — canal des gestes (comportemental)",
+        body: DELEGATION_PROSE_BODY,
+      },
+    },
   },
 ] as const;
+
+/** Garde canonique par nature (accès direct au rendu, ex. `guardrailByKind("identity")`). */
+export function guardrailByKind(kind: GuardrailKind): Guardrail | undefined {
+  return CATALOG_GUARDRAILS.find((g) => g.kind === kind);
+}
 
 /** Ids de gardes connues (ordre du catalogue). */
 export const CATALOG_GUARDRAIL_IDS: readonly string[] = CATALOG_GUARDRAILS.map(
