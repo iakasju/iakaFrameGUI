@@ -139,6 +139,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | P3b — Adaptateurs codex + ollama (localhost/lan) | `specs/instructions/P3b-adaptateurs-codex-ollama.md` | **cadré — à valider (jalon)** |
 | P3c — Adaptateur Open WebUI (Models JSON) | `specs/instructions/P3c-adaptateur-openwebui.md` | **cadré — à valider (jalon)** |
 | P4 — UI « Générer & Déployer » (chaînon authoring→prod) | `specs/instructions/P4-ui-generer-deployer.md` | **cadré — à valider (jalon)** |
+| P5 — Skin Cinabre + sélecteur de charte (UI forge) | `specs/instructions/P5-skin-cinabre-selecteur-charte.md` | **cadré — à valider (jalon)** |
 
 ---
 
