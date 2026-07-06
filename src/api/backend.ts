@@ -63,6 +63,22 @@ export function workspacePath(): Promise<string> {
   return call<string>("workspace_path");
 }
 
+// --- Déploiement de kit (P3 : écrit une arborescence générée dans un dossier cible) ---
+
+/**
+ * Déploie un kit (arbre { chemin relatif → contenu }, produit par `generateClaudeCodeKit`
+ * de `@iakaframe/core`) dans `destDir`. Non destructif par défaut ; `force` autorise
+ * l'écrasement. Renvoie la liste des chemins effectivement écrits. Côté Rust : pathguard +
+ * pré-vérification atomique des conflits (`kit_deploy`).
+ */
+export function kitDeploy(
+  destDir: string,
+  files: Record<string, string>,
+  force = false,
+): Promise<string[]> {
+  return call<string[]>("kit_deploy", { destDir, files, force });
+}
+
 /**
  * Façade backend en objet — facilite le mock dans les tests (le hook `useForgeTeams`
  * accepte une implémentation de `Backend` en dépendance injectable).
@@ -75,6 +91,7 @@ export const backend = {
   teamWrite,
   teamDelete,
   workspacePath,
+  kitDeploy,
 };
 
 export type Backend = typeof backend;
