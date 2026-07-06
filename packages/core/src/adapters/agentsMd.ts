@@ -24,7 +24,8 @@ import { CATALOG_GUARDRAILS, type Guardrail } from "../guardrail";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
 import { roleLabel } from "../roles";
-import type { Team } from "../team";
+import { resolveWorkflow, type Team } from "../team";
+import { renderWorkflowMarkdown } from "../workflow";
 import { renderMcpJson } from "./mcp";
 import type { KitFileTree, KitGenOptions } from "./types";
 
@@ -77,19 +78,6 @@ const WHAT_IS_IAKAFRAME = `## Ce qu'est iakaframe
 Une **méthode de travail IA-augmentée** : c'est le **workflow** qui produit la qualité, pas l'IA
 seule. Un **décideur humain** pilote ; une **galerie de personas** exécute, dans un cadre strict —
 **on ne code jamais avant d'avoir cadré**.`;
-
-/** Section mutualisée « Les 3 phases (cible staging) + squad prod ». */
-const PHASES = `## Les 3 phases (cible : staging) + le squad prod
-
-| Phase | Rôle | Entrée → Sortie | Gate |
-|---|---|---|---|
-| 🔵 **P1 — Cadrage** | architecture | besoin → \`specs/instructions/<feature>.md\` | **humain** (le décideur valide) |
-| 🔴 **P2 — Réalisation** | fabrication + tests | instruction → branche + commits + tests verts | **auto** (typecheck/lint/tests) |
-| 🟢 **P3 — Staging** | fabrication (devops) + tests | PASS → build/déploiement **staging** (\`vX.Y.Z-rc\`) | auto |
-
-La chaîne **s'arrête au staging**. La **mise en production** est un **squad séparé**, déclenché
-**sur feu vert humain** — hors les 3 phases. Au-dessus des projets : le rôle **portefeuille**
-(switch de projet, vue d'ensemble). Transverses : **graphisme** (design on-brand), **doc** (guides).`;
 
 /** Section mutualisée « Règle absolue — cadrage avant code ». */
 const CADRAGE_AVANT_CODE = `## Règle absolue — cadrage avant code
@@ -159,7 +147,8 @@ export function buildAgentsMd(team: Team, spec: AgentsMdNodeSpec): string {
     spec.prerequisites,
     WHAT_IS_IAKAFRAME,
     renderRoster(team, personas),
-    PHASES,
+    // Section phases/gates rendue **depuis la donnée** (P6) — plus de littéral figé.
+    renderWorkflowMarkdown(resolveWorkflow(team)),
     CADRAGE_AVANT_CODE,
     renderMethodGuards(),
     CONVENTIONS,

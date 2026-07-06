@@ -9,6 +9,11 @@
  */
 
 import { parsePersona, type Persona } from "./persona";
+import {
+  IAKAFRAME_CANONICAL_WORKFLOW,
+  workflowById,
+  type Workflow,
+} from "./workflow";
 
 /** Casting « pastilles » par défaut au MVP (Q-4) : pas de portraits embarqués. */
 export const DEFAULT_VIGNETTE_TEAM = "none";
@@ -35,6 +40,12 @@ export interface Team {
   personas: Persona[];
   /** Ids de connecteurs MCP attachés (AR-8 ; MVP = déclaration). */
   connectors: string[];
+  /**
+   * Id du workflow de la team (P6, **optionnel**). Absent/inconnu → **workflow canonique**
+   * (`IAKAFRAME_CANONICAL_WORKFLOW`) via `resolveWorkflow`. La team reste **pure** : le workflow
+   * ne pose aucun runner/modèle, c'est de la structure de phases/gates (AR-1).
+   */
+  workflowId?: string;
 }
 
 /** Filtre un tableau brut en `string[]` (ignore non-string / vides). */
@@ -80,7 +91,7 @@ export function parseTeam(raw: unknown): Team | null {
       ? coordRaw
       : (personas[0]?.id ?? "");
 
-  return {
+  const team: Team = {
     id,
     name,
     methodId,
@@ -89,6 +100,22 @@ export function parseTeam(raw: unknown): Team | null {
     personas,
     connectors: toStringArray(r.connectors),
   };
+  const workflowId =
+    typeof r.workflowId === "string" && r.workflowId.trim().length > 0
+      ? r.workflowId.trim()
+      : undefined;
+  if (workflowId) team.workflowId = workflowId;
+  return team;
+}
+
+/**
+ * **Résout le workflow d'une team** (P6). Renvoie le workflow du catalogue référencé par
+ * `team.workflowId` **sinon** le **canonique** (`IAKAFRAME_CANONICAL_WORKFLOW`). Défensif :
+ * jamais d'exception, toujours ≥ le canonique — une team P1 sans le champ obtient le canonique
+ * (non-régression triviale du schéma).
+ */
+export function resolveWorkflow(team: Pick<Team, "workflowId">): Workflow {
+  return workflowById(team.workflowId) ?? IAKAFRAME_CANONICAL_WORKFLOW;
 }
 
 /**

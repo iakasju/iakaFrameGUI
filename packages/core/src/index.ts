@@ -15,6 +15,7 @@
  */
 
 export * from "./roles";
+export * from "./workflow";
 export * from "./skill";
 export * from "./guardrail";
 export * from "./connector";
