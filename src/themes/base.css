@@ -205,3 +205,55 @@ button.btn.danger {
   color: var(--muted);
   font-style: italic;
 }
+
+/* Workflow read-only (P6) */
+.workflow-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workflow-head h3 {
+  margin: 0;
+}
+
+.workflow-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.workflow-table th,
+.workflow-table td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.workflow-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.gate {
+  display: inline-block;
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+}
+
+.gate-human {
+  color: var(--accent);
+}
+
+.gate-auto {
+  color: var(--info);
+}
+
+.workflow-offchain {
+  margin-top: 10px;
+}

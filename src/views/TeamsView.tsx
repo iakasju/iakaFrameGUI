@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { buildTeamFromRoster, emptyTeam } from "@iakaframe/core";
 import type { UseForgeTeams } from "../hooks/useForgeTeams";
 import { TeamComposer } from "../components/TeamComposer";
+import { WorkflowPanel } from "../components/WorkflowPanel";
 
 export function TeamsView({ forge }: { forge: UseForgeTeams }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -91,17 +92,20 @@ export function TeamsView({ forge }: { forge: UseForgeTeams }) {
       )}
 
       {selected ? (
-        <TeamComposer
-          team={selected}
-          onUpsertPersona={(p) => void forge.upsertPersona(selected.id, p)}
-          onRemovePersona={(id) => void forge.removePersona(selected.id, id)}
-          onSetCoordinator={(id) => void forge.setCoordinator(selected.id, id)}
-          onAttachConnector={(id) => void forge.attachConnector(selected.id, id)}
-          onDetachConnector={(id) => void forge.detachConnector(selected.id, id)}
-          onRenameTeam={(name) =>
-            void forge.upsertTeam({ ...selected, name })
-          }
-        />
+        <>
+          <TeamComposer
+            team={selected}
+            onUpsertPersona={(p) => void forge.upsertPersona(selected.id, p)}
+            onRemovePersona={(id) => void forge.removePersona(selected.id, id)}
+            onSetCoordinator={(id) => void forge.setCoordinator(selected.id, id)}
+            onAttachConnector={(id) => void forge.attachConnector(selected.id, id)}
+            onDetachConnector={(id) => void forge.detachConnector(selected.id, id)}
+            onRenameTeam={(name) =>
+              void forge.upsertTeam({ ...selected, name })
+            }
+          />
+          <WorkflowPanel team={selected} />
+        </>
       ) : (
         <p className="empty">Créez une team pour commencer.</p>
       )}
