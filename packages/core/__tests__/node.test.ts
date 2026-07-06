@@ -10,15 +10,17 @@ import {
 } from "../src/node";
 
 describe("NodeKind — nœuds de 1er rang (AR-4)", () => {
-  it("inclut ollama-localhost ET ollama-lan, distincts", () => {
+  it("inclut ollama-localhost, ollama-lan ET openwebui, distincts", () => {
     expect(NODE_KINDS).toEqual([
       "claude",
       "codex",
       "ollama-localhost",
       "ollama-lan",
+      "openwebui",
     ]);
     expect(NODE_KINDS).toContain("ollama-localhost");
     expect(NODE_KINDS).toContain("ollama-lan");
+    expect(NODE_KINDS).toContain("openwebui");
   });
 
   it("isNodeKind reconnaît les canoniques, rejette le legacy ollama nu", () => {
@@ -47,8 +49,8 @@ describe("normalizeLegacyTarget — ollama → ollama-localhost (Q-2)", () => {
 });
 
 describe("Format et nœud sont deux champs distincts (A-4)", () => {
-  it("KitFormat = claude-md | agents-md", () => {
-    expect(KIT_FORMATS).toEqual(["claude-md", "agents-md"]);
+  it("KitFormat = claude-md | agents-md | openwebui-models", () => {
+    expect(KIT_FORMATS).toEqual(["claude-md", "agents-md", "openwebui-models"]);
   });
 
   it("claude → claude-md → CLAUDE.md", () => {
@@ -62,13 +64,21 @@ describe("Format et nœud sont deux champs distincts (A-4)", () => {
       expect(contractFileForNode(n)).toBe("AGENTS.md");
     }
   });
+
+  it("openwebui → openwebui-models (N Models JSON, pas de fichier-contrat unique)", () => {
+    expect(kitFormatForNode("openwebui")).toBe("openwebui-models");
+    // `openwebui-models` n'a pas de fichier-contrat unique : `contractFileForNode` n'est pas
+    // signifiant ici et retombe sur le défaut (jamais utilisé dans le flux de déploiement).
+    expect(contractFileForNode("openwebui")).toBe("AGENTS.md");
+  });
 });
 
 describe("kitNameForNode — nom du dossier de kit par nœud", () => {
-  it("mappe claude→kit-claude, codex→kit-codex, ollama-*→kit-ollama", () => {
+  it("mappe claude→kit-claude, codex→kit-codex, ollama-*→kit-ollama, openwebui→kit-openwebui", () => {
     expect(kitNameForNode("claude")).toBe("kit-claude");
     expect(kitNameForNode("codex")).toBe("kit-codex");
     expect(kitNameForNode("ollama-localhost")).toBe("kit-ollama");
     expect(kitNameForNode("ollama-lan")).toBe("kit-ollama");
+    expect(kitNameForNode("openwebui")).toBe("kit-openwebui");
   });
 });

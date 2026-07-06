@@ -14,11 +14,22 @@
 
 import vocab from "./vocab.json" with { type: "json" };
 
-/** Destinations de déploiement de 1er rang (AR-4). */
-export type NodeKind = "claude" | "codex" | "ollama-localhost" | "ollama-lan";
+/** Destinations de déploiement de 1er rang (AR-4). `openwebui` = 5e nœud (P3c). */
+export type NodeKind =
+  | "claude"
+  | "codex"
+  | "ollama-localhost"
+  | "ollama-lan"
+  | "openwebui";
 
-/** Format de contrat d'un kit : `claude-md`→`CLAUDE.md` ; `agents-md`→`AGENTS.md`. */
-export type KitFormat = "claude-md" | "agents-md";
+/**
+ * Format de contrat d'un kit : `claude-md`→`CLAUDE.md` ; `agents-md`→`AGENTS.md` ;
+ * `openwebui-models` (P3c) = **N Models JSON** (`models/<personaId>.json`, un par persona),
+ * structurellement distinct des deux markdown/`.claude/` — d'où **pas** de fichier-contrat
+ * unique (`contractFileByFormat` ne le mappe volontairement pas ; `contractFileForNode`
+ * n'est pas signifiant pour ce format et retombe sur le défaut, jamais utilisé dans le flux).
+ */
+export type KitFormat = "claude-md" | "agents-md" | "openwebui-models";
 
 /** Fichier-contrat déployé selon le format. */
 export type ContractFile = "CLAUDE.md" | "AGENTS.md";
