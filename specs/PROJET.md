@@ -136,6 +136,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | P1 — Coquille forge + authoring persona/team | `specs/instructions/P1-coquille-forge-authoring.md` | **cadré — à valider (jalon)** |
 | P2 — Cœur partagé + refactor vocabulaire CLI | `specs/instructions/P2-coeur-partage-refactor-cli.md` | **cadré — à valider (jalon)** |
 | P3 — Adaptateur runner Claude Code + génération + déploiement | `specs/instructions/P3-adaptateur-runner-generation-deploiement.md` | **cadré — à valider (jalon)** |
+| P3b — Adaptateurs codex + ollama (localhost/lan) | `specs/instructions/P3b-adaptateurs-codex-ollama.md` | **cadré — à valider (jalon)** |
 
 ---
 
