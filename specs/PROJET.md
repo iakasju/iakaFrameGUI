@@ -140,6 +140,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | P3c — Adaptateur Open WebUI (Models JSON) | `specs/instructions/P3c-adaptateur-openwebui.md` | **cadré — à valider (jalon)** |
 | P4 — UI « Générer & Déployer » (chaînon authoring→prod) | `specs/instructions/P4-ui-generer-deployer.md` | **cadré — à valider (jalon)** |
 | P5 — Skin Cinabre + sélecteur de charte (UI forge) | `specs/instructions/P5-skin-cinabre-selecteur-charte.md` | **cadré — à valider (jalon)** |
+| P6 — Workflows (concept de 1re classe, extrait en donnée) | `specs/instructions/P6-workflows.md` | **cadré — à valider (jalon)** |
 
 ---
 
