@@ -17,9 +17,13 @@
 2. **Split déployable / run-time.** Ce qui est un **fichier écrit sur disque** relève de la **forge** (via un
    adaptateur de runner) ; ce qui est **actif à l'exécution** relève du **cockpit**. Cette ligne est la même que
    celle observée sur Claude Code (§ 6.1) — elle **valide** la frontière produit.
-3. **Team forgée PURE (AR-1).** Une team fabriquée par la forge ne porte **que** persona + rôle + skills (+ gardes,
-   connecteurs, casting, coordinateur). **Jamais** de `runner` ni de `model` : ce couple est posé **au run-time,
-   côté cockpit**.
+3. **Team forgée PURE + Binding (AR-1 révisé, 2026-07-07 — cf. `specs/instructions/E1-evolution-binding-ar1.md`).**
+   La **Team** (définition) reste **PURE** : personas + rôles + skills + gardes + workflow + connecteurs, **jamais**
+   de `runner` ni de `model`. Le couple runner+modèle vit dans le **Binding**, une **couche séparée et optionnelle**
+   (`persona → runner+modèle`, par nœud) : la **forge** en pose un **par défaut au déploiement** (kit
+   **standalone-runnable** en terminal nu, sans Cockpit), le **cockpit** peut l'**overrider** au run-time — **sans
+   toucher à la définition**. **Modèle 3 couches** : Team pure + (Binding ?) = **Kit exécutable**. La **pureté est
+   une propriété de la Team, pas du Kit** (un Kit lié peut légitimement porter un modèle).
 4. **Agnosticisme de méthode (AR-9).** Le cœur modélise « **une** méthode » (un jeu de rôles/phases/workflows/
    gardes) dont **iakaframe est une instance**. On ne hard-wire pas « iakaframe-only ». Aucun code d'import au MVP,
    mais le schéma laisse la porte ouverte.
@@ -41,13 +45,26 @@
 | **Garde-fou** | 🟦 cœur (intention), 🟧 génération | oui (hooks + permissions) | **oui** (exécution du hook) | [MVP] identité/périmètre |
 | **Connecteur (MCP)** | 🟦 cœur (déclaration), 🟧 génération | oui (`.mcp.json`) | **oui** (serveur actif) | [MVP] déclaration |
 | **Workflow** | 🟧 forge | oui (à terme) | orchestré 🟩 | [différé P3] |
-| **Team** | 🟦 schéma, 🟧 composition, 🟩 sélection | oui (kit) | sélection/pilotage | [MVP] |
-| **Kit** | 🟧 forge (génère) | **oui** (le kit EST le déployable) | non | [MVP] (cible Claude Code) |
+| **Team** (définition PURE) | 🟦 schéma, 🟧 composition, 🟩 sélection | oui (via kit) | sélection/pilotage | [MVP] |
+| **Binding** (persona→runner+modèle) | 🟦 schéma, 🟧 défaut au déploiement, 🟩 override | oui (artefact à côté du kit) | **oui** (override) | [MVP révisé E1] |
+| **Kit** (Team + Binding? = exécutable) | 🟧 forge (génère) | **oui** (le kit EST le déployable) | non | [MVP] (cible Claude Code) |
 | **Nœud d'exécution** | 🟧 forge (déploie vers) | destination | héberge l'exécution | [MVP] `claude` ; [différé] codex/ollama-* |
 | **Adaptateur de runner** | 🟧 forge | produit les déployables | non | [MVP] Claude Code |
 | **Adaptateur de méthode** | 🟧 forge | — | non | [différé P∞] |
-| **Runner** | 🟩 cockpit | **non** (jamais un fichier) | **oui** | hors forge |
-| **Modèle** | 🟩 cockpit | **non** | **oui** | hors forge |
+| **Runner** | 🟦 schéma, posé via **Binding** | non en soi (kind) | **oui** | vit dans le Binding |
+| **Modèle** | 🟦 schéma, posé via **Binding** | non en soi (alias) | **oui** | vit dans le Binding |
+
+### 1.1 Les TROIS couches (modèle cible — E1, 2026-07-07)
+
+| Couche | Contenu | Propriétaire | Pureté |
+|---|---|---|---|
+| **1. Team (définition)** | personas · rôles · skills · gardes · workflow · connecteurs | **Forge** (foyer unique) ; Cockpit consomme | **PURE** — jamais de runner/modèle |
+| **2. Binding (liaison)** | `persona → runner + modèle`, par nœud ; optionnel | **Forge** (défaut au déploiement) / **Cockpit** (override) | environnement-spécifique |
+| **3. Kit déployé** | Team + (Binding ?) → **exécutable** | Forge (génère) | pur **sans** Binding ; **standalone-runnable avec** |
+
+> **Bascule** : la **pureté est une propriété de la Team, pas du Kit**. Une Team reste pure/agnostique/portable ;
+> un **Kit peut être lié** (bound) pour tourner **seul dans un terminal, sans Cockpit**. Détail :
+> `specs/instructions/E1-evolution-binding-ar1.md`.
 
 ---
 
@@ -157,13 +174,35 @@
     connectors: string[];        // ids de connecteurs MCP attachés (AR-8)
   }
   ```
-- **Déployable / run-time.** La team se **déploie** sous forme de **Kit** (§ 3.2) ; au run-time, le cockpit la
-  **sélectionne** et lui **lie** runner+modèle par persona.
+- **Déployable / run-time.** La team se **déploie** sous forme de **Kit** (§ 3.2), **éventuellement accompagnée d'un
+  Binding** (§ 2.9) qui la rend exécutable. La Team elle-même reste **pure**.
 - **MVP.** [MVP]. **Migration depuis le Cockpit** : le schéma dérive de `IakaCockpit/src/hooks/useTeams.ts:59-86`
-  **moins** les champs `runner`/`model` (retirés côté forge — AR-1). Le retrait effectif côté Cockpit est une
-  instruction Cockpit ultérieure.
-- **Note de renommage.** `Agent`→`Persona`, `agent.runner/model` **retirés** de la définition forgée. La table
-  `persona → runner+modèle` devient une **surcouche cockpit** (§ 5.3).
+  **moins** les champs `runner`/`model` (retirés de la définition — AR-1). Ces champs **migrent vers le Binding**
+  (§ 2.9), pas dans la Team. Le retrait effectif côté Cockpit est une instruction Cockpit ultérieure (recentrage).
+- **Note de renommage.** `Agent`→`Persona`, `agent.runner/model` **retirés** de la définition forgée → portés par le
+  **Binding** (couche séparée, § 2.9).
+
+### 2.9 Binding (liaison persona→runner+modèle) — concept de 1re classe (E1, 2026-07-07)
+- **Définition.** Couche **séparée et optionnelle** associant, **pour un nœud donné**, chaque persona à un **runner**
+  et un **modèle**. Rend le **Kit exécutable** (standalone, sans Cockpit).
+- **Niveau.** 🟦 **schéma partagé** ; 🟧 la **forge** pose un **défaut au déploiement** ; 🟩 le **cockpit**
+  **override** au run-time.
+- **Attributs.**
+  ```ts
+  interface PersonaBinding { personaId: string; runner: RunnerKind; model: string; } // "" = défaut runner
+  interface Binding {
+    id: string;
+    node: NodeKind;                          // Binding PAR nœud
+    teamId: string;
+    bindings: PersonaBinding[];
+    origin: "forge-default" | "cockpit-override";
+  }
+  ```
+- **Invariant secret.** Aucun credential (runner=kind, modèle=alias) → **keychain** pour les secrets.
+- **Séparation dure.** Le Binding **n'entre jamais** dans la **définition de Team**. Artefact **distinct** (déployé
+  à côté du kit — Q-1 de E1).
+- **MVP (révisé E1).** Schéma + défaut forge au déploiement + override cockpit. Détail & lots aval (Forge « étape de
+  liaison » P7 ; recentrage Cockpit) : `specs/instructions/E1-evolution-binding-ar1.md`.
 
 ---
 
@@ -225,20 +264,25 @@
 
 ---
 
-## 4. Concepts du COCKPIT 🟩 (run-time) — hors forge, listés pour la frontière
+## 4. Runner & Modèle — portés par le BINDING (E1) — forge défaut / cockpit override
+
+> **Révision E1 (2026-07-07).** Runner et Modèle **ne sont plus « hors forge »** : ils vivent dans le **Binding**
+> (§ 2.9), que la **forge** pose par défaut au déploiement et que le **cockpit** peut overrider. Le **schéma** est
+> partagé 🟦.
 
 ### 4.1 Runner
-- **Définition.** Le **harnais d'exécution** d'une persona à l'exécution.
-- **Niveau.** 🟩 cockpit. **Jamais un fichier déployable.**
-- **Vocabulaire unifié (cible, AR-2).** `claude-code`, `codex`, `ollama`, `litellm`… (aligne le Cockpit
-  `useTeams.ts:34`). Le CLI actuel (`ps`/`iakaide`/`aider`) sera **réaligné** sur ce vocabulaire (refactor P2).
-- **MVP.** Hors forge. La forge peut au plus fournir une **suggestion** (table modèle↔rôle, aide non normative).
+- **Définition.** Le **harnais d'exécution** d'une persona (`claude-code`, `codex`, `ollama`, `litellm`… — vocab
+  unifié AR-2, aligne `useTeams.ts:34`). En soi, un **kind**, jamais un fichier.
+- **Où il vit.** Dans le **Binding** (`PersonaBinding.runner`). **Forge** : défaut au déploiement. **Cockpit** :
+  override.
 
 ### 4.2 Modèle
-- **Définition.** Le **modèle LLM** affecté à une persona à l'exécution.
-- **Niveau.** 🟩 cockpit. Jamais un fichier.
-- **Liaison.** Le couple **(runner, modèle)** est posé **par persona** au run-time (surcouche cockpit, § 5.3),
-  **jamais** dans la team forgée (AR-1).
+- **Définition.** Le **modèle LLM** affecté à une persona.
+- **Où il vit.** Dans le **Binding** (`PersonaBinding.model` ; `""` = défaut du runner). **Jamais** dans la
+  **définition de Team** (qui reste pure). Un **Kit lié** peut légitimement porter le modèle (dans ses fichiers
+  générés ou un artefact `binding.json` à côté — Q-1 de E1).
+- **Nœuds exigeant un modèle** (Ollama/Codex/Open WebUI) : la forge **doit** permettre de le choisir au déploiement
+  pour un kit **standalone-runnable**. Claude Code : modèle **omissible** (défaut runner).
 
 ---
 

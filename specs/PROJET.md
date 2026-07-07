@@ -131,6 +131,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | Feature | Instruction | État |
 |---|---|---|
 | Cadrage forge + audit moteur CLI | `specs/instructions/cadrage-iakaframegui-et-moteur.md` | **validé (jalon)** |
+| E1 — Évolution : Binding + AR-1 révisé (modèle 3 couches) | `specs/instructions/E1-evolution-binding-ar1.md` | **cadré — à valider (jalon)** |
 | P0 — Contrat de concepts | `specs/contrat-concepts.md` | **livré (P0)** |
 | P0 — Glossaire de concepts étendu | `specs/glossaire-concepts.md` | **livré (P0)** |
 | P1 — Coquille forge + authoring persona/team | `specs/instructions/P1-coquille-forge-authoring.md` | **cadré — à valider (jalon)** |
@@ -141,6 +142,7 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
 | P4 — UI « Générer & Déployer » (chaînon authoring→prod) | `specs/instructions/P4-ui-generer-deployer.md` | **cadré — à valider (jalon)** |
 | P5 — Skin Cinabre + sélecteur de charte (UI forge) | `specs/instructions/P5-skin-cinabre-selecteur-charte.md` | **cadré — à valider (jalon)** |
 | P6 — Workflows (concept de 1re classe, extrait en donnée) | `specs/instructions/P6-workflows.md` | **cadré — à valider (jalon)** |
+| P7 — Forge : étape de liaison (Binding) au déploiement | `specs/instructions/P7-forge-liaison-deploiement.md` | **cadré — à valider (jalon)** |
 
 ---
 

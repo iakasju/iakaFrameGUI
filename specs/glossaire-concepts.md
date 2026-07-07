@@ -39,13 +39,17 @@
 | Adaptateur de runner | **l'adaptateur de runner** | Traduit le cœur → surface concrète d'un nœud (les fichiers/gardes à écrire) = cœur de la génération de kits. | [MVP] Claude Code |
 | Adaptateur de méthode | **l'adaptateur de méthode** | Importe une méthode étrangère (BMAD, MetaGPT, SPARC…) dans le cœur agnostique. | [différé P∞] |
 
-## 3. Concepts du cockpit 🟩 (run-time)
+## 3. Le Binding & l'exécution (révisé E1, 2026-07-07)
 
 | Concept | Libellé canonique | Définition (une ligne) | Portée |
 |---|---|---|---|
-| Runner | **le runner** | Harnais d'exécution d'une persona (`claude-code`, `codex`, `ollama`, `litellm`…) ; jamais un fichier. | hors forge |
-| Modèle | **le modèle** | Modèle LLM affecté à une persona à l'exécution. | hors forge |
-| Liaison | **la liaison** | Surcouche cockpit `persona → (runner, modèle)` posée au run-time — **là** vivent runner+modèle (pas dans la team). | hors forge |
+| Binding | **le binding** (la liaison) | Couche séparée/optionnelle `persona → runner + modèle` **par nœud** ; rend le kit exécutable ; **forge** pose un défaut au déploiement, **cockpit** override. | 🟦 schéma ; 🟧 défaut ; 🟩 override |
+| Runner | **le runner** | Harnais d'exécution d'une persona (`claude-code`, `codex`, `ollama`, `litellm`…) ; **vit dans le Binding**. | Binding |
+| Modèle | **le modèle** | Modèle LLM affecté à une persona ; `""` = défaut du runner ; **vit dans le Binding**, jamais dans la Team. | Binding |
+
+> **AR-1 révisé** : la **Team** (définition) reste **pure** ; le runner+modèle vit dans le **Binding** (couche
+> séparée). Modèle **3 couches** : Team pure + (Binding ?) = **Kit exécutable, runnable sans Cockpit**. Réf.
+> `specs/instructions/E1-evolution-binding-ar1.md`.
 
 ---
 
@@ -55,8 +59,10 @@
   rôle. Un rôle, plusieurs personas possibles.
 - **Nœud ≠ Runner.** Le **nœud** est une **destination de déploiement** (forge, ex. `claude`) ; le **runner** est
   un **harnais d'exécution** (cockpit, ex. `claude-code`). Noms voisins, niveaux différents.
-- **Team pure ≠ Team liée.** La **team forgée** ne porte pas runner/modèle (AR-1) ; c'est la **liaison** cockpit
-  qui les ajoute au run-time.
+- **Team pure ≠ Kit lié (E1).** La **Team** (définition) ne porte **jamais** runner/modèle ; c'est le **Binding**
+  (couche séparée) qui les ajoute. La **pureté est une propriété de la Team, pas du Kit** : un **Kit lié** peut
+  porter un modèle et tourner **seul dans un terminal, sans Cockpit**. La forge pose un Binding par défaut ; le
+  cockpit peut l'overrider.
 - **Garde-fou (intention) ≠ hook (mécanisme).** Le cœur porte l'**intention** de garde ; l'adaptateur de runner
   la traduit en **hook/permission** propre au nœud. Le **canal d'identité** est un garde-fou : il se **génère**,
   il ne se remplace jamais.
