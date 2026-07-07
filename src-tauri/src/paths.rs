@@ -20,6 +20,10 @@ const HAT_SUBDIR: &str = "work";
 const WORKSPACE_DIR: &str = "iakaframegui-workspace";
 /// Sous-dossier des fichiers de team.
 const TEAMS_DIR: &str = "teams";
+/// Variable d'environnement de surcharge directe du canal de handoff (tests / portable).
+pub const HANDOFF_ROOT_ENV: &str = "IAKA_HANDOFF_ROOT";
+/// Canal de handoff partagé forge↔cockpit, sous le chapeau (H1, Q-B).
+const HANDOFF_DIR: &str = "iaka-handoff";
 
 /// Résout la racine du chapeau pour l'OS courant.
 pub fn resolve_hat_root() -> PathBuf {
@@ -61,6 +65,24 @@ fn resolve_workspace_with(env_value: Option<String>, hat_root: PathBuf) -> PathB
 /// Dossier des fichiers de team (`<workspace>/teams`).
 pub fn resolve_teams_dir() -> PathBuf {
     resolve_workspace().join(TEAMS_DIR)
+}
+
+/// Résout la **racine du canal de handoff** (H1, Q-B) : `IAKA_HANDOFF_ROOT` si défini/non
+/// vide, sinon `<chapeau>/iaka-handoff`. Partagé forge (écrit) ↔ cockpit (lit) — NON isolé
+/// par app (c'est un point de rendez-vous), contrairement au workspace.
+pub fn resolve_handoff_root() -> PathBuf {
+    resolve_handoff_root_with(std::env::var(HANDOFF_ROOT_ENV).ok(), resolve_hat_root())
+}
+
+/// Variante testable de `resolve_handoff_root` (env + chapeau injectés).
+fn resolve_handoff_root_with(env_value: Option<String>, hat_root: PathBuf) -> PathBuf {
+    if let Some(v) = env_value {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed);
+        }
+    }
+    hat_root.join(HANDOFF_DIR)
 }
 
 #[cfg(test)]
@@ -110,5 +132,20 @@ mod tests {
         // Smoke test de la fonction publique réelle (dépend de l'env), sans paniquer.
         let d = resolve_teams_dir();
         assert!(d.ends_with("teams"));
+    }
+
+    #[test]
+    fn handoff_root_defaut_est_sous_le_chapeau() {
+        let h = resolve_handoff_root_with(None, PathBuf::from("/home/user/work"));
+        assert_eq!(h, PathBuf::from("/home/user/work/iaka-handoff"));
+    }
+
+    #[test]
+    fn handoff_root_env_override_est_respecte() {
+        let h = resolve_handoff_root_with(
+            Some("/tmp/handoff".to_string()),
+            PathBuf::from("/home/user/work"),
+        );
+        assert_eq!(h, PathBuf::from("/tmp/handoff"));
     }
 }

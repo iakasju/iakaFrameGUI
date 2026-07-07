@@ -10,12 +10,17 @@
  */
 import type { UseForgeTeams } from "../hooks/useForgeTeams";
 import { useForgeDeploy } from "../hooks/useForgeDeploy";
+import { useForgeHandoff } from "../hooks/useForgeHandoff";
 import { NodeSelector } from "../components/NodeSelector";
 import { KitTreeView } from "../components/KitTreeView";
 import { DeployPanel } from "../components/DeployPanel";
 
 export function DeployView({ forge }: { forge: UseForgeTeams }) {
   const deploy = useForgeDeploy({ teamById: forge.teamById });
+  const handoff = useForgeHandoff();
+  const selectedTeam = deploy.selectedTeamId
+    ? forge.teamById(deploy.selectedTeamId)
+    : null;
 
   return (
     <div className="view">
@@ -90,6 +95,41 @@ export function DeployView({ forge }: { forge: UseForgeTeams }) {
         onForceChange={deploy.setForce}
         onDeploy={() => void deploy.deploy()}
       />
+
+      <div className="panel">
+        <h3 style={{ marginTop: 0 }}>Livrer au cockpit (handoff)</h3>
+        <p className="sub">
+          Dépose le paquet de handoff (<code>team.json</code> PURE +{" "}
+          <code>handoff.json</code> provenance) de la team sélectionnée dans le canal
+          partagé, pour que le cockpit le réceptionne.
+        </p>
+        <div className="row">
+          <button
+            className="btn"
+            type="button"
+            disabled={selectedTeam === null || handoff.delivering}
+            onClick={() => selectedTeam && void handoff.deliver(selectedTeam)}
+          >
+            {handoff.delivering ? "Livraison…" : "Livrer"}
+          </button>
+          {selectedTeam === null && (
+            <span className="sub" style={{ margin: 0 }}>
+              Choisissez d'abord une team ci-dessus.
+            </span>
+          )}
+        </div>
+        {handoff.result &&
+          (handoff.result.error ? (
+            <p className="sub" role="alert" style={{ color: "var(--danger, #c0392b)" }}>
+              Échec de la livraison : {handoff.result.error}
+            </p>
+          ) : (
+            <p className="sub">
+              Livré dans <code>{handoff.result.dir}</code> — empreinte{" "}
+              <code>{handoff.result.originHash}</code> ({handoff.result.timestamp}).
+            </p>
+          ))}
+      </div>
     </div>
   );
 }

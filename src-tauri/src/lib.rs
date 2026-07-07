@@ -6,6 +6,7 @@
 //! appel runner (AR-1/AR-6). Le front tient le schéma via `@iakaframe/core` ; Rust est un
 //! passe-plat.
 
+pub mod handoff;
 pub mod kit_deploy;
 pub mod pathguard;
 pub mod paths;
@@ -31,6 +32,8 @@ pub fn run() {
             teams_store::team_delete,
             teams_store::workspace_path,
             kit_deploy::kit_deploy,
+            handoff::handoff_deliver,
+            handoff::now_millis,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement d'iakaFrameGUI");

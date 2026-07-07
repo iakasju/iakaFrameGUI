@@ -80,6 +80,30 @@ export function kitDeploy(
   return call<string[]>("kit_deploy", { destDir, files, force });
 }
 
+// --- Handoff (H1 : livraison du paquet forge → cockpit dans le canal partagé) ---
+
+/**
+ * Livre le paquet de handoff d'une team (`team.json` + `handoff.json`) dans le canal partagé
+ * `<handoff_root>/<teamId>/`. `teamJson`/`handoffJson` sont produits par `buildHandoffPackage`
+ * (`@iakaframe/core`). Une (re-)livraison remplace le paquet. Renvoie le dossier écrit.
+ * Côté Rust : pathguard sur l'id + noms de fichiers fixes (`handoff::handoff_deliver`).
+ */
+export function handoffDeliver(
+  teamId: string,
+  teamJson: string,
+  handoffJson: string,
+): Promise<string> {
+  return call<string>("handoff_deliver", { teamId, teamJson, handoffJson });
+}
+
+/**
+ * Horloge du backend (epoch ms UTC). Source d'horodatage du manifeste — jamais `Date.now()`
+ * côté JS (artefact reproductible + testable ; l'horloge vit dans Rust `SystemTime`).
+ */
+export function nowMillis(): Promise<number> {
+  return call<number>("now_millis");
+}
+
 // --- Sélecteur de dossier natif (P4 : plugin Tauri `dialog`, option Q-1 = a) ---
 
 /**
@@ -108,6 +132,8 @@ export const backend = {
   teamDelete,
   workspacePath,
   kitDeploy,
+  handoffDeliver,
+  nowMillis,
   pickDirectory,
 };
 
