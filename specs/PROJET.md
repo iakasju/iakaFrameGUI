@@ -128,20 +128,24 @@ persona : c'est un concept **run-time**, propriété du Cockpit.
 
 Chaque feature reçoit son instruction dans `specs/instructions/` AVANT implémentation.
 
+> **Réconcilié le 2026-07-11** avec la réalité du code (33 commits) : P1→P6 sont **implémentés** (commits `feat`),
+> pas seulement cadrés. E1/P7 restent cadrés. Voir `specs/etat-des-lieux.md`.
+
 | Feature | Instruction | État |
 |---|---|---|
 | Cadrage forge + audit moteur CLI | `specs/instructions/cadrage-iakaframegui-et-moteur.md` | **validé (jalon)** |
-| E1 — Évolution : Binding + AR-1 révisé (modèle 3 couches) | `specs/instructions/E1-evolution-binding-ar1.md` | **cadré — à valider (jalon)** |
 | P0 — Contrat de concepts | `specs/contrat-concepts.md` | **livré (P0)** |
 | P0 — Glossaire de concepts étendu | `specs/glossaire-concepts.md` | **livré (P0)** |
-| P1 — Coquille forge + authoring persona/team | `specs/instructions/P1-coquille-forge-authoring.md` | **cadré — à valider (jalon)** |
-| P2 — Cœur partagé + refactor vocabulaire CLI | `specs/instructions/P2-coeur-partage-refactor-cli.md` | **cadré — à valider (jalon)** |
-| P3 — Adaptateur runner Claude Code + génération + déploiement | `specs/instructions/P3-adaptateur-runner-generation-deploiement.md` | **cadré — à valider (jalon)** |
-| P3b — Adaptateurs codex + ollama (localhost/lan) | `specs/instructions/P3b-adaptateurs-codex-ollama.md` | **cadré — à valider (jalon)** |
-| P3c — Adaptateur Open WebUI (Models JSON) | `specs/instructions/P3c-adaptateur-openwebui.md` | **cadré — à valider (jalon)** |
-| P4 — UI « Générer & Déployer » (chaînon authoring→prod) | `specs/instructions/P4-ui-generer-deployer.md` | **cadré — à valider (jalon)** |
-| P5 — Skin Cinabre + sélecteur de charte (UI forge) | `specs/instructions/P5-skin-cinabre-selecteur-charte.md` | **cadré — à valider (jalon)** |
-| P6 — Workflows (concept de 1re classe, extrait en donnée) | `specs/instructions/P6-workflows.md` | **cadré — à valider (jalon)** |
+| P1 — Coquille forge + authoring persona/team | `specs/instructions/P1-coquille-forge-authoring.md` | **✅ livré** (coquille Tauri + authoring persona/team + persistance) |
+| P2 — Cœur partagé + refactor vocabulaire CLI | `specs/instructions/P2-coeur-partage-refactor-cli.md` | **⚠️ partiel** : cœur partagé `@iakaframe/core` **livré** ; refactor vocab CLI (hors dépôt) **différé** |
+| P3 — Adaptateur runner Claude Code + génération + déploiement | `specs/instructions/P3-adaptateur-runner-generation-deploiement.md` | **✅ livré** (générateur pur + `kit_deploy` non destructif) |
+| P3b — Adaptateurs codex + ollama (localhost/lan) | `specs/instructions/P3b-adaptateurs-codex-ollama.md` | **✅ livré** (4 nœuds AGENTS.md) |
+| P3c — Adaptateur Open WebUI (Models JSON) | `specs/instructions/P3c-adaptateur-openwebui.md` | **✅ livré** (5e nœud) |
+| P4 — UI « Générer & Déployer » (chaînon authoring→prod) | `specs/instructions/P4-ui-generer-deployer.md` | **✅ livré** (`useForgeDeploy` + écran + pickDirectory) |
+| P5 — Skin Cinabre + sélecteur de charte (UI forge) | `specs/instructions/P5-skin-cinabre-selecteur-charte.md` | **✅ livré** (Cinabre par défaut + sélecteur persistant) |
+| P6 — Workflows (concept de 1re classe, extrait en donnée) | `specs/instructions/P6-workflows.md` | **✅ livré** (Workflow/Phase/Gate en donnée + renderer + affichage read-only) |
+| H1 — Handoff forge → cockpit (livraison du paquet) | `specs/instructions/H1-handoff-forge-cockpit.md` | **✅ livré (MVP)** (`src-tauri/src/handoff.rs`) |
+| E1 — Évolution : Binding + AR-1 révisé (modèle 3 couches) | `specs/instructions/E1-evolution-binding-ar1.md` | **cadré — à valider (jalon)** |
 | P7 — Forge : étape de liaison (Binding) au déploiement | `specs/instructions/P7-forge-liaison-deploiement.md` | **cadré — à valider (jalon)** |
 
 ---
@@ -154,3 +158,6 @@ Chaque feature reçoit son instruction dans `specs/instructions/` AVANT impléme
   méthode) ; cœur agnostique de méthode. AR-8/AR-9 ajoutés.
 - **2026-07-05** — **JALON VALIDÉ** : AR-1→AR-9 tranchés (voir tableau ci-dessus). Descente en P0 : PROJET.md
   validé + contrat de concepts + glossaire étendu. P1 (coquille + authoring) confié au développeur-devops ensuite.
+- **2026-07-11** — **Réconciliation doc↔code** : l'état des lieux (figé à v0.1.0/1 commit) et le tableau de backlog
+  sont réalignés sur la réalité du dépôt (33 commits). P1→P6 + H1 passés en « livré » ; E1/P7 restent cadrés à
+  valider ; refactor vocab CLI (P2) confirmé différé/hors dépôt.
