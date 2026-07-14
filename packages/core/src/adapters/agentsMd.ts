@@ -21,10 +21,11 @@
  */
 
 import { CATALOG_GUARDRAILS, type Guardrail } from "../guardrail";
+import { resolveWorkflow } from "../method";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
 import { roleLabel } from "../roles";
-import { resolveWorkflow, type Team } from "../team";
+import type { Team } from "../team";
 import { renderWorkflowMarkdown } from "../workflow";
 import { renderMcpJson } from "./mcp";
 import type { KitFileTree, KitGenOptions } from "./types";
@@ -139,7 +140,11 @@ function renderMethodGuards(): string {
  * **Builder `AGENTS.md` mutualisé** (DRY) : assemble l'ossature commune + les specifics du
  * nœud. Pur, déterministe. C'est le cœur réutilisé par les 3 adaptateurs `agents-md`.
  */
-export function buildAgentsMd(team: Team, spec: AgentsMdNodeSpec): string {
+export function buildAgentsMd(
+  team: Team,
+  spec: AgentsMdNodeSpec,
+  opts?: KitGenOptions,
+): string {
   const personas = [...team.personas].sort(byRoleThenId);
   const sections = [
     `# ${spec.title}`,
@@ -147,8 +152,9 @@ export function buildAgentsMd(team: Team, spec: AgentsMdNodeSpec): string {
     spec.prerequisites,
     WHAT_IS_IAKAFRAME,
     renderRoster(team, personas),
-    // Section phases/gates rendue **depuis la donnée** (P6) — plus de littéral figé.
-    renderWorkflowMarkdown(resolveWorkflow(team)),
+    // Section phases/gates rendue **depuis la donnée** (P6), le workflow venant de la **Méthode**
+    // du Kit (E2) — **sans `method`** → workflow canonique → sortie byte-identique (non-régression).
+    renderWorkflowMarkdown(resolveWorkflow(opts?.method)),
     CADRAGE_AVANT_CODE,
     renderMethodGuards(),
     CONVENTIONS,
@@ -162,9 +168,13 @@ export function buildAgentsMd(team: Team, spec: AgentsMdNodeSpec): string {
  * **conditionnel** (Q-4 : généré pour tous les nœuds dès qu'une team déclare ≥ 1 connecteur,
  * au format MCP standard). **Aucun `settings.json`, aucun hook** (nœud sans hooks).
  */
-export function generateAgentsMdKit(team: Team, spec: AgentsMdNodeSpec): KitFileTree {
+export function generateAgentsMdKit(
+  team: Team,
+  spec: AgentsMdNodeSpec,
+  opts?: KitGenOptions,
+): KitFileTree {
   const files: Record<string, string> = {};
-  files["AGENTS.md"] = buildAgentsMd(team, spec);
+  files["AGENTS.md"] = buildAgentsMd(team, spec, opts);
   if (team.connectors.length > 0) {
     files[".mcp.json"] = renderMcpJson(team.connectors);
   }
@@ -229,16 +239,19 @@ export function ollamaLanNodeSpec(opts?: KitGenOptions): AgentsMdNodeSpec {
 // --- Adaptateurs concrets (purs) ---
 
 /** **Adaptateur codex (pur)** : team pure → `AGENTS.md` (+ `.mcp.json` si connecteurs). */
-export function generateCodexKit(team: Team): KitFileTree {
-  return generateAgentsMdKit(team, codexNodeSpec());
+export function generateCodexKit(team: Team, opts?: KitGenOptions): KitFileTree {
+  return generateAgentsMdKit(team, codexNodeSpec(), opts);
 }
 
 /** **Adaptateur ollama-localhost (pur)** : endpoint `http://localhost:11434`. */
-export function generateOllamaLocalhostKit(team: Team): KitFileTree {
-  return generateAgentsMdKit(team, ollamaLocalhostNodeSpec());
+export function generateOllamaLocalhostKit(
+  team: Team,
+  opts?: KitGenOptions,
+): KitFileTree {
+  return generateAgentsMdKit(team, ollamaLocalhostNodeSpec(), opts);
 }
 
 /** **Adaptateur ollama-lan (pur)** : endpoint `http://<host-lan>:11434` (host paramétrable, Q-5). */
 export function generateOllamaLanKit(team: Team, opts?: KitGenOptions): KitFileTree {
-  return generateAgentsMdKit(team, ollamaLanNodeSpec(opts));
+  return generateAgentsMdKit(team, ollamaLanNodeSpec(opts), opts);
 }

@@ -104,7 +104,7 @@ export function TeamsView({ forge }: { forge: UseForgeTeams }) {
               void forge.upsertTeam({ ...selected, name })
             }
           />
-          <WorkflowPanel team={selected} />
+          <WorkflowPanel />
         </>
       ) : (
         <p className="empty">Créez une team pour commencer.</p>

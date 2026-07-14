@@ -4,7 +4,6 @@ import {
   parseTeams,
   parseTeamText,
   serializeTeam,
-  DEFAULT_METHOD_ID,
   DEFAULT_VIGNETTE_TEAM,
   type Team,
 } from "../src/team";
@@ -12,7 +11,6 @@ import {
 const validTeam: Team = {
   id: "iakaframe",
   name: "iakaframe",
-  methodId: "iakaframe",
   vignetteTeam: "none",
   coordinator: "aragorn",
   personas: [
@@ -35,11 +33,24 @@ describe("parseTeam (défensif)", () => {
     expect(parseTeam(null)).toBeNull();
   });
 
-  it("applique les défauts methodId/vignetteTeam", () => {
+  it("applique le défaut vignetteTeam", () => {
     const t = parseTeam({ id: "t1", personas: [] });
-    expect(t!.methodId).toBe(DEFAULT_METHOD_ID);
     expect(t!.vignetteTeam).toBe(DEFAULT_VIGNETTE_TEAM);
     expect(t!.name).toBe("t1");
+  });
+
+  it("E2 : la Team est method-agnostic — plus de methodId ni de workflowId", () => {
+    // Même si le JSON d'entrée porte ces clés legacy, elles ne sont PAS propagées.
+    const t = parseTeam({
+      id: "t",
+      personas: [],
+      methodId: "sparc",
+      workflowId: "wf-x",
+    });
+    expect(t).not.toBeNull();
+    expect(t).not.toHaveProperty("methodId");
+    expect(t).not.toHaveProperty("workflowId");
+    expect(serializeTeam(t!)).not.toMatch(/methodId|workflowId/);
   });
 
   it("replie un coordinator invalide sur personas[0]", () => {

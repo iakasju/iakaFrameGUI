@@ -10,7 +10,6 @@ import { parseTeam, type Team } from "../src/team";
 const team: Team = {
   id: "iakaframe",
   name: "iakaframe",
-  methodId: "iakaframe",
   vignetteTeam: "none",
   coordinator: "aragorn",
   personas: [

@@ -13,6 +13,7 @@
  */
 
 import type { Team } from "../team";
+import type { Method } from "../method";
 import type { KitFormat, NodeKind } from "../node";
 
 /**
@@ -26,6 +27,13 @@ export interface KitFileTree {
 
 /** Options de génération (contexte injecté par l'appelant, jamais lu du disque). */
 export interface KitGenOptions {
+  /**
+   * **Contexte de méthode** (E2, Q-3) : la `Method` du Kit d'où proviennent le **workflow**
+   * (via `resolveWorkflow`) et l'**id de méthode**. **Optionnel** (rétro-compat) : **sans
+   * `method`**, les adaptateurs se replient sur le **canonique** → sortie **byte-identique**
+   * à l'actuelle.
+   */
+  method?: Method;
   /** Corps du fichier-contrat de méthode (inséré tel quel dans `CLAUDE.md`). */
   methodInstructions?: string;
   /**

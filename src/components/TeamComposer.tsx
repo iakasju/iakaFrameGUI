@@ -54,10 +54,7 @@ export function TeamComposer({
               ))}
             </select>
           </div>
-          <div className="field">
-            <label>Méthode</label>
-            <input value={team.methodId} disabled />
-          </div>
+          {/* E2 : la Team est method-agnostic — le champ « Méthode » remonte à l'onglet Méthode/Kit (E2b). */}
         </div>
         <p className="sub" style={{ marginBottom: 0 }}>
           Team <span className="badge">{team.id}</span> · {team.personas.length} persona(s)

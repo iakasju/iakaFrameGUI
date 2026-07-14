@@ -20,11 +20,12 @@
  */
 
 import { guardrailByKind, type Guardrail } from "../guardrail";
+import { DEFAULT_METHOD_ID } from "../method";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
 import { roleLabel } from "../roles";
 import type { Team } from "../team";
-import type { KitFileTree } from "./types";
+import type { KitFileTree, KitGenOptions } from "./types";
 
 /**
  * Timestamp **constant** (déterminisme) — même valeur que les gabarits in-repo
@@ -150,11 +151,14 @@ export function buildOpenWebUIModel(persona: Persona, methodId: string): OpenWeb
  * par persona**. Aucun `.mcp.json` (Q-4), aucun `settings.json`, aucun hook. Déterministe
  * (tri des personas + timestamps constants). Testable **sans Open WebUI**.
  */
-export function generateOpenWebUIKit(team: Team): KitFileTree {
+export function generateOpenWebUIKit(team: Team, opts?: KitGenOptions): KitFileTree {
   const personas = [...team.personas].sort(byRoleThenId);
+  // E2 : l'id de méthode (tag du Model) provient de la Méthode du Kit ; **sans `method`** →
+  // repli canonique (`DEFAULT_METHOD_ID` = "iakaframe") → sortie byte-identique à l'actuelle.
+  const methodId = opts?.method?.id ?? DEFAULT_METHOD_ID;
   const files: Record<string, string> = {};
   for (const persona of personas) {
-    const model = buildOpenWebUIModel(persona, team.methodId);
+    const model = buildOpenWebUIModel(persona, methodId);
     files[`models/${persona.id}.json`] = JSON.stringify(model, null, 2) + "\n";
   }
   return { files };
