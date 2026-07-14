@@ -10,11 +10,7 @@
 
 import { CANONICAL_ROLES } from "./roles";
 import { slugify, type Persona } from "./persona";
-import {
-  DEFAULT_METHOD_ID,
-  DEFAULT_VIGNETTE_TEAM,
-  type Team,
-} from "./team";
+import { DEFAULT_VIGNETTE_TEAM, type Team } from "./team";
 
 /** Noms par défaut proposés par rôle (gabarit AR-5) — donnée éditable, pas une doc. */
 const DEFAULT_NAMES: Readonly<Record<string, string>> = {
@@ -76,7 +72,6 @@ export function buildTeamFromRoster(name: string, id?: string): Team {
   return {
     id: (id && id.trim().length > 0 ? id.trim() : slugify(teamName)) || "team",
     name: teamName,
-    methodId: DEFAULT_METHOD_ID,
     vignetteTeam: DEFAULT_VIGNETTE_TEAM,
     coordinator: coord?.id ?? "",
     personas,
@@ -90,7 +85,6 @@ export function emptyTeam(name: string, id?: string): Team {
   return {
     id: (id && id.trim().length > 0 ? id.trim() : slugify(teamName)) || "team",
     name: teamName,
-    methodId: DEFAULT_METHOD_ID,
     vignetteTeam: DEFAULT_VIGNETTE_TEAM,
     coordinator: "",
     personas: [],

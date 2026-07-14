@@ -33,7 +33,8 @@ describe("buildTeamFromRoster / emptyTeam", () => {
     expect(t.personas).toHaveLength(7);
     const coord = t.personas.find((p) => p.id === t.coordinator);
     expect(coord?.roleKey).toBe("coordination");
-    expect(t.methodId).toBe("iakaframe");
+    // E2 : la team ne porte plus de méthode (casting pur).
+    expect(t).not.toHaveProperty("methodId");
     // Le JSON persistable reste pur.
     expect(serializeTeam(t)).not.toMatch(/runner|model/);
   });
