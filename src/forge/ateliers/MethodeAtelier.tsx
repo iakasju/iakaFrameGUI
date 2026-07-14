@@ -1,0 +1,238 @@
+/**
+ * MethodeAtelier — l'atelier **Méthode** (la discipline) de la forge (E2b).
+ *
+ * Rail à 6 catégories (Workflow · Principes · Rituels · Scaffold · Gardes · Rôles). Le `+` d'un
+ * sous-élément du stock **insère RÉELLEMENT** son id dans la méthode éditée (`useForgeMethod`,
+ * état local — **persistance différée**). Les **Principes** (`CATALOG_PRINCIPLES`) sont rendus en
+ * MD `{ nom · politique · déclencheur }`. À droite : copilote (coquille) + triptyque MD dépliable
+ * 2/3 + **diagramme de flux** 1/3 (phases → gates). **Aucun agent nommé** (Méthode ≠ Team).
+ */
+import {
+  CATALOG_GUARDRAILS,
+  CATALOG_PRINCIPLES,
+  CATALOG_RITUALS,
+  CATALOG_SCAFFOLDS,
+  CANONICAL_ROLES,
+  principlesForMethod,
+  resolveWorkflow,
+  roleLabel,
+  type Gate,
+  type Method,
+  type Phase,
+} from "@iakaframe/core";
+import type { MethodRef } from "../useForgeMethod";
+import { RailNote, RailSection, StockItem } from "../Rail";
+import { UploadChip } from "../Vignette";
+import { CopiloteShell, RunnerFrontier } from "../CopiloteShell";
+import { Foldable, MdPane, PrincipleMeta, type FoldNode } from "../FoldableMd";
+import { FlowDiagram } from "../ContextGraph";
+
+/** Texte lisible d'une gate. */
+function gateText(g: Gate): string {
+  const kind = g.kind === "human" ? "humaine" : "auto";
+  return g.condition.length > 0 ? `${kind} — ${g.condition}` : kind;
+}
+
+export function MethodeAtelier({
+  method,
+  insert,
+}: {
+  method: Method;
+  insert: (ref: MethodRef, id: string) => void;
+}) {
+  const workflow = resolveWorkflow(method);
+  const mainPhases = [...workflow.phases]
+    .filter((p) => p.offChain !== true)
+    .sort((a, b) => a.order - b.order);
+
+  // Nœuds MD : phases (→ gate imbriquée) puis principes (→ politique/déclencheur).
+  const phaseNodes: FoldNode[] = mainPhases.map((p: Phase, i) => ({
+    kind: "phase",
+    title: p.name.replace(/^P\d+ — /, ""),
+    role: p.description,
+    open: i === 0,
+    body: <p>{p.description}. Portée : {p.roleKeys.map(roleLabel).join(" + ")}.</p>,
+    children: [
+      {
+        kind: "gate",
+        title: `gate-${p.gate.kind === "human" ? "humaine" : "auto"}`,
+        role: gateText(p.gate),
+        body: (
+          <p>
+            Condition de franchissement : <b>{gateText(p.gate)}</b>.
+          </p>
+        ),
+      },
+    ],
+  }));
+
+  const principleNodes: FoldNode[] = principlesForMethod(method).map((pr, i) => ({
+    kind: "principe",
+    title: pr.label,
+    role: pr.trigger,
+    open: i === 0,
+    body: <PrincipleMeta policy={pr.policy} trigger={pr.trigger} />,
+  }));
+
+  return (
+    <>
+      <aside className="rail">
+        <div className="railhead">Stock — atelier Méthode · la discipline</div>
+
+        <RailSection title="Workflow" count="phases + gates" defaultOpen>
+          {mainPhases.map((p) => (
+            <div className="sub" key={`phase-${p.id}`}>
+              <span className="tagg phase">PHASE</span>
+              <span className="sn">
+                {p.name.replace(/^P\d+ — /, "")}
+                <span className="sd">{p.description}</span>
+              </span>
+            </div>
+          ))}
+          {mainPhases.map((p) => (
+            <div className="sub" key={`gate-${p.id}`}>
+              <span className="tagg gate">GATE</span>
+              <span className="sn">
+                gate-{p.gate.kind === "human" ? "humaine" : "auto"}
+                <span className="sd">{gateText(p.gate)}</span>
+              </span>
+            </div>
+          ))}
+        </RailSection>
+
+        <RailSection title="Principes" count={CATALOG_PRINCIPLES.length} defaultOpen>
+          {CATALOG_PRINCIPLES.map((pr) => (
+            <StockItem
+              key={pr.id}
+              tag="prin"
+              tagLabel="PRIN"
+              name={pr.label}
+              desc={pr.policy}
+              addTitle="Assembler dans la Méthode"
+              onAdd={() => insert("principleIds", pr.id)}
+            />
+          ))}
+        </RailSection>
+
+        <RailNote>
+          Les <b>Principes</b> sont un catalogue de règles nommées{" "}
+          <code>{"{ nom · politique · déclencheur }"}</code> ; chaque <code>+</code> assemble un
+          principe dans la méthode.
+        </RailNote>
+
+        <RailSection title="Rituels / gestes" count={CATALOG_RITUALS.length}>
+          {CATALOG_RITUALS.map((r) => (
+            <StockItem
+              key={r.id}
+              tag="rit"
+              tagLabel="RIT"
+              name={r.id}
+              desc={`${r.label} · ${r.side}`}
+              addTitle="Assembler dans la Méthode"
+              onAdd={() => insert("ritualIds", r.id)}
+            />
+          ))}
+        </RailSection>
+
+        <RailSection title="Scaffold" count={CATALOG_SCAFFOLDS.length}>
+          {CATALOG_SCAFFOLDS.map((s) => (
+            <StockItem
+              key={s.id}
+              tag="scaf"
+              tagLabel="SCAF"
+              name={`${s.id}/`}
+              desc={s.level === "portfolio" ? "racine + backlog transverse" : "specs/ · CLAUDE.md · docker/"}
+              addTitle="Assembler dans la Méthode"
+              onAdd={() => insert("scaffoldIds", s.id)}
+            />
+          ))}
+        </RailSection>
+
+        <RailSection title="Gardes-fous" count={CATALOG_GUARDRAILS.length}>
+          {CATALOG_GUARDRAILS.map((g) => (
+            <StockItem
+              key={g.id}
+              tag="guard"
+              tagLabel="GARD"
+              name={g.id}
+              desc={g.label}
+              addTitle="Assembler dans la Méthode"
+              onAdd={() => insert("guardrailIds", g.id)}
+            />
+          ))}
+        </RailSection>
+
+        <RailSection title="Référentiel de rôles" count={CANONICAL_ROLES.length}>
+          {CANONICAL_ROLES.map((r) => (
+            <StockItem
+              key={r.key}
+              tag="role"
+              tagLabel="RÔLE"
+              name={r.key}
+              desc={r.label}
+              addTitle="Assembler dans la Méthode"
+              onAdd={() => insert("roleKeys", r.key)}
+            />
+          ))}
+        </RailSection>
+      </aside>
+
+      <main className="edit">
+        <div className="edithead">
+          <span className="icon">M</span>
+          <div>
+            <div className="nm">Méthode {method.name} — en édition</div>
+            <div className="meta">
+              workflow {mainPhases.length} phases + {method.principleIds.length} principes ·{" "}
+              <code>{method.id}/methode/methode.md</code>
+            </div>
+          </div>
+          <UploadChip label="⬆ pictogramme méthode — glisser-déposer" />
+        </div>
+
+        <CopiloteShell subject="assiste la discipline de la méthode" />
+
+        <RunnerFrontier rib="Méthode ≠ Team">
+          La Méthode ne nomme aucun agent : elle décrit la <b>discipline</b> (workflow + principes
+          + rituels + gardes). Le <b>casting</b> vit dans l'onglet Team ; leur <b>réunion + Binding</b>{" "}
+          dans l'onglet Kit.
+        </RunnerFrontier>
+
+        <div className="triptych">
+          <MdPane
+            kind="methode.md"
+            filename="methode/methode.md"
+            cols="workflow + principes"
+            frontmatter={[
+              `methodId: ${method.id}`,
+              `phases: [${mainPhases.map((p) => p.id).join(", ")}]`,
+              `principes: [${method.principleIds.join(", ")}]`,
+              `rituels: [${method.ritualIds.join(", ")}]`,
+              `roles: [${method.roleKeys.join(", ")}]`,
+            ].join("\n")}
+            nodes={[]}
+          >
+            <h3>Workflow — la discipline</h3>
+            <p>
+              Réflexion/cadrage → <b>instruction écrite</b> (jamais de code) → validation →
+              réalisation → test → boucle. Dépliez chaque phase :
+            </p>
+            {phaseNodes.map((n, i) => (
+              <Foldable key={`ph-${i}`} node={n} />
+            ))}
+            <h3>Principes — catalogue assemblable</h3>
+            <p>
+              Règles nommées <code>{"{ nom · politique · déclencheur }"}</code>, chacune insérée
+              depuis le rail. Dépliez :
+            </p>
+            {principleNodes.map((n, i) => (
+              <Foldable key={`pr-${i}`} node={n} />
+            ))}
+          </MdPane>
+
+          <FlowDiagram workflow={workflow} />
+        </div>
+      </main>
+    </>
+  );
+}
