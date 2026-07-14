@@ -19,6 +19,7 @@
  * Schémas de fichiers conformes à l'étape 0 (`specs/notes/claude-code-schemas-2026-07-06.md`).
  */
 
+import { DEFAULT_METHOD_ID } from "../method";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
 import { roleLabel } from "../roles";
@@ -111,14 +112,17 @@ function renderClaudeMd(team: Team, personas: Persona[], opts?: KitGenOptions): 
   const rolesLines = personas
     .map((p) => `- **${roleLabel(p.roleKey)}** : ${p.name} \`${personaBadge(p)}\``)
     .join("\n");
+  // E2 : l'id de méthode provient de la Méthode du Kit ; **sans `method`** → repli canonique
+  // (`DEFAULT_METHOD_ID` = "iakaframe") → sortie byte-identique à l'actuelle.
+  const methodId = opts?.method?.id ?? DEFAULT_METHOD_ID;
   const method =
     opts?.methodInstructions && opts.methodInstructions.trim().length > 0
       ? opts.methodInstructions.trim()
-      : `Méthode « ${team.methodId} » : chaque intervenant tient son rôle, s'identifie par sa\npastille à l'ouverture et à la clôture, et ne sort pas de son périmètre.`;
+      : `Méthode « ${methodId} » : chaque intervenant tient son rôle, s'identifie par sa\npastille à l'ouverture et à la clôture, et ne sort pas de son périmètre.`;
   return `# ${team.name} — kit Claude Code
 
 > Fichier-contrat généré par la forge iakaFrameGUI depuis une **team PURE**.
-> Généré, non écrit à la main. Méthode : ${team.methodId}.
+> Généré, non écrit à la main. Méthode : ${methodId}.
 
 ## Team
 - **Coordination (chef de projet)** : ${coordLine}

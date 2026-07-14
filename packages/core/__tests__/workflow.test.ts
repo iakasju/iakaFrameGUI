@@ -77,25 +77,30 @@ describe("W-1 — parseur défensif", () => {
   });
 });
 
-describe("W-2 — Team référence le workflow, repli canonique", () => {
-  it("team sans workflowId → canonique (non-régression du schéma P1)", () => {
-    const team = buildTeamFromRoster("T", "t");
-    expect(team.workflowId).toBeUndefined();
-    expect(resolveWorkflow(team)).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
+describe("W-2 — la MÉTHODE possède le workflow, repli canonique (E2, Q-3)", () => {
+  it("sans méthode fournie → canonique (rétro-compat adaptateurs)", () => {
+    expect(resolveWorkflow()).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
+    expect(resolveWorkflow(undefined)).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
+    expect(resolveWorkflow(null)).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
   });
 
-  it("team avec workflowId inconnu → canonique (défensif)", () => {
+  it("méthode avec workflowId inconnu → canonique (défensif)", () => {
     expect(resolveWorkflow({ workflowId: "n-existe-pas" })).toBe(
       IAKAFRAME_CANONICAL_WORKFLOW,
     );
   });
 
-  it("team avec workflowId connu → ce workflow", () => {
+  it("méthode avec workflowId connu → ce workflow", () => {
     expect(resolveWorkflow({ workflowId: "iakaframe-canonical" })).toBe(
       IAKAFRAME_CANONICAL_WORKFLOW,
     );
     expect(workflowById("iakaframe-canonical")).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
     expect(workflowById("autre")).toBeUndefined();
+  });
+
+  it("la Team ne porte plus de workflowId (casting pur, E2)", () => {
+    const team = buildTeamFromRoster("T", "t");
+    expect(team).not.toHaveProperty("workflowId");
   });
 
   it("le catalogue MVP contient (au moins) le canonique", () => {
@@ -196,7 +201,8 @@ describe("W-5 — zéro modèle : le workflow et son rendu ne posent aucun modè
 describe("W-3 — l'adaptateur agents-md rend la section DEPUIS la donnée", () => {
   it("la section phases générée provient du renderer (byte-égale au rendu du workflow résolu)", () => {
     const team = buildTeamFromRoster("Gabarit", "gabarit");
+    // Sans méthode fournie → workflow canonique (repli), byte-identique.
     const md = generateCodexKit(team).files["AGENTS.md"];
-    expect(md).toContain(renderWorkflowMarkdown(resolveWorkflow(team)));
+    expect(md).toContain(renderWorkflowMarkdown(resolveWorkflow()));
   });
 });
