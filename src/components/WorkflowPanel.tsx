@@ -10,7 +10,6 @@ import {
   roleLabel,
   type Gate,
   type Phase,
-  type Team,
 } from "@iakaframe/core";
 
 /** Libellé lisible d'une gate (kind + condition), sans jargon de code. */
@@ -24,8 +23,10 @@ function roleText(phase: Phase): string {
   return phase.roleDisplay ?? phase.roleKeys.map(roleLabel).join(" + ");
 }
 
-export function WorkflowPanel({ team }: { team: Team }) {
-  const workflow = resolveWorkflow(team);
+export function WorkflowPanel() {
+  // E2 : le workflow appartient désormais à la **Méthode** (plus à la Team). Ajustement minimal
+  // MVP → workflow **canonique** (repli sans méthode) ; le câblage Méthode↔vue relève de E2b.
+  const workflow = resolveWorkflow();
   const phases = [...workflow.phases].sort((a, b) => a.order - b.order);
   const mainPhases = phases.filter((p) => p.offChain !== true);
   const offChain = phases.filter((p) => p.offChain === true);
