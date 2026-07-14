@@ -21,6 +21,7 @@ export interface CharteDef {
 export const charteRegistry: CharteDef[] = [
   { id: "cinabre", label: "Cinabre", default: true },
   { id: "naonedge", label: "NaonEdge" },
+  { id: "studio-clair", label: "Studio clair" },
 ];
 
 export type CharteId = string;
