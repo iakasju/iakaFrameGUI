@@ -4,6 +4,9 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+
+// Charge la feuille de charte en texte brut (Vite/Vitest) pour vérifier son contrat de tokens.
+import studioClairCss from "../themes/studio-clair.css?raw";
 import {
   charteRegistry,
   DEFAULT_CHARTE,
@@ -29,6 +32,14 @@ describe("charteRegistry", () => {
     expect(isKnownCharte("naonedge")).toBe(true);
     expect(isKnownCharte("inexistante")).toBe(false);
     expect(isKnownCharte(null)).toBe(false);
+  });
+
+  it("connaît Studio clair et sa feuille définit les tokens clés", () => {
+    expect(isKnownCharte("studio-clair")).toBe(true);
+    expect(studioClairCss).toContain(':root[data-theme="studio-clair"]');
+    expect(studioClairCss).toMatch(/--accent-gold:/);
+    expect(studioClairCss).toMatch(/--bg-primary:/);
+    expect(studioClairCss).toMatch(/--text-primary:/);
   });
 });
 

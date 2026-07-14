@@ -9,6 +9,7 @@
 /* Chartes vendorisées (jeux de tokens scopés [data-theme]) */
 @import "./themes/cinabre.css";
 @import "./themes/naonedge.css";
+@import "./themes/studio-clair.css";
 
 /* Règles structurelles neutres de l'app (layout), habillées par les tokens ci-dessus */
 @import "./themes/base.css";
