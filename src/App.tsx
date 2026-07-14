@@ -1,53 +1,12 @@
 /**
- * App — shell + navigation minimale de la forge (Personas · Teams · Réglages).
- *
- * Pas de god-component : `App` ne fait que la navigation. L'unique instance de
- * `useForgeTeams` (autorité du modèle) est créée ici et passée aux vues ; toute écriture y
- * passe, tout I/O passe par la façade unique. Aucune notion de runner/modèle (AR-1).
+ * App — point d'entrée de la **forge à trois ateliers** (E2b). L'application n'est plus une
+ * navigation Personas/Teams/Déploiement : elle monte la **coquille de la forge** (`ForgeShell`)
+ * dont la barre supérieure porte les onglets de 1er étage `Team · Méthode · Kit`, le sélecteur de
+ * charte et « Livrer au Cockpit → ». Les autorités du modèle vivent dans le shell (pas de
+ * god-component ici) ; toute écriture passe par la façade unique, sous CSP stricte.
  */
-import { useState } from "react";
-import { useForgeTeams } from "./hooks/useForgeTeams";
-import { PersonasView } from "./views/PersonasView";
-import { TeamsView } from "./views/TeamsView";
-import { DeployView } from "./views/DeployView";
-import { SettingsView } from "./views/SettingsView";
-
-type Nav = "personas" | "teams" | "deploy" | "settings";
-
-const TABS: { key: Nav; label: string }[] = [
-  { key: "personas", label: "Personas" },
-  { key: "teams", label: "Teams" },
-  { key: "deploy", label: "Générer & Déployer" },
-  { key: "settings", label: "Réglages" },
-];
+import { ForgeShell } from "./forge/ForgeShell";
 
 export default function App() {
-  const [nav, setNav] = useState<Nav>("teams");
-  const forge = useForgeTeams();
-
-  return (
-    <div className="app">
-      <nav className="rail">
-        <h1>⚒ iakaFrameGUI</h1>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            className={nav === t.key ? "active" : ""}
-            onClick={() => setNav(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-        <div style={{ flex: 1 }} />
-        <span className="sub" style={{ padding: "0 8px", fontSize: 11 }}>
-          {forge.loaded ? `${forge.teams.length} team(s)` : "chargement…"}
-        </span>
-      </nav>
-
-      {nav === "personas" && <PersonasView forge={forge} />}
-      {nav === "teams" && <TeamsView forge={forge} />}
-      {nav === "deploy" && <DeployView forge={forge} />}
-      {nav === "settings" && <SettingsView />}
-    </div>
-  );
+  return <ForgeShell />;
 }

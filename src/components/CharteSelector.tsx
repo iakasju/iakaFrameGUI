@@ -1,5 +1,5 @@
 /**
- * CharteSelector — sélecteur de charte visuelle (dans SettingsView).
+ * CharteSelector — sélecteur de charte visuelle (barre supérieure de la forge, E2b).
  *
  * Liste les chartes du registre (Cinabre par défaut + NaonEdge). Choisir une charte
  * commute instantanément l'UI (data-theme) et persiste le choix. Aucun I/O backend :
