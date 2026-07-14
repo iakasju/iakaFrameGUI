@@ -1,0 +1,83 @@
+/* ============================================================================
+   Studio clair — jeu de tokens (charte « produit · papier · indigo »)
+   ----------------------------------------------------------------------------
+   PORTÉE depuis : iakagraph/theme/studio/clair/tokens.css — 2026-07-15.
+   Source de vérité = cette feuille amont (réservoir iakagraph, NON modifié). Ici on
+   COPIE le bloc de tokens re-scopé en [data-theme="studio-clair"] pour la commutation
+   de charte, SANS réécrire la charte. Mêmes noms de variables que Cinabre (drop-in) →
+   commuter = changer le jeu de tokens.
+
+   Identité PRODUIT propre (pas la marque NaonEdge) : surfaces claires neutres, accent
+   indigo, craft « SaaS premium 2026 ». L'or chaud du marqueur forge (--forge-gold) est
+   conservé, distinct de l'accent indigo (liseré Binding / override cockpit).
+
+   Fonts (Q-2, MVP) : fallback système. « Inter » est laissée EN TÊTE des piles mais
+   reste optionnelle — absente, on tombe proprement sur les polices système. AUCUNE
+   requête réseau (CSP stricte).
+   ========================================================================== */
+
+:root[data-theme="studio-clair"] {
+  /* — Surfaces — */
+  --bg-primary: #fbfbfc;     /* fond global : blanc froid */
+  --bg-card: #ffffff;        /* cartes / panneaux */
+  --bg-deep: #f0f1f4;        /* blocs de code / fonds profonds / champs */
+  --line: #e7e8ec;           /* bords */
+  --line-soft: #eef0f3;      /* séparateurs discrets */
+
+  /* — Texte — */
+  --text-primary: #16181d;
+  --text-secondary: #5b6270;
+  --text-muted: #9aa0ad;
+
+  /* — Accent INDIGO (noms Cinabre, UN SEUL accent porte la marque produit) —
+     --accent : aplats/fills · --accent-ink : usages TEXTE sur clair (AA garanti) */
+  --accent: #5b5bd6;
+  --accent-2: #7a78ff;       /* fin de dégradé (plus clair) */
+  --accent-ink: #5b5bd6;     /* contraste ~5.4:1 sur blanc → AA OK */
+  --accent-rgb: 91, 91, 214;
+  --gradient-accent: linear-gradient(135deg, #5b5bd6, #7a78ff);
+  --on-accent: #ffffff;      /* encre claire sur aplat indigo */
+
+  /* — Accent (noms forge, consommés par forge.css) — */
+  --accent-gold: #5b5bd6;
+  --accent-gold-light: #7a78ff;
+
+  /* — Couleurs sémantiques (états seulement : ok/alerte/info) — */
+  --red: #e5484d;
+  --green: #30a46c;
+  --blue: #3b82f6;
+  --orange: #f5a623;
+  --cyan: #12a594;
+  --purple: #8e4ec6;
+
+  /* — Formes (SaaS premium, souple) — */
+  --radius-md: 13px;
+  --radius-lg: 18px;
+  --shadow-soft: 0 1px 2px rgba(20, 22, 28, .05), 0 6px 18px rgba(20, 22, 28, .07);
+  --shadow-glow: 0 4px 14px rgba(20, 22, 28, .08);
+
+  /* — Typographie : Inter en tête, repli système (Q-2) — */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* — Tokens propres à la forge (or chaud = marqueur Binding/override, distinct de l'accent) — */
+  --forge-gold: #b8862b;
+  --forge-slate: #4a6b86;
+  --forge-line-soft: var(--line-soft, #eef0f3);
+
+  /* — Pont vers les alias sémantiques de l'app (habillage sans toucher aux composants) — */
+  --bg: var(--bg-primary);
+  --panel: var(--bg-card);
+  --panel-2: var(--bg-deep);
+  --border: var(--line);
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
+  --danger: var(--red);
+  --info: var(--blue);
+}
+
+/* Scrollbar vendorisée (règle utile à l'app), scopée Studio clair */
+:root[data-theme="studio-clair"] ::-webkit-scrollbar { width: 8px; height: 8px; }
+:root[data-theme="studio-clair"] ::-webkit-scrollbar-thumb { background: #d4d6dd; border-radius: 999px; }
+:root[data-theme="studio-clair"] ::-webkit-scrollbar-thumb:hover { background: #bcbfc9; }
