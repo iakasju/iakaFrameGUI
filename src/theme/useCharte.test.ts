@@ -2,6 +2,8 @@
  * Tests du mécanisme de charte (P5) — registre, persistance, application data-theme.
  * Couvre T-1 (défaut Cinabre), T-2 (commutation), T-3 (persistance).
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import {
@@ -29,6 +31,18 @@ describe("charteRegistry", () => {
     expect(isKnownCharte("naonedge")).toBe(true);
     expect(isKnownCharte("inexistante")).toBe(false);
     expect(isKnownCharte(null)).toBe(false);
+  });
+
+  it("connaît Studio clair et sa feuille définit les tokens clés", () => {
+    expect(isKnownCharte("studio-clair")).toBe(true);
+    const sheet = readFileSync(
+      fileURLToPath(new URL("../themes/studio-clair.css", import.meta.url)),
+      "utf8",
+    );
+    expect(sheet).toContain(':root[data-theme="studio-clair"]');
+    expect(sheet).toMatch(/--accent-gold:/);
+    expect(sheet).toMatch(/--bg-primary:/);
+    expect(sheet).toMatch(/--text-primary:/);
   });
 });
 
