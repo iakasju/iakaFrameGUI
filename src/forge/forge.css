@@ -1,0 +1,829 @@
+/* ============================================================================
+   forge.css — habillage de la FORGE À TROIS ATELIERS (E2b).
+   Porté de la maquette de convergence v4 (iakagraph/etudes/iakaframegui), scopé
+   sous `.forge` pour isoler des règles neutres de base.css. Les couleurs passent
+   par les tokens de charte (bridge cinabre : --panel, --panel-2, --border, --text,
+   --muted, --accent, --accent-ink, --green, --blue, --purple, --orange, --cyan).
+   La console copilote est volontairement SOMBRE (fond noir) — indépendante de la
+   charte, comme dans la maquette. Deux tokens locaux (--forge-slate/--forge-gold)
+   comblent ce que la charte n'expose pas. Aucun asset distant (CSP stricte).
+   ========================================================================== */
+
+.forge {
+  --forge-slate: #4a6b86;
+  --forge-gold: #b8862b;
+  --forge-line-soft: var(--line-soft, #e7e7ec);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ---------- Barre supérieure : marque + onglets 1er étage + actions ---------- */
+.forge .topbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  padding: 0 22px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 6;
+}
+.forge .brand {
+  font: 800 15px/1 var(--font-serif);
+  letter-spacing: -0.01em;
+  padding: 13px 0;
+}
+.forge .brand .f {
+  color: var(--accent);
+}
+.forge .tabs {
+  display: flex;
+  gap: 2px;
+}
+.forge .tab {
+  font: 600 13px/1 var(--font-sans);
+  color: var(--muted);
+  padding: 13px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+}
+.forge .tab .subl {
+  display: block;
+  font: 500 9.5px/1 var(--mono);
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-top: 5px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.forge .tab.on {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.forge .tab.on .subl {
+  color: var(--accent-ink);
+}
+.forge .topbar .spacer {
+  flex: 1;
+}
+.forge .topbar .charte-pick {
+  align-self: center;
+}
+.forge .to-cockpit {
+  align-self: center;
+  background: var(--text);
+  color: var(--panel);
+  border: none;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font: 600 12px/1 var(--font-sans);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.forge .to-cockpit .d {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.forge .to-cockpit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Vignettes ---------- */
+.forge .vig {
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--va), var(--vb));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 13px/1 var(--font-sans);
+  flex: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.forge .vig.sm {
+  width: 26px;
+  height: 26px;
+  font-size: 10.5px;
+  border-radius: 7px;
+}
+.forge .vig.lg {
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
+  border-radius: 12px;
+}
+
+/* ---------- Établi : rail + zone d'édition ---------- */
+.forge .workbench {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- Rail-stock (accordéon par type) ---------- */
+.forge .rail {
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  overflow: auto;
+}
+.forge .railhead {
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 2px 4px;
+}
+.forge .acc {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.forge .acc > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 11px/1 var(--font-sans);
+  background: var(--panel-2);
+}
+.forge .acc > summary::-webkit-details-marker {
+  display: none;
+}
+.forge .acc > summary .cnt {
+  margin-left: auto;
+  font: 600 9.5px/1 var(--mono);
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 7px;
+}
+.forge .chev {
+  color: var(--muted);
+  font-size: 9px;
+  transition: transform 0.15s;
+  flex: none;
+}
+.forge .acc[open] > summary .chev {
+  transform: rotate(90deg);
+}
+.forge .acc .list {
+  padding: 6px;
+}
+.forge .el {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  width: 100%;
+  text-align: left;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+.forge .el:hover {
+  background: var(--panel-2);
+}
+.forge .el.sel {
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--panel));
+}
+.forge .el .nm {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.forge .el .rl {
+  font-size: 10px;
+  color: var(--muted);
+}
+.forge .el .edit-tag {
+  margin-left: auto;
+  font: 600 8px/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+.forge .sub {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--forge-line-soft);
+  background: var(--panel-2);
+  margin: 5px 0;
+}
+.forge .sub .tagg {
+  font: 700 8px/1 var(--mono);
+  letter-spacing: 0.05em;
+  color: #fff;
+  border-radius: 5px;
+  padding: 4px 5px;
+  flex: none;
+}
+.forge .tagg.skill { background: var(--accent); }
+.forge .tagg.hook { background: var(--purple); }
+.forge .tagg.gate { background: var(--blue); }
+.forge .tagg.phase { background: var(--blue); }
+.forge .tagg.prin { background: var(--forge-gold); }
+.forge .tagg.rit { background: var(--green); }
+.forge .tagg.scaf { background: var(--orange); }
+.forge .tagg.guard { background: var(--purple); }
+.forge .tagg.role { background: var(--forge-slate); }
+.forge .tagg.bind { background: var(--forge-gold); }
+.forge .tagg.meth { background: var(--blue); }
+.forge .tagg.team { background: var(--green); }
+.forge .sub .sn {
+  font-size: 11.5px;
+  line-height: 1.25;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-weight: 600;
+}
+.forge .sub .sn .sd {
+  display: block;
+  font: 400 10px/1.3 var(--font-sans);
+  color: var(--muted);
+  margin-top: 2px;
+}
+.forge .plus {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: var(--panel);
+  font: 700 15px/1 var(--font-sans);
+  cursor: pointer;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.forge .plus:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.forge .plus.done {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.forge .railnote {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+  padding: 2px 5px;
+}
+.forge .railnote b {
+  color: var(--accent-ink);
+}
+
+/* ---------- Zone d'édition ---------- */
+.forge .edit {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 26px;
+  gap: 14px;
+  overflow: auto;
+}
+.forge .edithead {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.forge .edithead .icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  font: 700 22px/1 var(--font-serif);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background: var(--gradient-accent, linear-gradient(135deg, var(--accent), var(--accent-2)));
+}
+.forge .edithead .icon.gold {
+  background: linear-gradient(135deg, var(--forge-gold), #8a5e12);
+}
+.forge .edithead .nm {
+  font: 800 19px/1.05 var(--font-serif);
+}
+.forge .edithead .meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.forge .edithead .meta code {
+  font: 500 11px var(--mono);
+  color: var(--accent-ink);
+}
+.forge .up-chip {
+  margin-left: auto;
+  font: 600 11px/1 var(--font-sans);
+  color: var(--text-secondary, var(--text));
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  text-align: center;
+}
+.forge .up-chip.over {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.forge .up-chip.has {
+  border-style: solid;
+  border-color: var(--green);
+}
+
+/* ---------- Console copilote (fond noir, non branchée = E2c) ---------- */
+.forge .copilote {
+  background: #111114;
+  border: 1px solid #26262c;
+  border-radius: 14px;
+  box-shadow: var(--shadow-glow, 0 14px 34px rgba(20, 20, 25, 0.12));
+  padding: 14px 15px;
+  color: #e8e8ec;
+}
+.forge .copilote .chead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 11px;
+  flex-wrap: wrap;
+}
+.forge .copilote .chead .k {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  flex: none;
+}
+.forge .copilote .chead .t {
+  font: 600 10px/1.3 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f0b8b4;
+}
+.forge .copilote .chead .runner {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  color: #9a9aa4;
+}
+.forge .copilote .chead select {
+  background: #1c1c22;
+  border: 1px solid #33333c;
+  border-radius: 7px;
+  padding: 5px 8px;
+  font: 11px var(--mono);
+  color: #e8e8ec;
+}
+.forge .copilote .chead .tagme {
+  font: 600 8px/1.2 var(--mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #f0b8b4;
+  border: 1px solid #4a2f2d;
+  background: #241615;
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+.forge .copilote .shell-note {
+  font: 500 11px/1.5 var(--font-sans);
+  color: #8f8f99;
+  background: #18181d;
+  border: 1px dashed #33333c;
+  border-radius: 9px;
+  padding: 10px 12px;
+}
+.forge .copilote .shell-note b {
+  color: #f0b8b4;
+}
+.forge .cprompt {
+  display: flex;
+  gap: 9px;
+  margin-top: 11px;
+}
+.forge .cprompt textarea {
+  flex: 1;
+  background: #1c1c22;
+  border: 1px solid #33333c;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 12.5px/1.5 var(--font-sans);
+  color: #e8e8ec;
+  resize: none;
+  height: 44px;
+}
+.forge .cprompt .send {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0 18px;
+  font: 600 12.5px/1 var(--font-sans);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ---------- Frontière runner (authoring ≠ exécution) ---------- */
+.forge .frontier {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: color-mix(in srgb, var(--blue) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, var(--panel));
+  border-radius: 12px;
+  padding: 11px 14px;
+}
+.forge .frontier .rib {
+  font: 600 9px/1.2 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--blue) 40%, var(--panel));
+  background: color-mix(in srgb, var(--blue) 12%, var(--panel));
+  border-radius: 5px;
+  padding: 5px 7px;
+  flex: none;
+}
+.forge .frontier .ft {
+  font-size: 11.5px;
+  color: var(--text-secondary, var(--text));
+}
+.forge .frontier .ft b {
+  color: var(--blue);
+}
+
+/* ---------- Triptyque : MD (2/3) + graphe (1/3) ---------- */
+.forge .triptych {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.forge .mdpane {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-soft);
+  padding: 15px 17px;
+  min-width: 0;
+}
+.forge .mdpane > .h {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.forge .mdpane > .h .kind {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+.forge .mdpane > .h .fn {
+  font: 600 11.5px/1 var(--mono);
+  color: var(--muted);
+}
+.forge .mdpane > .h .cols2 {
+  margin-left: auto;
+  font: 500 9.5px/1 var(--mono);
+  color: var(--muted);
+}
+.forge .md {
+  font-size: 12.5px;
+  color: var(--text-secondary, var(--text));
+  line-height: 1.62;
+}
+.forge .md h3 {
+  color: var(--text);
+  font: 700 13px/1.3 var(--font-sans);
+  margin: 11px 0 5px;
+}
+.forge .md p {
+  margin: 5px 0;
+}
+.forge .md p b {
+  color: var(--text);
+}
+.forge .md code {
+  font: 500 11px/1 var(--mono);
+  color: var(--accent-ink);
+  background: var(--panel-2);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.forge .fm {
+  font: 500 11px/1.55 var(--mono);
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--forge-line-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 9px;
+  white-space: pre-wrap;
+}
+.forge details.ex {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  margin: 8px 0;
+  background: var(--panel);
+}
+.forge details.ex > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.forge details.ex > summary::-webkit-details-marker {
+  display: none;
+}
+.forge details.ex[open] > summary .chev {
+  transform: rotate(90deg);
+}
+.forge .ex summary .kind {
+  font: 600 8px/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 5px;
+  flex: none;
+}
+.forge .ex summary .snm {
+  font-weight: 600;
+}
+.forge .ex summary .srl {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.forge .ex .body {
+  padding: 3px 12px 11px;
+}
+.forge .ex .body > .md {
+  border-top: 1px solid var(--forge-line-soft);
+  padding-top: 8px;
+}
+.forge details.ex details.ex {
+  margin-left: 9px;
+  background: var(--panel-2);
+}
+.forge .prinmeta {
+  font: 500 10.5px/1.5 var(--mono);
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--forge-line-soft);
+  border-radius: 7px;
+  padding: 6px 9px;
+  margin-top: 6px;
+}
+.forge .prinmeta b {
+  color: var(--accent-ink);
+}
+
+/* ---------- Graphe contextuel ---------- */
+.forge .graph {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-soft);
+  padding: 13px 13px 8px;
+  position: sticky;
+  top: 74px;
+}
+.forge .graph.win-wrap {
+  padding: 0;
+  overflow: hidden;
+}
+.forge .graph .gt {
+  font: 600 9.5px/1.2 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.forge .graph.win-wrap .gt {
+  padding: 12px 13px 8px;
+  margin-bottom: 0;
+}
+.forge .graph .gt .badge {
+  font: 600 8px/1.2 var(--mono);
+  color: var(--accent-ink);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 5px;
+  background: none;
+}
+.forge .graph .gcap {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 6px;
+  border-top: 1px solid var(--forge-line-soft);
+  padding-top: 7px;
+}
+.forge .graph.win-wrap .gcap {
+  padding: 9px 13px 12px;
+  margin-top: 0;
+  border-top: none;
+}
+.forge .graph svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Aperçu du fichier généré (fenêtre éditeur sombre) */
+.forge .win {
+  margin: 0 11px;
+  border: 1px solid #26262c;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #0e0e12;
+}
+.forge .win .bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #18181d;
+  padding: 7px 9px;
+  border-bottom: 1px solid #26262c;
+}
+.forge .win .bar .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.forge .win .bar .path {
+  font: 500 9px/1.2 var(--mono);
+  color: #9a9aa4;
+  margin-left: 6px;
+}
+.forge .win .filelist {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #26262c;
+  max-height: 150px;
+  overflow: auto;
+}
+.forge .win .filelist button {
+  text-align: left;
+  background: none;
+  border: none;
+  color: #c7c7cf;
+  font: 500 10px/1.6 var(--mono);
+  padding: 3px 11px;
+  cursor: pointer;
+  white-space: pre;
+}
+.forge .win .filelist button:hover {
+  background: #18181d;
+}
+.forge .win .filelist button.cur {
+  color: #6fd08a;
+  background: #16161b;
+}
+.forge .win .code {
+  font: 500 10px/1.65 var(--mono);
+  color: #c7c7cf;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+}
+
+/* ---------- Carte Binding (Kit) — runner d'EXÉCUTION ---------- */
+.forge .bindcard {
+  background: var(--panel);
+  border: 1px solid var(--forge-gold);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px;
+}
+.forge .bindcard .bh {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.forge .bindcard .bh .rib {
+  font: 600 9px/1.2 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7a5410;
+  border: 1px solid #e0c98a;
+  background: #fbf3e0;
+  border-radius: 5px;
+  padding: 5px 7px;
+}
+.forge .bindcard .bh .tt {
+  font: 700 13px/1 var(--font-sans);
+}
+.forge .bindcard .bh .exec {
+  margin-left: auto;
+  font: 600 8px/1.2 var(--mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #7a5410;
+  border: 1px solid #e0c98a;
+  background: #fbf3e0;
+  border-radius: 5px;
+  padding: 5px 6px;
+}
+.forge .bindcard .bsub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.forge .bindtbl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.forge .bindrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--panel-2);
+  border: 1px solid var(--forge-line-soft);
+  border-radius: 9px;
+  padding: 7px 9px;
+}
+.forge .bindrow .who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+.forge .bindrow .who .nm {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.forge .bindrow .who .rl {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+.forge .bindrow .arw {
+  color: var(--muted);
+  font-size: 11px;
+}
+.forge .bindrow select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 7px;
+  font: 10px var(--mono);
+  color: var(--text);
+}
+
+.forge .empty {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 12px;
+}

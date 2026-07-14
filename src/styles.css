@@ -12,3 +12,6 @@
 
 /* Règles structurelles neutres de l'app (layout), habillées par les tokens ci-dessus */
 @import "./themes/base.css";
+
+/* Habillage de la forge à trois ateliers (E2b), scopé .forge */
+@import "./forge/forge.css";
