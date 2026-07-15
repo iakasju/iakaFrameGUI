@@ -15,9 +15,14 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  defaultBindingForNode,
   getAdapter,
+  serializeBinding,
+  type Binding,
   type KitFileTree,
+  type KitGenOptions,
   type NodeKind,
+  type RunnerKind,
   type Team,
 } from "@iakaframe/core";
 import { backend, type Backend } from "../api/backend";
@@ -37,6 +42,8 @@ export interface UseForgeDeploy {
   selectedTeamId: string | null;
   node: NodeKind | null;
   lanHost: string;
+  // --- État de liaison (P7, optionnel) ---
+  binding: Binding | null;
   // --- État du kit / aperçu ---
   kit: KitFileTree | null;
   selectedPath: string | null;
@@ -52,6 +59,11 @@ export interface UseForgeDeploy {
   selectTeam: (id: string | null) => void;
   selectNode: (n: NodeKind) => void;
   setLanHost: (h: string) => void;
+  // --- Actions de liaison (P7) : optionnelles, invalident le kit ---
+  enableBinding: () => void;
+  clearBinding: () => void;
+  setPersonaRunner: (personaId: string, runner: RunnerKind) => void;
+  setPersonaModel: (personaId: string, model: string) => void;
   // --- Actions du flux ---
   generate: () => void;
   selectPreview: (path: string | null) => void;
@@ -100,6 +112,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [node, setNode] = useState<NodeKind | null>(null);
   const [lanHost, setLanHostState] = useState<string>("");
+  const [binding, setBinding] = useState<Binding | null>(null);
   const [kit, setKit] = useState<KitFileTree | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [destDir, setDestDirState] = useState<string>("");
@@ -130,6 +143,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
   const selectTeam = useCallback(
     (id: string | null): void => {
       setSelectedTeamId(id);
+      setBinding(null); // le binding est PAR (team, nœud) → réinitialisé au changement de team.
       invalidateKit();
     },
     [invalidateKit],
@@ -139,6 +153,60 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
     (n: NodeKind): void => {
       setNode(n);
       lsSet(LS_NODE, n);
+      setBinding(null); // le binding est PAR nœud (E1 Q-2) → réinitialisé au changement de nœud.
+      invalidateKit();
+    },
+    [invalidateKit],
+  );
+
+  // --- Liaison (P7) : optionnelle, produit un Binding origin:"forge-default" ---
+
+  /** Active la liaison en initialisant le binding par défaut du (team, nœud) courant. */
+  const enableBinding = useCallback((): void => {
+    if (selectedTeamId === null || node === null) return;
+    const team = teamByIdRef.current(selectedTeamId);
+    if (!team) return;
+    setBinding(defaultBindingForNode(team, node));
+    invalidateKit();
+  }, [selectedTeamId, node, invalidateKit]);
+
+  /** Retire la liaison → retour au **kit pur** (comportement P4 d'origine). */
+  const clearBinding = useCallback((): void => {
+    setBinding(null);
+    invalidateKit();
+  }, [invalidateKit]);
+
+  /** Change le runner d'une persona dans le binding courant (no-op si pas de binding). */
+  const setPersonaRunner = useCallback(
+    (personaId: string, runner: RunnerKind): void => {
+      setBinding((prev) =>
+        prev
+          ? {
+              ...prev,
+              bindings: prev.bindings.map((b) =>
+                b.personaId === personaId ? { ...b, runner } : b,
+              ),
+            }
+          : prev,
+      );
+      invalidateKit();
+    },
+    [invalidateKit],
+  );
+
+  /** Change le modèle d'une persona dans le binding courant (no-op si pas de binding). */
+  const setPersonaModel = useCallback(
+    (personaId: string, model: string): void => {
+      setBinding((prev) =>
+        prev
+          ? {
+              ...prev,
+              bindings: prev.bindings.map((b) =>
+                b.personaId === personaId ? { ...b, model } : b,
+              ),
+            }
+          : prev,
+      );
       invalidateKit();
     },
     [invalidateKit],
@@ -160,17 +228,22 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
     if (node === "ollama-lan" && lanHost.trim().length === 0) return;
     const team = teamByIdRef.current(selectedTeamId);
     if (!team) return;
+    // Options assemblées : `binding`/`lanHost` seulement s'ils s'appliquent. **Sans binding ni
+    // host → `undefined`** (appel identique à P4 → sortie byte-identique, non-régression B-2).
+    const opts: KitGenOptions = {};
+    if (node === "ollama-lan") opts.lanHost = lanHost.trim();
+    if (binding) opts.binding = binding;
     // Adaptateur du registre → arbre EN MÉMOIRE. Aucun appel façade/écriture ici.
     const tree = getAdapter(node).generate(
       team,
-      node === "ollama-lan" ? { lanHost: lanHost.trim() } : undefined,
+      Object.keys(opts).length > 0 ? opts : undefined,
     );
     setResult(null);
     setKit(tree);
     // Sélectionne d'office le 1er chemin (tri stable) pour un aperçu immédiat.
     const first = Object.keys(tree.files).sort()[0] ?? null;
     setSelectedPath(first);
-  }, [selectedTeamId, node, lanHost]);
+  }, [selectedTeamId, node, lanHost, binding]);
 
   const selectPreview = useCallback((path: string | null): void => {
     setSelectedPath(path);
@@ -196,9 +269,14 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
     if (kit === null || destDir.trim().length === 0) return;
     setDeploying(true);
     try {
-      const written = await api.kitDeploy(destDir.trim(), kit.files, force);
+      // P7 : si un binding est posé, la **forge** ajoute `binding.json` à l'arbre (à la racine),
+      // écrit par `kit_deploy` **inchangé**. Sans binding → arbre du kit tel quel.
+      const files = binding
+        ? { ...kit.files, "binding.json": serializeBinding(binding) }
+        : kit.files;
+      const written = await api.kitDeploy(destDir.trim(), files, force);
       // Non destructif : ce qui n'est pas écrit (sans force) est un conflit `skipped`.
-      const allPaths = Object.keys(kit.files);
+      const allPaths = Object.keys(files);
       const skipped = force
         ? []
         : allPaths.filter((p) => !written.includes(p));
@@ -212,7 +290,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
     } finally {
       setDeploying(false);
     }
-  }, [api, kit, destDir, force]);
+  }, [api, kit, destDir, force, binding]);
 
   // --- Gardes d'UX dérivées (§ 3.3) ---
 
@@ -228,6 +306,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       selectedTeamId,
       node,
       lanHost,
+      binding,
       kit,
       selectedPath,
       destDir,
@@ -239,6 +318,10 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       selectTeam,
       selectNode,
       setLanHost,
+      enableBinding,
+      clearBinding,
+      setPersonaRunner,
+      setPersonaModel,
       generate,
       selectPreview,
       setDestDir,
@@ -250,6 +333,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       selectedTeamId,
       node,
       lanHost,
+      binding,
       kit,
       selectedPath,
       destDir,
@@ -261,6 +345,10 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       selectTeam,
       selectNode,
       setLanHost,
+      enableBinding,
+      clearBinding,
+      setPersonaRunner,
+      setPersonaModel,
       generate,
       selectPreview,
       setDestDir,

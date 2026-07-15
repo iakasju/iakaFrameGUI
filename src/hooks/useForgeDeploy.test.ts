@@ -213,4 +213,129 @@ describe("useForgeDeploy", () => {
     });
     expect(result.current.destDir).toBe("/tmp/picked");
   });
+
+  // --- P7 : liaison optionnelle (Binding) ---
+
+  it("enableBinding initialise un binding par défaut du (team, nœud) ; clearBinding revient au pur", () => {
+    const { api } = spyBackend();
+    const { result } = renderHook(() =>
+      useForgeDeploy({ api, teamById: makeTeamById(team) }),
+    );
+
+    act(() => result.current.selectTeam("ma-team"));
+    act(() => result.current.selectNode("openwebui"));
+    expect(result.current.binding).toBeNull(); // pur par défaut.
+
+    act(() => result.current.enableBinding());
+    expect(result.current.binding).not.toBeNull();
+    expect(result.current.binding!.node).toBe("openwebui");
+    expect(result.current.binding!.teamId).toBe("ma-team");
+    expect(result.current.binding!.origin).toBe("forge-default");
+    expect(result.current.binding!.bindings).toHaveLength(team.personas.length);
+
+    act(() => result.current.clearBinding());
+    expect(result.current.binding).toBeNull();
+  });
+
+  it("changer de nœud ou de team réinitialise le binding (E1 Q-2)", () => {
+    const other = buildTeamFromRoster("Autre", "autre");
+    const byId = (id: string) =>
+      id === "ma-team" ? team : id === "autre" ? other : null;
+    const { api } = spyBackend();
+    const { result } = renderHook(() => useForgeDeploy({ api, teamById: byId }));
+
+    act(() => result.current.selectTeam("ma-team"));
+    act(() => result.current.selectNode("openwebui"));
+    act(() => result.current.enableBinding());
+    expect(result.current.binding).not.toBeNull();
+
+    act(() => result.current.selectNode("codex"));
+    expect(result.current.binding).toBeNull(); // réinitialisé au changement de nœud.
+
+    act(() => result.current.enableBinding());
+    expect(result.current.binding).not.toBeNull();
+    act(() => result.current.selectTeam("autre"));
+    expect(result.current.binding).toBeNull(); // réinitialisé au changement de team.
+  });
+
+  it("setPersonaModel met à jour le binding et invalide le kit affiché", () => {
+    const { api } = spyBackend();
+    const { result } = renderHook(() =>
+      useForgeDeploy({ api, teamById: makeTeamById(team) }),
+    );
+    const pid = team.personas[0].id;
+
+    act(() => result.current.selectTeam("ma-team"));
+    act(() => result.current.selectNode("openwebui"));
+    act(() => result.current.enableBinding());
+    act(() => result.current.generate());
+    expect(result.current.kit).not.toBeNull();
+
+    act(() => result.current.setPersonaModel(pid, "qwen2.5-coder:14b"));
+    expect(result.current.kit).toBeNull(); // kit invalidé au changement de binding.
+    const entry = result.current.binding!.bindings.find((b) => b.personaId === pid);
+    expect(entry!.model).toBe("qwen2.5-coder:14b");
+  });
+
+  it("generate passe le binding à l'adaptateur ; le modèle apparaît dans le kit", () => {
+    const { api } = spyBackend();
+    const { result } = renderHook(() =>
+      useForgeDeploy({ api, teamById: makeTeamById(team) }),
+    );
+    const pid = team.personas[0].id;
+
+    act(() => result.current.selectTeam("ma-team"));
+    act(() => result.current.selectNode("openwebui"));
+    act(() => result.current.enableBinding());
+    act(() => result.current.setPersonaModel(pid, "qwen2.5"));
+    act(() => result.current.generate());
+
+    const content = result.current.kit!.files[`models/${pid}.json`];
+    expect(JSON.parse(content).base_model_id).toBe("qwen2.5");
+  });
+
+  it("B-6 — deploy ajoute binding.json (racine) au KitFileTree quand un binding est posé", async () => {
+    const { api, deployCalls } = spyBackend();
+    const { result } = renderHook(() =>
+      useForgeDeploy({ api, teamById: makeTeamById(team) }),
+    );
+    const pid = team.personas[0].id;
+
+    act(() => result.current.selectTeam("ma-team"));
+    act(() => result.current.selectNode("openwebui"));
+    act(() => result.current.enableBinding());
+    act(() => result.current.setPersonaModel(pid, "qwen2.5"));
+    act(() => result.current.generate());
+    act(() => result.current.setDestDir("/tmp/cible"));
+    await act(async () => {
+      await result.current.deploy();
+    });
+
+    expect(deployCalls).toHaveLength(1);
+    const files = deployCalls[0].files;
+    expect(files["binding.json"]).toBeDefined();
+    const parsed = JSON.parse(files["binding.json"]);
+    expect(parsed.origin).toBe("forge-default");
+    expect(parsed.node).toBe("openwebui");
+    // Aucun credential dans l'artefact déployé.
+    expect(files["binding.json"]).not.toMatch(/token|apiKey|password/i);
+  });
+
+  it("B-6 — sans binding, deploy n'ajoute PAS de binding.json (arbre inchangé)", async () => {
+    const { api, deployCalls } = spyBackend();
+    const { result } = renderHook(() =>
+      useForgeDeploy({ api, teamById: makeTeamById(team) }),
+    );
+
+    act(() => result.current.selectTeam("ma-team"));
+    act(() => result.current.selectNode("claude"));
+    act(() => result.current.generate());
+    act(() => result.current.setDestDir("/tmp/cible"));
+    await act(async () => {
+      await result.current.deploy();
+    });
+
+    expect(deployCalls[0].files["binding.json"]).toBeUndefined();
+    expect(deployCalls[0].files).toEqual(result.current.kit!.files);
+  });
 });
