@@ -24,6 +24,14 @@ const TEAMS_DIR: &str = "teams";
 pub const HANDOFF_ROOT_ENV: &str = "IAKA_HANDOFF_ROOT";
 /// Canal de handoff partagé forge↔cockpit, sous le chapeau (H1, Q-B).
 const HANDOFF_DIR: &str = "iaka-handoff";
+/// Variable d'environnement de la **racine bibliothèque** iakaframe — **partagée avec le CLI**
+/// (point de vérité UNIQUE, cf. cli-bibliotheque-verbes.md §4.2). DISTINCTE de `IAKAFRAME_ROOT`
+/// (chapeau) et de `IAKAFRAMEGUI_WORKSPACE` (workspace isolé de la forge).
+pub const IAKAFRAME_HOME_ENV: &str = "IAKAFRAME_HOME";
+/// Dossier de la bibliothèque sous le chapeau (découverte auto : `<chapeau>/iakaframe`).
+const LIBRARY_HOME_DIR: &str = "iakaframe";
+/// Fichier de réglages GUI (override persisté de la racine), sous le workspace.
+const SETTINGS_FILE: &str = "settings.json";
 
 /// Résout la racine du chapeau pour l'OS courant.
 pub fn resolve_hat_root() -> PathBuf {
@@ -83,6 +91,56 @@ fn resolve_handoff_root_with(env_value: Option<String>, hat_root: PathBuf) -> Pa
         }
     }
     hat_root.join(HANDOFF_DIR)
+}
+
+/// Fichier de réglages GUI (`<workspace>/settings.json`) — override persisté de la racine.
+pub fn resolve_settings_file() -> PathBuf {
+    resolve_workspace().join(SETTINGS_FILE)
+}
+
+/// Résout la **racine bibliothèque `IAKAFRAME_HOME`** (partagée CLI, §5). Priorité :
+/// 1) override persisté GUI (`settings.json`) ; 2) env `IAKAFRAME_HOME` ; 3) découverte auto
+/// `<chapeau>/iakaframe` **validée** par le double marqueur `library/` + `methods/` ; 4) `None`
+/// (bibliothèque introuvable → l'UI invite à la définir).
+pub fn resolve_iakaframe_home() -> Option<PathBuf> {
+    let override_persisted = crate::settings::read_home_override(&resolve_settings_file());
+    resolve_iakaframe_home_with(
+        override_persisted,
+        std::env::var(IAKAFRAME_HOME_ENV).ok(),
+        resolve_hat_root(),
+    )
+}
+
+/// Variante testable (override + env + chapeau injectés). La branche « découverte auto »
+/// touche le disque (double marqueur) ; les branches override/env sont pures.
+fn resolve_iakaframe_home_with(
+    override_opt: Option<String>,
+    env_opt: Option<String>,
+    hat_root: PathBuf,
+) -> Option<PathBuf> {
+    if let Some(v) = override_opt {
+        let t = v.trim();
+        if !t.is_empty() {
+            return Some(PathBuf::from(t));
+        }
+    }
+    if let Some(v) = env_opt {
+        let t = v.trim();
+        if !t.is_empty() {
+            return Some(PathBuf::from(t));
+        }
+    }
+    let candidate = hat_root.join(LIBRARY_HOME_DIR);
+    if is_library_home(&candidate) {
+        return Some(candidate);
+    }
+    None
+}
+
+/// Un dossier est-il une racine bibliothèque valide ? Double marqueur `library/` + `methods/`
+/// (calque de la détection CLI `isLibraryRootDir`, §4.2).
+pub fn is_library_home(dir: &std::path::Path) -> bool {
+    dir.join("library").is_dir() && dir.join("methods").is_dir()
 }
 
 #[cfg(test)]
@@ -147,5 +205,58 @@ mod tests {
             PathBuf::from("/home/user/work"),
         );
         assert_eq!(h, PathBuf::from("/tmp/handoff"));
+    }
+
+    #[test]
+    fn home_override_persiste_prime_sur_env_et_auto() {
+        let h = resolve_iakaframe_home_with(
+            Some("/lib/override".to_string()),
+            Some("/lib/env".to_string()),
+            PathBuf::from("/home/user/work"),
+        );
+        assert_eq!(h, Some(PathBuf::from("/lib/override")));
+    }
+
+    #[test]
+    fn home_env_prime_sur_auto_si_pas_d_override() {
+        let h = resolve_iakaframe_home_with(
+            None,
+            Some("/lib/env".to_string()),
+            PathBuf::from("/home/user/work"),
+        );
+        assert_eq!(h, Some(PathBuf::from("/lib/env")));
+    }
+
+    #[test]
+    fn home_override_vide_est_ignore() {
+        let h = resolve_iakaframe_home_with(
+            Some("   ".to_string()),
+            Some("/lib/env".to_string()),
+            PathBuf::from("/home/user/work"),
+        );
+        assert_eq!(h, Some(PathBuf::from("/lib/env")));
+    }
+
+    #[test]
+    fn home_auto_par_double_marqueur_sinon_none() {
+        // Chapeau sans bibliothèque → introuvable.
+        let mut hat = std::env::temp_dir();
+        hat.push(format!(
+            "iakaframegui-home-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        assert_eq!(resolve_iakaframe_home_with(None, None, hat.clone()), None);
+        // On matérialise `<hat>/iakaframe/{library,methods}` → découverte auto.
+        let home = hat.join("iakaframe");
+        std::fs::create_dir_all(home.join("library")).unwrap();
+        std::fs::create_dir_all(home.join("methods")).unwrap();
+        assert_eq!(
+            resolve_iakaframe_home_with(None, None, hat.clone()),
+            Some(home)
+        );
+        std::fs::remove_dir_all(&hat).ok();
     }
 }
