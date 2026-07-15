@@ -22,6 +22,7 @@ import { RailElement, RailNote, RailSection, StockItem } from "../Rail";
 import { Vignette, UploadChip } from "../Vignette";
 import { initialsOf } from "../casting";
 import { CopiloteShell, RunnerFrontier } from "../CopiloteShell";
+import type { CopiloteContext, MaterializeOp } from "../mock/copilote";
 import { MdPane, type FoldNode } from "../FoldableMd";
 import { FilePreview } from "../ContextGraph";
 
@@ -96,6 +97,24 @@ export function TeamAtelier({ forge, team }: { forge: UseForgeTeams; team: Team 
       ...persona,
       guardrails: [...persona.guardrails, guardId],
     });
+  }
+
+  // Contexte du copilote : ids déjà présents sur la persona éditée (pour le diff avant→après).
+  const copiloteContext: CopiloteContext = {
+    surface: "team",
+    diffFile: persona ? `${persona.id}.md` : "persona.md",
+    present: {
+      "persona-skill": persona?.skills ?? [],
+      "persona-guardrail": persona?.guardrails ?? [],
+    },
+  };
+
+  /** Valider une proposition → matérialisation RÉELLE via les mêmes chemins que le `+` du rail. */
+  function applyProposition(ops: MaterializeOp[]): void {
+    for (const op of ops) {
+      if (op.target === "persona-skill") addSkill(op.id);
+      else if (op.target === "persona-guardrail") addGuardrail(op.id);
+    }
   }
 
   return (
@@ -174,7 +193,12 @@ export function TeamAtelier({ forge, team }: { forge: UseForgeTeams; team: Team 
               <UploadChip label="⬆ vignette persona — glisser-déposer" />
             </div>
 
-            <CopiloteShell subject={`assiste la conception de ${persona.name}`} />
+            <CopiloteShell
+              subject={`assiste la conception de ${persona.name}`}
+              context={copiloteContext}
+              onApply={applyProposition}
+              placeholder={`Décrivez une intention pour ${persona.name}… ex. « un skill qui garantit qu'il badge son ouverture et sa clôture »`}
+            />
 
             <RunnerFrontier rib="Team PURE">
               Aucun runner ni modèle dans la Team (method-agnostic). Le choix d'exécution — le{" "}

@@ -22,6 +22,7 @@ import { RailNote, RailSection, StockItem } from "../Rail";
 import { Vignette, UploadChip } from "../Vignette";
 import { initialsOf } from "../casting";
 import { CopiloteShell } from "../CopiloteShell";
+import type { CopiloteContext, MaterializeOp } from "../mock/copilote";
 import { MdPane, type FoldNode } from "../FoldableMd";
 import { FilePreview } from "../ContextGraph";
 
@@ -84,6 +85,26 @@ export function KitAtelier({ method, team }: { method: Method; team: Team }) {
   // Arbre complet de l'assemblage livré (pur) — aperçu de 3ᵉ colonne à l'échelle du kit.
   const tree = useMemo(() => generateClaudeCodeKit(team, { method }), [team, method]);
 
+  // Contexte du copilote : le binding STRUCTUREL déjà choisi (jamais le runner d'EXÉCUTION §8).
+  const copiloteContext: CopiloteContext = {
+    surface: "kit",
+    diffFile: "kit.json",
+    present: {
+      "kit-binding": kit.runnerBindingId ? [kit.runnerBindingId] : [],
+    },
+  };
+
+  /**
+   * Valider une proposition → matérialisation RÉELLE via le même `setKit` que le `+` du rail.
+   * ⚠️ Le copilote ne touche QUE le binding STRUCTUREL (défaut suggéré) ; il n'assigne JAMAIS de
+   * runner d'EXÉCUTION par persona (`binding` local, réglé au Cockpit) — frontière §8 gravée.
+   */
+  function applyProposition(ops: MaterializeOp[]): void {
+    for (const op of ops) {
+      if (op.target === "kit-binding") setKit((k) => ({ ...k, runnerBindingId: op.id }));
+    }
+  }
+
   return (
     <>
       <aside className="rail">
@@ -143,7 +164,12 @@ export function KitAtelier({ method, team }: { method: Method; team: Team }) {
           <UploadChip label="⬆ vignette kit — glisser-déposer" />
         </div>
 
-        <CopiloteShell subject="assiste l'assemblage du kit" />
+        <CopiloteShell
+          subject="assiste l'assemblage du kit"
+          context={copiloteContext}
+          onApply={applyProposition}
+          placeholder="Décrivez l'assemblage… ex. « prépare une carte de binding défaut suggéré pour le Cockpit »"
+        />
 
         <div className="triptych">
           <MdPane

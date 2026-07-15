@@ -453,8 +453,173 @@
   border-radius: 10px;
   padding: 0 18px;
   font: 600 12.5px/1 var(--font-sans);
+  cursor: pointer;
+}
+.forge .cprompt .send:disabled {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.55;
+}
+
+/* ---------- Boucle copilote : conversation → artefacts → diff → valider/rejeter (E2c) ---------- */
+.forge .copilote .conv {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.forge .copilote .umsg {
+  align-self: flex-end;
+  max-width: 78%;
+  background: #26262e;
+  border-radius: 12px 12px 3px 12px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: #eaeaef;
+}
+.forge .copilote .umsg .who {
+  font: 600 8.5px/1.2 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8f8f99;
+  margin-bottom: 5px;
+}
+.forge .copilote .amsg {
+  align-self: flex-start;
+  max-width: 94%;
+  background: #18181d;
+  border: 1px solid #2a2a31;
+  border-left: 3px solid var(--accent);
+  border-radius: 3px 12px 12px 12px;
+  padding: 11px 13px;
+}
+.forge .copilote .amsg .who {
+  font: 600 9px/1.2 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f0b8b4;
+  margin-bottom: 8px;
+}
+.forge .copilote .amsg p {
+  font-size: 12.5px;
+  color: #c7c7cf;
+  margin: 3px 0;
+}
+.forge .copilote .amsg p b {
+  color: #fff;
+}
+.forge .copilote .arte {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  background: #0e0e12;
+  border: 1px solid #2a2a31;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 6px 0;
+}
+.forge .copilote .arte .ic {
+  font: 700 8px/1.2 var(--mono);
+  letter-spacing: 0.05em;
+  color: #fff;
+  border-radius: 5px;
+  padding: 5px 6px;
+  flex: none;
+  min-width: 42px;
+  text-align: center;
+}
+.forge .copilote .arte .ic.skill {
+  background: var(--accent);
+}
+.forge .copilote .arte .ic.hook {
+  background: var(--purple, #8b7cf6);
+}
+.forge .copilote .arte .ic.rit {
+  background: var(--green, #38a169);
+}
+.forge .copilote .arte .ic.prin,
+.forge .copilote .arte .ic.bind,
+.forge .copilote .arte .ic.scaf,
+.forge .copilote .arte .ic.role {
+  background: var(--gold, #c99a2e);
+}
+.forge .copilote .arte .at {
+  font-size: 12px;
+  color: #d5d5db;
+}
+.forge .copilote .arte .at b {
+  color: #fff;
+  font-weight: 600;
+}
+.forge .copilote .arte .at .d {
+  color: #8f8f99;
+  font-size: 11px;
+}
+.forge .copilote .cdiff {
+  font: 11px/1.6 var(--mono);
+  background: #0b0b0e;
+  border: 1px solid #26262c;
+  border-radius: 8px;
+  padding: 8px 11px;
+  margin: 7px 0;
+}
+.forge .copilote .cdiff .fl {
+  color: #7c7c86;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+.forge .copilote .cdiff .add {
+  color: #6fd08a;
+  display: block;
+}
+.forge .copilote .cdiff .add::before {
+  content: "+ ";
+}
+.forge .copilote .cdiff .del {
+  color: #e58a83;
+  display: block;
+  opacity: 0.8;
+}
+.forge .copilote .cdiff .del::before {
+  content: "− ";
+}
+.forge .copilote .cdiff .same {
+  color: #7c7c86;
+  display: block;
+}
+.forge .copilote .cdiff .same::before {
+  content: "= ";
+}
+.forge .copilote .cact {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+.forge .copilote .btn-ok {
+  background: var(--green, #38a169);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font: 600 12px/1 var(--font-sans);
+  cursor: pointer;
+}
+.forge .copilote .btn-no {
+  background: transparent;
+  color: #c7c7cf;
+  border: 1px solid #3a3a42;
+  border-radius: 8px;
+  padding: 8px 13px;
+  font: 600 12px/1 var(--font-sans);
+  cursor: pointer;
+}
+.forge .copilote .cact .hint {
+  font-size: 10.5px;
+  color: #7c7c86;
+  margin-left: auto;
 }
 
 /* ---------- Frontière runner (authoring ≠ exécution) ---------- */
