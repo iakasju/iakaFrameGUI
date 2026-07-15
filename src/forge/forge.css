@@ -1101,6 +1101,37 @@
   color: var(--gold, #d9a441);
   margin-right: 8px;
 }
+/* Variante éditable : input stylé en grand titre centré (façon titre Google Docs). */
+.doctitle-edit {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+.doctitle .doc-name-input {
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-align: center;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 10px;
+  max-width: 70%;
+  outline: none;
+}
+.doctitle .doc-name-input:hover {
+  border-color: var(--line, rgba(255, 255, 255, 0.14));
+}
+.doctitle .doc-name-input:focus {
+  border-color: var(--gold, #d9a441);
+  background: rgba(255, 255, 255, 0.03);
+}
+.doctitle .doc-name-input::placeholder {
+  color: var(--muted, rgba(255, 255, 255, 0.4));
+  font-weight: 400;
+}
 .settings-toggle {
   font: inherit;
   font-size: 12px;
