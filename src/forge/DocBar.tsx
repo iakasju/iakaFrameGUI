@@ -4,14 +4,26 @@
  * (id + nom) et la **liste Open** (scan de la collection). Générique : pilotée par le
  * `useForgeDocument<T>` de l'onglet. Purement UI — toute I/O vit dans le hook (façade unique).
  */
-import { useCallback, useState } from "react";
-import type { LibraryEntry, UseForgeDocument } from "./useForgeDocument";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { slugifyId, type LibraryEntry, type UseForgeDocument } from "./useForgeDocument";
 
 export function DocBar({ doc }: { doc: UseForgeDocument<unknown> }) {
   const [openPanel, setOpenPanel] = useState(false);
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [saId, setSaId] = useState("");
   const [saName, setSaName] = useState("");
+
+  // Préremplit l'invite Save As depuis le nom courant à l'ouverture (ferme le parcours New →
+  // nommer dans le titre → Save : Q-4). Ne clobbe pas la frappe ensuite (déclenché à l'ouverture).
+  const wasSaveAsOpen = useRef(false);
+  useEffect(() => {
+    if (doc.saveAsOpen && !wasSaveAsOpen.current) {
+      const base = doc.name === "sans-titre" ? "" : doc.name;
+      setSaName(base);
+      setSaId(slugifyId(base));
+    }
+    wasSaveAsOpen.current = doc.saveAsOpen;
+  }, [doc.saveAsOpen, doc.name]);
 
   const toggleOpen = useCallback(async () => {
     if (!openPanel) {
