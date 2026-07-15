@@ -107,9 +107,10 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 - [x] **Commandes terminal + livraison bibliothèque** — **LIVRÉ (dépôt `iakaframe`)** : 5 verbes
   `list`/`show`/`assemble`/`add`/`switch(use)` codés + testés, **gate Legolas PASS, mergé + poussé**
   (`iakaframe` main `2d481bf`), pool matérialisé (`library/`+`teams/`+`methods/`+`bindings/`+`kits/`).
-  *Reste à confirmer (cadrage `gui-... cli-bibliotheque-list-add-assemble-switch.md`, 3 écarts potentiels) :
-  racine partagée CLI↔GUI (`IAKAFRAME_HOME`), convergence schéma binding pool↔E1, golden de parité
-  core↔CLI. → vérifier s'ils sont réels avant de clore.*
+  **Lot de convergence LIVRÉ 2026-07-15** (merge `2c85702`, gate Legolas PASS, 86/86, poussé) : les 3 écarts
+  (racine partagée `<chapeau>/iakaframe`, schéma binding E1 `node`/`origin` additif, parité `assemble`↔cœur
+  + golden byte-à-byte) **résolus** ; bonus `etat.test.js` réparé. *Réserve mineure non bloquante : CLI
+  `existsSync` vs GUI `is_dir()` sur le marqueur de racine (cas de bord).* **Item clos.**
 - [ ] **Modèle Méthode élargi** — à graver par Gandalf : Méthode = scaffold + workflow (migré) +
   **assemblage de principes composables** (qualité, backlog, doc/état des lieux, commits/versionnement,
   isolation Docker, self-hosted-first, réutilisation, MVP-first, identité/badges, périmètres étanches,
