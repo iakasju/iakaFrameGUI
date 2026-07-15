@@ -24,6 +24,7 @@ import type { MethodRef } from "../useForgeMethod";
 import { RailNote, RailSection, StockItem } from "../Rail";
 import { UploadChip } from "../Vignette";
 import { CopiloteShell, RunnerFrontier } from "../CopiloteShell";
+import type { CopiloteContext, MaterializeOp, MaterializeTarget } from "../mock/copilote";
 import { Foldable, MdPane, PrincipleMeta, type FoldNode } from "../FoldableMd";
 import { FlowDiagram } from "../ContextGraph";
 
@@ -32,6 +33,15 @@ function gateText(g: Gate): string {
   const kind = g.kind === "human" ? "humaine" : "auto";
   return g.condition.length > 0 ? `${kind} — ${g.condition}` : kind;
 }
+
+/** Cible de matérialisation du copilote → composant référençable de la Méthode (`insert`). */
+const TARGET_TO_REF: Partial<Record<MaterializeTarget, MethodRef>> = {
+  "method-principle": "principleIds",
+  "method-ritual": "ritualIds",
+  "method-guardrail": "guardrailIds",
+  "method-scaffold": "scaffoldIds",
+  "method-role": "roleKeys",
+};
 
 export function MethodeAtelier({
   method,
@@ -65,6 +75,27 @@ export function MethodeAtelier({
       },
     ],
   }));
+
+  // Contexte du copilote : les ids déjà présents (pour le diff avant→après).
+  const copiloteContext: CopiloteContext = {
+    surface: "methode",
+    diffFile: "methode.md",
+    present: {
+      "method-principle": method.principleIds,
+      "method-ritual": method.ritualIds,
+      "method-guardrail": method.guardrailIds,
+      "method-scaffold": method.scaffoldIds,
+      "method-role": method.roleKeys,
+    },
+  };
+
+  /** Valider une proposition → matérialisation RÉELLE via le même `insert` que le `+` du rail. */
+  function applyProposition(ops: MaterializeOp[]): void {
+    for (const op of ops) {
+      const ref = TARGET_TO_REF[op.target];
+      if (ref) insert(ref, op.id); // idempotent, défensif (id inconnu filtré aux résolveurs)
+    }
+  }
 
   const principleNodes: FoldNode[] = principlesForMethod(method).map((pr, i) => ({
     kind: "principe",
@@ -190,7 +221,12 @@ export function MethodeAtelier({
           <UploadChip label="⬆ pictogramme méthode — glisser-déposer" />
         </div>
 
-        <CopiloteShell subject="assiste la discipline de la méthode" />
+        <CopiloteShell
+          subject="assiste la discipline de la méthode"
+          context={copiloteContext}
+          onApply={applyProposition}
+          placeholder="Décrivez une règle de discipline… ex. « un principe : version mineure ⇒ rapport qualité complet »"
+        />
 
         <RunnerFrontier rib="Méthode ≠ Team">
           La Méthode ne nomme aucun agent : elle décrit la <b>discipline</b> (workflow + principes

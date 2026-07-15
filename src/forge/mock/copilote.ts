@@ -18,7 +18,6 @@ import {
   CATALOG_RITUALS,
   CATALOG_SCAFFOLDS,
   CATALOG_SKILLS,
-  guardrailById,
   principleById,
   ritualById,
 } from "@iakaframe/core";
@@ -151,7 +150,7 @@ function ritualArtefact(id: string): ProposedArtefact {
 }
 
 function guardrailArtefact(id: string): ProposedArtefact {
-  const g = guardrailById(id);
+  const g = CATALOG_GUARDRAILS.find((x) => x.id === id);
   const hook = g?.rendering.hook;
   return {
     icon: "hook",
