@@ -80,6 +80,7 @@ export function ForgeShell() {
     },
     idOf: (t) => t.id,
     nameOf: (t) => t.name,
+    withName: (t, name) => ({ ...t, name }),
     validateRefs: validateTeamRefs,
   });
 
@@ -93,6 +94,7 @@ export function ForgeShell() {
     },
     idOf: (m) => m.id,
     nameOf: (m) => m.name,
+    withName: (m, name) => ({ ...m, name }),
     validateRefs: validateMethodRefs,
   });
 
@@ -179,7 +181,12 @@ export function ForgeShell() {
 
       {/* Barre de gestes fichier + titre de document de l'onglet actif. */}
       <DocBar doc={activeDoc} />
-      <DocTitle name={activeDoc.name} dirty={activeDoc.dirty} />
+      <DocTitle
+        name={activeDoc.name}
+        dirty={activeDoc.dirty}
+        onNameChange={activeDoc.canRename ? activeDoc.setName : undefined}
+        disabled={activeDoc.artifact === null}
+      />
 
       {settingsOpen && (
         <div className="settings-panel">
