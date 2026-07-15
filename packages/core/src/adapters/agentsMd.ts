@@ -20,6 +20,7 @@
  * (portée par le catalogue `guardrail.ts`).
  */
 
+import { modelForPersona } from "../binding";
 import { CATALOG_GUARDRAILS, type Guardrail } from "../guardrail";
 import { resolveWorkflow } from "../method";
 import type { Persona } from "../persona";
@@ -71,6 +72,36 @@ function renderRoster(team: Team, personas: Persona[]): string {
 | Persona (nom) | Rôle | Pastille d'identité |
 |---|---|---|
 ${rows}`;
+}
+
+/**
+ * Section **« Moteur par persona » (liaison)** — P7, **conditionnelle**. Rendue **uniquement**
+ * si le binding attribue ≥ 1 modèle non vide (issu du Binding, **jamais** de la Team). Sans
+ * binding, ou binding « tout vide » → `null` (section absente → `AGENTS.md` byte-identique au
+ * pur : non-régression B-2, binding-vide ≡ pur B-4). Ne liste que les personas **liées à un
+ * modèle**.
+ */
+function renderEngineSection(
+  personas: Persona[],
+  opts?: KitGenOptions,
+): string | null {
+  const binding = opts?.binding;
+  if (!binding) return null;
+  const rows = personas
+    .map((p) => ({ p, model: modelForPersona(binding, p.id) }))
+    .filter((e) => e.model.length > 0);
+  if (rows.length === 0) return null;
+  const lines = rows
+    .map((e) => `| ${e.p.name} | ${roleLabel(e.p.roleKey)} | \`${e.model}\` |`)
+    .join("\n");
+  return `## Moteur par persona (liaison)
+
+> Modèle attribué à chaque persona pour **ce déploiement** (issu du Binding de la forge, jamais
+> de la définition de team — la Team reste pure). Un modèle absent = **défaut du runner**.
+
+| Persona (nom) | Rôle | Moteur (modèle) |
+|---|---|---|
+${lines}`;
 }
 
 /** Section mutualisée « Ce qu'est iakaframe ». */
@@ -146,12 +177,15 @@ export function buildAgentsMd(
   opts?: KitGenOptions,
 ): string {
   const personas = [...team.personas].sort(byRoleThenId);
-  const sections = [
+  const sections: (string | null)[] = [
     `# ${spec.title}`,
     spec.intro,
     spec.prerequisites,
     WHAT_IS_IAKAFRAME,
     renderRoster(team, personas),
+    // Section « moteur par persona » P7 : **conditionnelle** (null sans binding → absente →
+    // sortie byte-identique au pur ; non-régression B-2).
+    renderEngineSection(personas, opts),
     // Section phases/gates rendue **depuis la donnée** (P6), le workflow venant de la **Méthode**
     // du Kit (E2) — **sans `method`** → workflow canonique → sortie byte-identique (non-régression).
     renderWorkflowMarkdown(resolveWorkflow(opts?.method)),
@@ -160,7 +194,7 @@ export function buildAgentsMd(
     CONVENTIONS,
     PROJECT_STRUCTURE,
   ];
-  return sections.join("\n\n") + "\n";
+  return sections.filter((s): s is string => s !== null).join("\n\n") + "\n";
 }
 
 /**

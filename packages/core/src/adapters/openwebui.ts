@@ -19,6 +19,7 @@
  *    Pipelines hors MVP) → les connecteurs de team sont **ignorés** pour ce nœud (notés en prose).
  */
 
+import { modelForPersona } from "../binding";
 import { guardrailByKind, type Guardrail } from "../guardrail";
 import { DEFAULT_METHOD_ID } from "../method";
 import type { Persona } from "../persona";
@@ -37,8 +38,11 @@ const CONSTANT_TIMESTAMP = 1_750_000_000;
 export interface OpenWebUIModel {
   /** Slug du Model = `persona.id`. */
   id: string;
-  /** Modèle de base **NON fixé** (AR-1) : vide, réglé à l'import par l'utilisateur. */
-  base_model_id: "";
+  /**
+   * Modèle de base. **Sans Binding** : `""` (non fixé — réglé à l'import, AR-1). **Avec Binding**
+   * (P7) : l'alias `model` de la persona s'il est non vide (kit standalone-runnable).
+   */
+  base_model_id: string;
   /** Nom affiché = `persona.name` (nommage libre). */
   name: string;
   /** Paramètres du Model : **uniquement** le system prompt (aucun paramètre d'inférence). */
@@ -117,8 +121,17 @@ Royaume : **${persona.royaume.toUpperCase()}**. Pastille d'identité : \`${perso
   return sections.filter((s): s is string => s !== null).join("\n\n");
 }
 
-/** Construit l'objet **Model Open WebUI** d'une persona (forme des gabarits, meta minimal). */
-export function buildOpenWebUIModel(persona: Persona, methodId: string): OpenWebUIModel {
+/**
+ * Construit l'objet **Model Open WebUI** d'une persona (forme des gabarits, meta minimal).
+ * `model` (P7, défaut `""`) alimente `base_model_id` **s'il est non vide** (issu du Binding) ;
+ * sinon `base_model_id: ""` (inchangé, AR-1). `meta.description` reste **constante** (byte-identité
+ * sans binding) — elle documente le réglage à l'import dans tous les cas.
+ */
+export function buildOpenWebUIModel(
+  persona: Persona,
+  methodId: string,
+  model = "",
+): OpenWebUIModel {
   const description = asciiFold(
     `Persona ${persona.name} - role ${roleLabel(persona.roleKey)}. ` +
       `Modele de base NON fixe (base_model_id vide) : regler le modele a l'import dans ` +
@@ -126,7 +139,7 @@ export function buildOpenWebUIModel(persona: Persona, methodId: string): OpenWeb
   );
   return {
     id: persona.id,
-    base_model_id: "",
+    base_model_id: model.length > 0 ? model : "",
     name: persona.name,
     params: { system: buildSystemPrompt(persona) },
     meta: {
@@ -156,9 +169,15 @@ export function generateOpenWebUIKit(team: Team, opts?: KitGenOptions): KitFileT
   // E2 : l'id de méthode (tag du Model) provient de la Méthode du Kit ; **sans `method`** →
   // repli canonique (`DEFAULT_METHOD_ID` = "iakaframe") → sortie byte-identique à l'actuelle.
   const methodId = opts?.method?.id ?? DEFAULT_METHOD_ID;
+  const binding = opts?.binding;
   const files: Record<string, string> = {};
   for (const persona of personas) {
-    const model = buildOpenWebUIModel(persona, methodId);
+    // `base_model_id` émis SSI le binding fournit un modèle non vide (sinon "" — inchangé).
+    const model = buildOpenWebUIModel(
+      persona,
+      methodId,
+      modelForPersona(binding, persona.id),
+    );
     files[`models/${persona.id}.json`] = JSON.stringify(model, null, 2) + "\n";
   }
   return { files };
