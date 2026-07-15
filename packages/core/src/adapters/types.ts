@@ -14,6 +14,7 @@
 
 import type { Team } from "../team";
 import type { Method } from "../method";
+import type { Binding } from "../binding";
 import type { KitFormat, NodeKind } from "../node";
 
 /**
@@ -42,6 +43,14 @@ export interface KitGenOptions {
    * compléter par l'utilisateur. Ignoré par les autres nœuds.
    */
   lanHost?: string;
+  /**
+   * **Binding** de liaison (P7, E1) : couple `runner + modèle` **par persona**, produit par la
+   * forge. **Optionnel** (rétro-compat) : **sans `binding`**, aucun modèle n'est émis → sortie
+   * **byte-identique** à l'actuelle (kit pur). Avec `binding`, chaque adaptateur émet le modèle
+   * **de la persona** (lookup `binding.bindings`, modèle vide → rien émis). Le modèle vient
+   * **toujours du Binding**, **jamais de la Team**.
+   */
+  binding?: Binding;
 }
 
 /**
