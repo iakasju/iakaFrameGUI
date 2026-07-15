@@ -121,8 +121,13 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   *NB : la séparation **Méthode ≠ Team** est déjà livrée (E2a/b/c) ; reste le modèle de principes.*
 
 ### Cadré, non codé
-- [ ] **P7 — Binding réel** : étape de liaison optionnelle au déploiement (`binding.json`, émission
-  conditionnelle du modèle par adaptateur). `specs/instructions/P7-forge-liaison-deploiement.md`.
+- [x] **P7 — Binding réel** — **LIVRÉ 2026-07-16** (jalon validé décideur Q-1→Q-5 = recos, merge `--no-ff`
+  `9ecf97f`, **gate Legolas PASS** : typecheck/lint 0, vitest **330/330**, cargo **56/56**, build OK, poussé).
+  Schéma `Binding`/`PersonaBinding` + `defaultBindingForNode` dans `@iakaframe/core` ; émission
+  **conditionnelle** du modèle par adaptateur via `KitGenOptions.binding?` (optionnel) ; `LiaisonPanel` dans
+  le flux Déploiement ; `binding.json` ajouté au `KitFileTree` par la forge (`kit_deploy` **inchangé**, zéro
+  Rust). Invariant B-2 tenu : **sans binding = sortie byte-identique**. Team pure, façade unique, zéro credential.
+  `specs/instructions/P7-forge-liaison-deploiement.md`. *Reste : **recettes humaines B-7/B-10** (voir ci-dessous).*
 
 ### À faire
 - [ ] **Éditeur de workflow** (P6 livré en read-only — `WorkflowPanel`).
@@ -135,6 +140,10 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 - [ ] Cycle **handoff** Livrer → Réceptionner (forge → cockpit).
 - [ ] **G-8** : déployer un kit dans un **vrai** projet Claude Code (subagents/skills reconnus +
   canal d'identité opérationnel) — `specs/notes/P3-recette-manuelle-G8.md`.
+- [ ] **B-7 (P7)** : importabilité réelle d'un kit **lié** — Open WebUI avec `base_model_id` rempli
+  (importable), Codex avec modèle référencé ; Claude Code sans modèle = pur et valide.
+- [ ] **B-10 (P7)** : smoke visuel Binding bout-en-bout — team → nœud → **cocher « Lier »** (Open WebUI,
+  un modèle) → Générer (voir `base_model_id` rempli) → Déployer sur tmp → `binding.json` présent à la racine.
 
 ### North-star (design gardé ouvert, hors MVP)
 - [ ] **Import multi-méthodes** (BMAD / MetaGPT / SPARC) — agnosticisme de méthode gravé dès le cœur ;

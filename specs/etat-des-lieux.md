@@ -15,7 +15,7 @@
 | Arbre | propre |
 | Commits | 78 |
 | Fichiers suivis (hors node_modules) | 182 |
-| Tests | **301 verts** GUI (`npm run test`, 37 fichiers) ; CLI `iakaframe` **86 verts** |
+| Tests | **330 verts** GUI (`npm run test`, 38 fichiers ; core 226 + front 104) + Rust `cargo test` **56 verts** ; CLI `iakaframe` **86 verts** |
 
 ## Ce qui est livre (code committe)
 
@@ -52,6 +52,14 @@
     dirty tracking) + facade `library*` ; cote coeur, (de)serialiseurs **frontmatter .md par type**
     (team/method/kit), zero-dep (`b846f4c`) ; cote Rust, `library_store` .md sous pathguard
     `IAKAFRAME_HOME` + `resolve_iakaframe_home` (`d867561`).
+- **P7 — Binding reel** (instruction `specs/instructions/P7-forge-liaison-deploiement.md`, jalon **VALIDE decideur**
+  Q-1->Q-5 = recos, merge `--no-ff` `9ecf97f`, **gate Legolas PASS** : typecheck/lint 0, vitest **330/330**,
+  cargo **56/56**, build OK, pousse) : schema `Binding`/`PersonaBinding` + `defaultBindingForNode` dans
+  `@iakaframe/core` ; **emission conditionnelle** du modele par adaptateur (claudeCode/agentsMd/openwebui) via
+  `KitGenOptions.binding?` **optionnel** ; `LiaisonPanel` (etape de liaison optionnelle) dans le flux Deploiement ;
+  `binding.json` ajoute au `KitFileTree` par la forge (`kit_deploy` **INCHANGE**, zero Rust). Invariant **B-2 tenu**
+  (sans binding = sortie byte-identique, golden P3/P3b/P3c intacts) ; Team pure, facade unique, zero credential.
+  Restent recettes humaines B-7 (import reel) et B-10 (smoke visuel).
 - **DocTitle editable + consolidation New** (instruction `specs/instructions/gui-doctitle-editable-et-new.md`,
   merge `fc22eec`, **gate Legolas PASS 301/301 + pousse**) : le grand titre central est **editable en ligne**
   pour **Team et Methode** (Kit read-only, sans champ `name`) — input controle labellise (`aria-label`,
@@ -94,9 +102,12 @@
     `agents/`).
   - **Recette visuelle/interactive fine** = geste humain (Legolas ne valide pas le pixel).
   - **Reserve New** (non bloquante, sans code) : arbitrage du comportement de `New` reporte (cf. supra).
-- **Prochaine etape concrete** : recette du titre editable **PASSEE**. Au choix desormais :
-  **editeur de workflow** (P6 read-only), **P7 Binding reel** (cadre, non code), ou **modele Methode elargi**
-  (assemblage de principes composables, a graver par Gandalf). CLI bibliotheque = CLOS.
+  - **Recettes humaines P7** : **B-7** (import reel d'un kit lie : Open WebUI `base_model_id` rempli / Codex modele
+    reference / Claude sans modele = pur) et **B-10** (smoke visuel : team -> nœud -> cocher Lier -> Generer ->
+    Deployer tmp -> `binding.json` present). Gestes du decideur.
+- **Prochaine etape concrete** : **P7 Binding reel LIVRE** (merge `9ecf97f`, gate PASS, pousse). Au choix desormais :
+  **editeur de workflow** (P6 read-only), **modele Methode elargi** (assemblage de principes composables, a graver
+  par Gandalf), ou les recettes humaines P7 (B-7/B-10). CLI bibliotheque = CLOS.
 - **Pieges connus** : le couple **runner+modele n'appartient JAMAIS a la Team ni a la Methode** — uniquement au
   **Binding**, propriete du Cockpit. **Deux selecteurs de runner distincts** : runner d'authoring (build-time,
   du copilote) != runner d'execution (run-time). Golden P6 byte-identique a preserver. Persistance .md sous
@@ -113,3 +124,4 @@
 | 2026-07-15 | pause | v0.1.0 | main | lot **DocTitle editable + New** livre : titre editable en ligne (Team/Methode ; Kit read-only), Save As prereremplie, New confirme. Chaine Gandalf->Gimli->gate Legolas PASS **301/301**->merge `fc22eec`->pousse. 74 commits, 180 fichiers. Reliquat = recette visuelle humaine. |
 | 2026-07-15 | pause | v0.1.0 | main | cloture cross-depot **couche CLI bibliotheque** (`iakaframe`) : lot de convergence (racine partagee, binding E1, parite `assemble`<->cœur + golden) merge `iakaframe` `2c85702`, gate Legolas PASS **86/86**, pousse. GUI = 78 commits, 182 fichiers. Prochain = recette visuelle titre editable ; puis editeur workflow / P7 / modele Methode elargi. |
 | 2026-07-15 | reprise | v0.1.0 | main | **recette visuelle titre editable PASSEE (RAS)** : titre editable Team/Methode, `•` dirty, Save As prereremplie, Kit read-only — tous OK. Reserve non bloquante consignee (sans code) : **geste `New` = no-op visuel** (recharge un starter identique au seme du montage) ; arbitrage reporte par le decideur. Reliquat du lot DocTitle = SOLDE. Prochain = editeur workflow / P7 / modele Methode elargi. |
+| 2026-07-16 | version | v0.1.0 | main | **P7 — Binding reel LIVRE**. Jalon valide decideur (Q-1->Q-5 = recos) -> Gimli code sur `feat/p7-binding` (6 commits) -> **gate Legolas independant PASS** (typecheck/lint 0, vitest **330/330**, cargo **56/56**, build OK ; invariants B-2 golden byte-identique / B-8 zero Rust / facade / Team pure / zero credential tenus) -> merge `--no-ff` `9ecf97f` -> pousse. Emission conditionnelle du modele via `KitGenOptions.binding?` optionnel, `LiaisonPanel`, `binding.json` par la forge. Restent recettes humaines B-7/B-10. |
