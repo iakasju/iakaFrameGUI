@@ -26,6 +26,7 @@ export * from "./ritual";
 export * from "./scaffold";
 export * from "./method";
 export * from "./kit";
+export * from "./frontmatter";
 export * from "./handoff";
 export * from "./roster";
 export * from "./runner";
