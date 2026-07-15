@@ -1,21 +1,23 @@
 # Etat des lieux - iakaFrameGUI
 
-> Regenere manuellement le 2026-07-15 (motif: pause) apres la seance E2 (a+b+c).
-> Refonte majeure : la Methode et la Team sont desormais deux artefacts orthogonaux,
-> bindes au Cockpit. A regenerer a chaque changement de version et a chaque pause/reprise.
+> Regenere manuellement le 2026-07-15 (motif: reprise) apres le palier **fonctions fichier +
+> persistance bibliotheque** (merge `2a950fc`, gate Legolas PASS, pousse). Corrige un decalage :
+> la session precedente avait ete **coupee net juste apres le merge**, avant la regeneration ;
+> l'ancien recit s'arretait a E2c et decrivait a tort ce palier comme « cadre, en attente ».
+> A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
 | Champ | Valeur |
 |---|---|
-| Version | v0.1.0 (dev en cours, **non encore tague** ; forge E2 livree) |
+| Version | v0.1.0 (dev en cours, **non encore tague** ; forge feature-complete + gestes fichier) |
 | Branche | main |
-| Sync remote | **a jour avec origin/main** (0 ahead / 0 behind) |
-| Dernier commit | `867c3c7` merge(e2c): copilote de forge mocke (gate Legolas PASS) — 2026-07-15 |
+| Sync remote | **a jour avec origin/main** (0 ahead / 0 behind ; `2a950fc` pousse) |
+| Dernier commit | `2a950fc` merge(gui): fonctions fichier + persistance bibliotheque (gate Legolas PASS) — 2026-07-15 |
 | Arbre | propre |
-| Commits | 57 |
-| Fichiers suivis (hors node_modules) | 155 |
-| Tests | **237 verts** (`npm run test`) |
+| Commits | 65 |
+| Fichiers suivis (hors node_modules) | 180 |
+| Tests | **287 verts** (`npm run test`, 37 fichiers) |
 
 ## Ce qui est livre (code committe)
 
@@ -41,33 +43,51 @@
 - **E2c** — copilote de forge **mocke deterministe** (zero reseau) : boucle
   **intention -> proposition -> diff -> Valider/Rejeter** ; Valider materialise reellement ; frontiere
   **runner d'authoring != runner d'execution** verrouillee par test. Merge `867c3c7`.
+- **Fonctions fichier + persistance bibliotheque** (cadrage `specs/instructions/gui-fonctions-fichier-persistance.md`,
+  merge `2a950fc`, **gate Legolas PASS + pousse**) :
+  - **Ecrans IHM** — barre de gestes fichier **New · Open · Save · Save As · Close** sous **chacun des
+    3 onglets** (`src/forge/DocBar.tsx`), avec garde « modifs non sauvees », liste Open (scan collection),
+    invite Save As non destructive ; **`DocTitle`** grand/centre sous la barre d'onglets (`•` si dirty) ;
+    **Settings racine** (`SettingsRoot`) + cablage du Save (`fec56b4`, `validateRefs` runtime team+methode,
+    scan pool `library/`). Commits `228f0bf`/`d86a668`.
+  - **Palier interne (persistance reelle .md)** — hook generique `useForgeDocument<T>` (5 gestes,
+    dirty tracking) + facade `library*` ; cote coeur, (de)serialiseurs **frontmatter .md par type**
+    (team/method/kit), zero-dep (`b846f4c`) ; cote Rust, `library_store` .md sous pathguard
+    `IAKAFRAME_HOME` + `resolve_iakaframe_home` (`d867561`).
 
 ## Reprise du travail
 
-- **Ce qui vient d'etre fait (cette seance)** : **E2 complet (a+b+c)** — refonte separant **Methode != Team**
-  (deux artefacts orthogonaux, bindes au Cockpit). E2a (cœur : Method/Principle/Ritual/Scaffold/Kit, 14 principes,
-  `resolveWorkflow`, Team purifiee), E2b (forge 3 onglets, rail-stock avec insertion reelle, graphe contextuel,
-  carte Binding, vignettes/upload), E2c (copilote mocke deterministe, boucle proposition/diff/valider/rejeter,
-  frontiere runner d'authoring != execution). Chaque jalon : **gate Legolas independant PASS**, merge `--no-ff`
-  et pousse. **237 tests verts.** Charte « Studio clair » portee depuis `iakagraph/theme/studio/clair` (PASS +
-  pousse). Design : 4 series de maquettes (`iakagraph/etudes/iakaframegui/` v1->v4) -> convergence v4 validee
-  (rail H1 + graphe contextuel flux/apercu). Hors ce depot : la vraie team + la vraie methode ont ete rangees
-  en bibliotheque pool/assemblages dans le depot `iakaframe` (`library/` + `teams/methods/bindings/kits/`) —
-  chantier connexe, PASS Legolas, pousse.
+- **Ce qui vient d'etre fait (dernier palier)** : **fonctions fichier + persistance bibliotheque**
+  (cadrage `gui-fonctions-fichier-persistance.md` VALIDE puis **implemente, gate Legolas PASS, merge `2a950fc`,
+  pousse**). Cote **IHM** : les 5 gestes New/Open/Save/Save As/Close sous les 3 onglets, `DocTitle` centre,
+  Settings racine, garde « modifs non sauvees ». Cote **interne** : `useForgeDocument<T>`, (de)serialiseurs
+  frontmatter .md par type, `library_store` Rust sous pathguard. **287 tests verts.** NB : la session
+  precedente s'est arretee juste apres ce merge, **avant** la regeneration de l'etat des lieux — d'ou le
+  present rattrapage.
+- **Demande du decideur a (re)traiter — recuperee 2026-07-15 (elle avait disparu du backlog)** :
+  - **Champ nom EDITABLE en grand, au milieu, sous les boutons fichier.** Aujourd'hui `DocTitle`
+    (`src/forge/DocTitle.tsx`) est **purement presentationnel** (affiche le nom, non editable ; le renommage
+    passe seulement par Save As). Le decideur veut pouvoir **editer le nom directement** dans ce grand titre
+    centre place **sous la `DocBar`**. -> a cadrer (edition inline, propagation `name`/`dirty`, non-destructif).
+  - **Fonction New** — le bouton New existe deja dans `DocBar` (`doc.requestNew`) ; a **verifier/consolider
+    dans le parcours vecu** (creer un artefact vierge « sans-titre », puis nommer via le champ editable
+    ci-dessus). Confirmer que le geste attendu par le decideur est bien couvert.
 - **A reprendre / backlog** :
   - **Couche CLI/terminal** sur la bibliotheque : `list` / `add` (= livraison) / `assemble` / `switch` —
     cadrage a faire.
-  - **Persistance Methode/Kit** (aujourd'hui etat local, repart a zero au lancement) et **handoff Rust**
-    additif — differes.
+  - **Persistance Methode/Kit** (l'etat local repartait a zero) — desormais couverte par le palier fichier
+    pour les 3 onglets via `.md` ; **handoff Rust** additif encore differe.
   - **Vrai LLM d'authoring** du copilote (E2c = mock) — differe.
   - **Micro-dette** : `iakaframe` `library/skills/README.md` obsolete (« Treize skills » + ancien chemin
     `agents/`).
   - **Recette visuelle/interactive fine** = geste humain (Legolas ne valide pas le pixel).
-- **Prochaine etape concrete** : cadrer la **couche CLI/terminal** de la bibliotheque
-  (`list`/`add`/`assemble`/`switch`) avant de coder.
+- **Prochaine etape concrete** : **cadrer le champ nom editable** (`DocTitle` -> input inline sous la `DocBar`)
+  + verifier le geste New de bout en bout, AVANT de coder ; puis la couche CLI/terminal de la bibliotheque
+  (`list`/`add`/`assemble`/`switch`).
 - **Pieges connus** : le couple **runner+modele n'appartient JAMAIS a la Team ni a la Methode** — uniquement au
   **Binding**, propriete du Cockpit. **Deux selecteurs de runner distincts** : runner d'authoring (build-time,
-  du copilote) != runner d'execution (run-time). Golden P6 byte-identique a preserver.
+  du copilote) != runner d'execution (run-time). Golden P6 byte-identique a preserver. Persistance .md sous
+  pathguard `IAKAFRAME_HOME` (ne jamais ecrire hors de ce perimetre).
 
 ## Journal (versions & pauses)
 
@@ -76,6 +96,4 @@
 | 2026-07-05 22:24 | version | v0.1.0 | main | onboarding initial |
 | 2026-07-11 | reprise | v0.1.0 | main | reconciliation etat des lieux + backlog ; MVP forge quasi complet (33 commits, H1 livre) |
 | 2026-07-15 | pause | v0.1.0 | main | seance E2 (a+b+c) : Methode != Team bindes au Cockpit + copilote mocke + charte Studio clair ; 57 commits, 237 tests verts |
-| 2026-07-15 | reprise | v0.1.0 | main | reprise post-E2 : arbre propre, a jour origin/main. Cadrage `gui-fonctions-fichier-persistance.md` livre (commit 3eadcb8) — **CADRE, EN ATTENTE DE VALIDATION du decideur** (6 arbitrages Q-1..Q-6). Aucune implementation avant feu vert. |
-</content>
-</invoke>
+| 2026-07-15 | reprise | v0.1.0 | main | rattrapage post-coupure : le palier **fonctions fichier + persistance bibliotheque** (merge `2a950fc`, gate PASS, pousse) etait absent du recit (session coupee avant regen). 65 commits, 180 fichiers, **287 tests verts**. Demande recuperee : **champ nom editable en grand sous les boutons fichier** + verifier **New**. |
