@@ -104,10 +104,12 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   PASS 301/301, poussé). Titre éditable en ligne pour Team/Méthode (Kit read-only), `setName`/
   `canRename`/`withName`, Save As prérempli, geste New confirmé. *Reste : **recette visuelle humaine**
   (voir le grand titre éditable dans `npm run tauri dev`).*
-- [ ] **Commandes terminal + livraison bibliothèque** (cadré au portefeuille 2026-07-15) : exposer
-  le CLI `@naonedge/iakaframe` sur la bibliothèque pool — `list` / `add` (= **geste de livraison**) /
-  `assemble` / `switch`|`use`. Racine iakaframe **partagée CLI + GUI** (même résolution). Couche code
-  **différée**. → instruction à écrire.
+- [x] **Commandes terminal + livraison bibliothèque** — **LIVRÉ (dépôt `iakaframe`)** : 5 verbes
+  `list`/`show`/`assemble`/`add`/`switch(use)` codés + testés, **gate Legolas PASS, mergé + poussé**
+  (`iakaframe` main `2d481bf`), pool matérialisé (`library/`+`teams/`+`methods/`+`bindings/`+`kits/`).
+  *Reste à confirmer (cadrage `gui-... cli-bibliotheque-list-add-assemble-switch.md`, 3 écarts potentiels) :
+  racine partagée CLI↔GUI (`IAKAFRAME_HOME`), convergence schéma binding pool↔E1, golden de parité
+  core↔CLI. → vérifier s'ils sont réels avant de clore.*
 - [ ] **Modèle Méthode élargi** — à graver par Gandalf : Méthode = scaffold + workflow (migré) +
   **assemblage de principes composables** (qualité, backlog, doc/état des lieux, commits/versionnement,
   isolation Docker, self-hosted-first, réutilisation, MVP-first, identité/badges, périmètres étanches,
