@@ -14,6 +14,8 @@ function makeDoc(
     dirty: false,
     source: "library",
     edit: vi.fn(),
+    setName: vi.fn(),
+    canRename: true,
     requestNew: vi.fn(),
     requestOpen: vi.fn(),
     requestClose: vi.fn(),
@@ -67,6 +69,22 @@ describe("DocBar — barre de gestes fichier (§4)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
     expect(doc.saveAs).toHaveBeenCalled();
+  });
+
+  it("préremplit l'invite Save As depuis le nom courant (Q-4)", () => {
+    const doc = makeDoc({ saveAsOpen: true, name: "Ma team" });
+    render(<DocBar doc={doc} />);
+    const nameInput = screen.getByLabelText("nom de l'artefact") as HTMLInputElement;
+    const idInput = screen.getByLabelText("id de l'artefact") as HTMLInputElement;
+    expect(nameInput.value).toBe("Ma team");
+    expect(idInput.value).toBe("ma-team");
+  });
+
+  it("Save As sur un vierge « sans-titre » : champs vides (pas de préremplissage)", () => {
+    const doc = makeDoc({ saveAsOpen: true, name: "sans-titre" });
+    render(<DocBar doc={doc} />);
+    expect((screen.getByLabelText("nom de l'artefact") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("id de l'artefact") as HTMLInputElement).value).toBe("");
   });
 
   it("affiche l'erreur I1 et l'avertissement d'état", () => {

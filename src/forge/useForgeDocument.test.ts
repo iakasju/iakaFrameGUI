@@ -181,6 +181,99 @@ describe("useForgeDocument — modèle de document unifié (Q-1)", () => {
     ]);
   });
 
+  it("setName sur artefact ouvert : dirty, name mis à jour, id/source inchangés", () => {
+    const { api } = fakeBackend();
+    const withName = (m: MethodMd, name: string) => ({ ...m, name });
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api, { withName })));
+    act(() => result.current.requestNew());
+    expect(result.current.source).toBe("new");
+    act(() => result.current.setName("Méthode démo"));
+    expect(result.current.name).toBe("Méthode démo");
+    expect(result.current.dirty).toBe(true);
+    expect(result.current.id).toBeNull(); // vierge : id reste null
+    expect(result.current.source).toBe("new");
+  });
+
+  it("setName préserve l'id d'un document issu d'Open (non-destructif)", async () => {
+    const seed = {
+      "methods/m1": serializeMethodMd({ ...blankMethod(), id: "m1", name: "M1" }),
+    };
+    const { api } = fakeBackend(seed);
+    const withName = (m: MethodMd, name: string) => ({ ...m, name });
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api, { withName })));
+    await act(async () => {
+      result.current.requestOpen("m1");
+    });
+    await waitFor(() => expect(result.current.id).toBe("m1"));
+    act(() => result.current.setName("Nouveau nom"));
+    expect(result.current.name).toBe("Nouveau nom");
+    expect(result.current.id).toBe("m1"); // id inchangé
+    expect(result.current.source).toBe("library");
+    expect(result.current.dirty).toBe(true);
+  });
+
+  it("setName n'altère pas la valeur (texte libre, accents/emoji conservés)", () => {
+    const { api } = fakeBackend();
+    const withName = (m: MethodMd, name: string) => ({ ...m, name });
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api, { withName })));
+    act(() => result.current.requestNew());
+    act(() => result.current.setName("Équipe été 🚀"));
+    expect(result.current.name).toBe("Équipe été 🚀");
+  });
+
+  it("setName sans artefact ouvert : no-op", () => {
+    const { api } = fakeBackend();
+    const withName = (m: MethodMd, name: string) => ({ ...m, name });
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api, { withName })));
+    act(() => result.current.setName("X"));
+    expect(result.current.artifact).toBeNull();
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it("setName no-op si config.withName absent (ex. Kit)", () => {
+    const { api } = fakeBackend();
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api)));
+    act(() => result.current.requestNew());
+    act(() => result.current.setName("X"));
+    expect(result.current.name).toBe("sans-titre");
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it("canRename : vrai avec withName + artefact ; faux sans withName ; faux si artefact null", () => {
+    const { api } = fakeBackend();
+    const withName = (m: MethodMd, name: string) => ({ ...m, name });
+    const { result: withCfg } = renderHook(() =>
+      useForgeDocument(methodConfig(api, { withName })),
+    );
+    expect(withCfg.current.canRename).toBe(false); // artefact null
+    act(() => withCfg.current.requestNew());
+    expect(withCfg.current.canRename).toBe(true);
+
+    const { result: noWith } = renderHook(() => useForgeDocument(methodConfig(api)));
+    act(() => noWith.current.requestNew());
+    expect(noWith.current.canRename).toBe(false); // pas de withName
+  });
+
+  it("renommer + Save (doc déjà nommé) réécrit le même fichier avec le nouveau nom", async () => {
+    const seed = {
+      "methods/m1": serializeMethodMd({ ...blankMethod(), id: "m1", name: "Ancien" }),
+    };
+    const { api, writes, files } = fakeBackend(seed);
+    const withName = (m: MethodMd, name: string) => ({ ...m, name });
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api, { withName })));
+    await act(async () => {
+      result.current.requestOpen("m1");
+    });
+    await waitFor(() => expect(result.current.id).toBe("m1"));
+    act(() => result.current.setName("Nouveau"));
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(writes).toEqual(["methods/m1.md"]);
+    expect(files.get("methods/m1")).toContain("Nouveau");
+    expect(result.current.dirty).toBe(false);
+  });
+
   it("Save As non destructif : refuse d'écraser un id existant", async () => {
     const seed = {
       "methods/pris": serializeMethodMd({ ...blankMethod(), id: "pris", name: "Pris" }),
