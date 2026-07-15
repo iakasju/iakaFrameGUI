@@ -19,6 +19,7 @@
  * Schémas de fichiers conformes à l'étape 0 (`specs/notes/claude-code-schemas-2026-07-06.md`).
  */
 
+import { modelForPersona } from "../binding";
 import { DEFAULT_METHOD_ID } from "../method";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
@@ -41,20 +42,25 @@ function json(value: unknown): string {
 
 /**
  * `.claude/agents/<id>.md` — subagent Claude Code. Frontmatter **minimal** : `name`,
- * `description`. **`model` OMIS** (invariant). `tools` **absent** au MVP (non dérivable des
- * données pures → hérite des outils courants, cf. étape 0). Corps = system prompt du rôle.
+ * `description`. `tools` **absent** au MVP (non dérivable des données pures → hérite des outils
+ * courants, cf. étape 0). Corps = system prompt du rôle.
+ *
+ * **`model`** (P7) : émis **uniquement si** `model` non vide (issu du Binding, jamais de la
+ * Team). Sans binding (ou modèle vide) → **ligne omise** → frontmatter byte-identique à l'actuel
+ * (non-régression B-2 ; binding « tout vide » ≡ kit pur, B-4).
  */
-function renderAgent(team: Team, p: Persona): string {
+function renderAgent(team: Team, p: Persona, model: string): string {
   const role = roleLabel(p.roleKey);
   const badge = personaBadge(p);
   const skills =
     p.skills.length > 0
       ? p.skills.map((s) => `- \`${s}\``).join("\n")
       : "_Aucune skill attachée (déclaration MVP)._";
-  // NB : ni `model:` ni `runner:` — l'omission est volontaire (invariant G-5, AR-1).
+  // `model:` conditionnel (P7) : émis SSI le binding fournit un modèle non vide pour la persona.
+  const modelLine = model.length > 0 ? `\nmodel: ${model}` : "";
   return `---
 name: ${p.name}
-description: Persona incarnant le rôle « ${role} » de la team « ${team.name} ». À solliciter pour les tâches de ${role.toLowerCase()}.
+description: Persona incarnant le rôle « ${role} » de la team « ${team.name} ». À solliciter pour les tâches de ${role.toLowerCase()}.${modelLine}
 ---
 
 # ${p.name} — rôle ${role}
@@ -156,10 +162,15 @@ function renderMcp(connectors: string[]): string {
 export function generateClaudeCodeKit(team: Team, opts?: KitGenOptions): KitFileTree {
   const files: Record<string, string> = {};
   const personas = [...team.personas].sort(byRoleThenId);
+  const binding = opts?.binding;
 
-  // 1. Un subagent par persona.
+  // 1. Un subagent par persona (modèle émis SSI le binding en fournit un — sinon inchangé).
   for (const p of personas) {
-    files[`.claude/agents/${p.id}.md`] = renderAgent(team, p);
+    files[`.claude/agents/${p.id}.md`] = renderAgent(
+      team,
+      p,
+      modelForPersona(binding, p.id),
+    );
   }
 
   // 2. Une SKILL.md par skill référencée (dédupliquée, triée).

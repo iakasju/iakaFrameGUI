@@ -31,4 +31,5 @@ export * from "./handoff";
 export * from "./roster";
 export * from "./runner";
 export * from "./node";
+export * from "./binding";
 export * from "./adapters";

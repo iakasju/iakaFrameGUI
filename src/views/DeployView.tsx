@@ -12,6 +12,7 @@ import type { UseForgeTeams } from "../hooks/useForgeTeams";
 import { useForgeDeploy } from "../hooks/useForgeDeploy";
 import { useForgeHandoff } from "../hooks/useForgeHandoff";
 import { NodeSelector } from "../components/NodeSelector";
+import { LiaisonPanel } from "../components/LiaisonPanel";
 import { KitTreeView } from "../components/KitTreeView";
 import { DeployPanel } from "../components/DeployPanel";
 
@@ -58,6 +59,16 @@ export function DeployView({ forge }: { forge: UseForgeTeams }) {
             onLanHostChange={deploy.setLanHost}
           />
         </div>
+
+        <LiaisonPanel
+          node={deploy.node}
+          team={selectedTeam}
+          binding={deploy.binding}
+          onEnable={deploy.enableBinding}
+          onClear={deploy.clearBinding}
+          onSetRunner={deploy.setPersonaRunner}
+          onSetModel={deploy.setPersonaModel}
+        />
 
         <div className="row" style={{ marginTop: 12 }}>
           <button

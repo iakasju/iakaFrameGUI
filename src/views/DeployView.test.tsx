@@ -124,6 +124,38 @@ describe("DeployView (P4 — Générer & Déployer)", () => {
     expect(dep.disabled).toBe(true);
   });
 
+  it("B-9 — la liaison est masquée sans nœud, révélée après le choix d'un nœud", () => {
+    render(<DeployView forge={fakeForge([team])} />);
+    expect(screen.queryByLabelText("Lier ce kit")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Nœud cible"), {
+      target: { value: "openwebui" },
+    });
+    expect(screen.getByLabelText("Lier ce kit")).toBeTruthy();
+  });
+
+  it("B-9 — cocher « Lier » révèle un runner + modèle par persona ; décocher revient au pur", () => {
+    render(<DeployView forge={fakeForge([team])} />);
+    fireEvent.change(screen.getByLabelText("Team"), {
+      target: { value: "ma-team" },
+    });
+    fireEvent.change(screen.getByLabelText("Nœud cible"), {
+      target: { value: "openwebui" },
+    });
+    // Pas encore de liaison : aucun tableau de liaisons.
+    expect(screen.queryByLabelText("Liaisons par persona")).toBeNull();
+
+    fireEvent.click(screen.getByLabelText("Lier ce kit"));
+    const liaisons = screen.getByLabelText("Liaisons par persona");
+    expect(liaisons).toBeTruthy();
+    // Une ligne runner + modèle par persona (7 personas du roster).
+    const coord = team.personas[0];
+    expect(screen.getByLabelText(`Runner de ${coord.name}`)).toBeTruthy();
+    expect(screen.getByLabelText(`Modèle de ${coord.name}`)).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText("Lier ce kit"));
+    expect(screen.queryByLabelText("Liaisons par persona")).toBeNull(); // retour au pur.
+  });
+
   it("U-8 — changer de nœud après Générer efface l'arbre affiché", () => {
     render(<DeployView forge={fakeForge([team])} />);
     fireEvent.change(screen.getByLabelText("Team"), {

@@ -2,8 +2,12 @@
 
 > **Phase** : P7 — Réalisation · **Cadreur** : l'architecte-cadreur · **Exécutant** : le développeur-devops ·
 > **Gate** : le responsable qualité.
-> **Statut : CADRÉ — À VALIDER par le décideur** (jalon humain) avant tout code.
-> **Date** : 2026-07-07. Français ; identifiants en anglais ; **rôles jamais désignés par un nom de code**.
+> **Statut : JALON VALIDÉ par le décideur — 2026-07-15** (Q-1→Q-5 = toutes les recos) → **EN RÉALISATION**.
+> **Réponses d'arbitrage** : Q-1 = front ajoute `binding.json` au KitFileTree (`kit_deploy` inchangé) ·
+> Q-2 = l'adaptateur pur n'émet **pas** `binding.json` (matérialisé par la forge) · Q-3 = modèle **vide +
+> placeholder** au MVP (table de suggestion = itération) · Q-4 = modèle requis = **avertissement non bloquant** ·
+> Q-5 = `binding.json` = **produit de déploiement, non versionné** comme la Team.
+> **Date cadrage** : 2026-07-07. Français ; identifiants en anglais ; **rôles jamais désignés par un nom de code**.
 >
 > **⚠️ Ce lot MODIFIE du code existant qui TOURNE** (P1–P6 codés, gatés, poussés — HEAD `5552491`). L'évolution
 > est **ADDITIVE et rétro-compatible** : sans Binding, la sortie reste **byte-identique** à aujourd'hui.
