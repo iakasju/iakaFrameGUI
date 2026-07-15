@@ -27,6 +27,7 @@ import { useForgeHandoff } from "../hooks/useForgeHandoff";
 import { useForgeDocument } from "./useForgeDocument";
 import { IAKAFRAME_STARTER_METHOD } from "./useForgeMethod";
 import { insertMethodRef, type MethodRef } from "./methodEdit";
+import { makeTeamValidateRefs, makeMethodValidateRefs } from "./refs";
 import {
   teamToMd,
   mdToTeam,
@@ -64,6 +65,10 @@ export function ForgeShell() {
   const [tab, setTab] = useState<Tab>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Validations I1 (miroir `checkRefs`), créées une fois (identité stable).
+  const validateTeamRefs = useRef(makeTeamValidateRefs()).current;
+  const validateMethodRefs = useRef(makeMethodValidateRefs()).current;
+
   // --- Trois documents (Q-1) : Team · Méthode · Kit ---
   const teamDoc = useForgeDocument<Team>({
     collection: "teams",
@@ -75,6 +80,7 @@ export function ForgeShell() {
     },
     idOf: (t) => t.id,
     nameOf: (t) => t.name,
+    validateRefs: validateTeamRefs,
   });
 
   const methodDoc = useForgeDocument<Method>({
@@ -87,6 +93,7 @@ export function ForgeShell() {
     },
     idOf: (m) => m.id,
     nameOf: (m) => m.name,
+    validateRefs: validateMethodRefs,
   });
 
   const kitDoc = useForgeDocument<Kit>({

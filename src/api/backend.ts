@@ -103,6 +103,33 @@ export function libraryExists(
   return call<boolean>("library_exists", { collection, id });
 }
 
+/** Types d'atomes du pool `library/<type>/` référencés par les assemblages (I1). */
+export type PoolType =
+  | "personas"
+  | "skills"
+  | "guardrails"
+  | "principles"
+  | "rituals"
+  | "roles"
+  | "workflows"
+  | "scaffolds";
+
+/**
+ * Scanne les **ids** d'atomes du pool `<home>/library/<type>/` (I1, miroir de `checkRefs`). Sert à
+ * vérifier au Save que chaque id référencé existe. Dossier/racine absent → `[]`.
+ */
+export function poolList(poolType: PoolType): Promise<string[]> {
+  return call<string[]>("pool_list", { poolType });
+}
+
+/**
+ * Le pool `library/` existe-t-il sous la racine ? (Q-4 : pool absent → I1 non vérifiable →
+ * avertissement NON bloquant, Save autorisé.)
+ */
+export function poolPresent(): Promise<boolean> {
+  return call<boolean>("pool_present");
+}
+
 /**
  * Racine bibliothèque résolue (`IAKAFRAME_HOME`, partagée CLI — §5) ou `null` si introuvable
  * (l'UI Réglages invite alors à la définir).
@@ -187,6 +214,8 @@ export const backend = {
   libraryRead,
   libraryWrite,
   libraryExists,
+  poolList,
+  poolPresent,
   iakaframeHome,
   setIakaframeHome,
   kitDeploy,

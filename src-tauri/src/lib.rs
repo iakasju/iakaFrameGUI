@@ -37,6 +37,8 @@ pub fn run() {
             library_store::library_read,
             library_store::library_write,
             library_store::library_exists,
+            library_store::pool_list,
+            library_store::pool_present,
             settings::iakaframe_home,
             settings::set_iakaframe_home,
             kit_deploy::kit_deploy,
