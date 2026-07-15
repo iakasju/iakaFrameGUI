@@ -9,6 +9,7 @@
  * distinct du runner d'authoring de la console. La livraison « → Cockpit » est portée par la barre.
  */
 import { useMemo, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import {
   generateClaudeCodeKit,
   roleLabel,
@@ -72,13 +73,20 @@ function kitNodes(method: Method, team: Team): FoldNode[] {
   ];
 }
 
-export function KitAtelier({ method, team }: { method: Method; team: Team }) {
-  const [kit, setKit] = useState<Kit>(() => ({
-    id: `${team.id}-full`,
-    methodId: method.id,
-    teamId: team.id,
-    node: "claude",
-  }));
+export function KitAtelier({
+  method,
+  team,
+  kit,
+  onKitChange,
+}: {
+  method: Method;
+  team: Team;
+  /** Kit persisté (piloté par `useForgeDocument` de l'onglet). */
+  kit: Kit;
+  /** Remonte toute édition du kit au document (dirty tracking + persistance). */
+  onKitChange: Dispatch<SetStateAction<Kit>>;
+}) {
+  const setKit = onKitChange;
   const [previewPath, setPreviewPath] = useState<string | null>(null);
   const [binding, setBinding] = useState<Record<string, RunnerKind>>({});
 
