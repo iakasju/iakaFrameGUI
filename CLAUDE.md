@@ -102,8 +102,11 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 - [x] **Champ nom ÉDITABLE en grand, au milieu, sous les boutons fichier** — **LIVRÉ 2026-07-15**
   (instruction `specs/instructions/gui-doctitle-editable-et-new.md`, merge `fc22eec`, gate Legolas
   PASS 301/301, poussé). Titre éditable en ligne pour Team/Méthode (Kit read-only), `setName`/
-  `canRename`/`withName`, Save As prérempli, geste New confirmé. *Reste : **recette visuelle humaine**
-  (voir le grand titre éditable dans `npm run tauri dev`).*
+  `canRename`/`withName`, Save As prérempli, geste New confirmé. **Recette visuelle humaine PASSÉE
+  (RAS) 2026-07-15** : titre éditable Team/Méthode OK, `•` dirty OK, Save As prérempli OK, Kit
+  read-only OK. *Réserve non bloquante consignée (pas de code, arbitrage reporté par le décideur) :
+  **New = no-op visuel** — `requestNew` recharge un starter identique à celui semé au montage, donc
+  aucun changement à l'écran dans l'état pristine. Décision « que doit produire New » à trancher plus tard.*
 - [x] **Commandes terminal + livraison bibliothèque** — **LIVRÉ (dépôt `iakaframe`)** : 5 verbes
   `list`/`show`/`assemble`/`add`/`switch(use)` codés + testés, **gate Legolas PASS, mergé + poussé**
   (`iakaframe` main `2d481bf`), pool matérialisé (`library/`+`teams/`+`methods/`+`bindings/`+`kits/`).

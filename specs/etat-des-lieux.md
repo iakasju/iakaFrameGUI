@@ -71,8 +71,13 @@
 - **Palier precedent (meme jour)** : **fonctions fichier + persistance bibliotheque** (merge `2a950fc`,
   gate PASS) — 5 gestes New/Open/Save/Save As/Close sous les 3 onglets, `DocTitle`, Settings racine ; cote
   interne `useForgeDocument<T>`, (de)serialiseurs frontmatter .md, `library_store` Rust sous pathguard.
-- **Reliquat de ce lot** : **recette visuelle humaine** — voir le grand titre editable en vrai
-  (`npm run tauri dev`, onglet Team/Methode, saisir un nom, Save As prereremplie). Legolas ne valide pas le pixel.
+- **Reliquat de ce lot : SOLDE** — **recette visuelle humaine PASSEE (RAS) 2026-07-15** :
+  titre editable Team/Methode OK, `•` dirty OK, Save As prereremplie OK, Kit read-only OK
+  (`npm run tauri dev`). **Reserve non bloquante consignee (pas de code) : le geste `New` est un
+  no-op visuel** — `requestNew`->`loadBlank` recharge un starter identique a celui deja seme au
+  montage (`ForgeShell.tsx:118-126`), donc aucun changement a l'ecran dans l'etat pristine. Le bouton
+  fire bien ; ce n'est pas un crash. Arbitrage « que doit produire New (vierge a nommer vs starter) »
+  **reporte par le decideur** (« on garde pour l'instant »).
 - **Chantier connexe cross-depot CLOS (meme jour)** : la **couche CLI/terminal de la bibliotheque**
   (depot `iakaframe`, hors ce depot) etait deja livree (5 verbes `list`/`show`/`assemble`/`add`/`switch`, pool
   materialise) ; un **lot de convergence** l'a alignee sur la GUI/cœur — racine partagee `<chapeau>/iakaframe`,
@@ -88,7 +93,8 @@
   - **Micro-dette** : `iakaframe` `library/skills/README.md` obsolete (« Treize skills » + ancien chemin
     `agents/`).
   - **Recette visuelle/interactive fine** = geste humain (Legolas ne valide pas le pixel).
-- **Prochaine etape concrete** : **recette visuelle** du titre editable (geste humain). Puis, au choix :
+  - **Reserve New** (non bloquante, sans code) : arbitrage du comportement de `New` reporte (cf. supra).
+- **Prochaine etape concrete** : recette du titre editable **PASSEE**. Au choix desormais :
   **editeur de workflow** (P6 read-only), **P7 Binding reel** (cadre, non code), ou **modele Methode elargi**
   (assemblage de principes composables, a graver par Gandalf). CLI bibliotheque = CLOS.
 - **Pieges connus** : le couple **runner+modele n'appartient JAMAIS a la Team ni a la Methode** — uniquement au
@@ -106,3 +112,4 @@
 | 2026-07-15 | reprise | v0.1.0 | main | rattrapage post-coupure : le palier **fonctions fichier + persistance bibliotheque** (merge `2a950fc`, gate PASS, pousse) etait absent du recit (session coupee avant regen). 65 commits, 180 fichiers, **287 tests verts**. Demande recuperee : **champ nom editable en grand sous les boutons fichier** + verifier **New**. |
 | 2026-07-15 | pause | v0.1.0 | main | lot **DocTitle editable + New** livre : titre editable en ligne (Team/Methode ; Kit read-only), Save As prereremplie, New confirme. Chaine Gandalf->Gimli->gate Legolas PASS **301/301**->merge `fc22eec`->pousse. 74 commits, 180 fichiers. Reliquat = recette visuelle humaine. |
 | 2026-07-15 | pause | v0.1.0 | main | cloture cross-depot **couche CLI bibliotheque** (`iakaframe`) : lot de convergence (racine partagee, binding E1, parite `assemble`<->cœur + golden) merge `iakaframe` `2c85702`, gate Legolas PASS **86/86**, pousse. GUI = 78 commits, 182 fichiers. Prochain = recette visuelle titre editable ; puis editeur workflow / P7 / modele Methode elargi. |
+| 2026-07-15 | reprise | v0.1.0 | main | **recette visuelle titre editable PASSEE (RAS)** : titre editable Team/Methode, `•` dirty, Save As prereremplie, Kit read-only — tous OK. Reserve non bloquante consignee (sans code) : **geste `New` = no-op visuel** (recharge un starter identique au seme du montage) ; arbitrage reporte par le decideur. Reliquat du lot DocTitle = SOLDE. Prochain = editeur workflow / P7 / modele Methode elargi. |
