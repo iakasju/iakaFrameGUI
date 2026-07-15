@@ -99,11 +99,11 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 > récit de reprise : `specs/etat-des-lieux.md`.
 
 ### Prochaine étape / à cadrer (avant tout code)
-- [ ] **Champ nom ÉDITABLE en grand, au milieu, sous les boutons fichier** — `DocTitle`
-  (`src/forge/DocTitle.tsx`) est aujourd'hui **read-only** (renommage seulement via *Save As*).
-  Le rendre **éditable en ligne** (édition du `name`, propagation `dirty`, non-destructif) +
-  **vérifier le geste `New`** de bout en bout (créer un « sans-titre » puis le nommer dans ce
-  champ). *Demande décideur récupérée le 2026-07-15.* → **cadrage Gandalf** avant de coder.
+- [x] **Champ nom ÉDITABLE en grand, au milieu, sous les boutons fichier** — **LIVRÉ 2026-07-15**
+  (instruction `specs/instructions/gui-doctitle-editable-et-new.md`, merge `fc22eec`, gate Legolas
+  PASS 301/301, poussé). Titre éditable en ligne pour Team/Méthode (Kit read-only), `setName`/
+  `canRename`/`withName`, Save As prérempli, geste New confirmé. *Reste : **recette visuelle humaine**
+  (voir le grand titre éditable dans `npm run tauri dev`).*
 - [ ] **Commandes terminal + livraison bibliothèque** (cadré au portefeuille 2026-07-15) : exposer
   le CLI `@naonedge/iakaframe` sur la bibliothèque pool — `list` / `add` (= **geste de livraison**) /
   `assemble` / `switch`|`use`. Racine iakaframe **partagée CLI + GUI** (même résolution). Couche code
