@@ -16,6 +16,8 @@ code{font-family:'SF Mono',Consolas,monospace;background:rgba(200,164,78,.1);col
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1.2rem;font-size:.92rem;background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:1.1rem 1.3rem;}
 .kv .k{color:#888;}
 .ok{color:#2ecc71;}.bad{color:#e74c3c;font-weight:600;}
+ul{margin:.4rem 0 .4rem 1.2rem;font-size:.9rem;color:#bbb;}
+li{margin:.25rem 0;}
 .r{font-size:.7rem;font-weight:600;text-transform:uppercase;padding:.1rem .5rem;border-radius:999px;}
 .r-version{background:rgba(46,204,113,.15);color:#2ecc71;}
 .r-pause{background:rgba(230,126,34,.15);color:#e67e22;}
@@ -24,32 +26,49 @@ code{font-family:'SF Mono',Consolas,monospace;background:rgba(200,164,78,.1);col
 footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#555;font-size:.78rem;}
 </style></head><body>
 <h1>Etat des lieux - <span class="accent">iakaFrameGUI</span></h1>
-<div class="sub">Regenere manuellement le 2026-07-11 - motif : reprise (reconciliation doc/code) - a regenerer a chaque version et a chaque pause/reprise.</div>
+<div class="sub">Regenere manuellement le 2026-07-15 - motif : pause (seance E2 a+b+c) - a regenerer a chaque version et a chaque pause/reprise.</div>
 <h2>Etat courant</h2>
 <div class="kv">
-  <div class="k">Version</div><div>v0.1.0 (dev en cours, non encore tague ; MVP forge quasi complet)</div>
+  <div class="k">Version</div><div>v0.1.0 (dev en cours, non encore tague ; forge E2 livree)</div>
   <div class="k">Branche</div><div>main</div>
   <div class="k">Sync remote</div><div><span class='ok'>a jour avec origin/main</span> (0 ahead / 0 behind)</div>
-  <div class="k">Dernier commit</div><div><code>e1b5a0b feat(handoff): livraison du paquet forge -&gt; cockpit (H1 MVP)</code> — 2026-07-07</div>
-  <div class="k">Arbre</div><div><span class='ok'>propre</span> (hors reconciliation en cours)</div>
-  <div class="k">Commits</div><div>33</div>
-  <div class="k">Fichiers</div><div>125 (suivis, hors node_modules)</div>
-  <div class='k'>Tests</div><div>16 fichiers (10 core + 6 front) — verdict qualite non relance dans ce checkpoint</div>
+  <div class="k">Dernier commit</div><div><code>867c3c7 merge(e2c): copilote de forge mocke (gate Legolas PASS)</code> — 2026-07-15</div>
+  <div class="k">Arbre</div><div><span class='ok'>propre</span></div>
+  <div class="k">Commits</div><div>57</div>
+  <div class="k">Fichiers</div><div>155 (suivis, hors node_modules)</div>
+  <div class='k'>Tests</div><div><span class='ok'>237 verts</span> (npm run test)</div>
 </div>
+<h2>Ce qui est livre (seance E2)</h2>
+<ul>
+  <li><b>E2a</b> — cœur <code>@iakaframe/core</code> refondu : types Method/Principle/Ritual/Scaffold/Kit, 14 principes, <code>resolveWorkflow(method)</code>, Team purifiee. Golden P6 byte-identique. Merge <code>8aad61b</code>.</li>
+  <li><b>E2b</b> — GUI de la forge : 3 onglets Team / Methode / Kit, rail-stock accordeon (insertion reelle), MD depliable recursif, graphe contextuel, carte Binding, vignettes + upload. Merge <code>b71e86f</code>.</li>
+  <li><b>Charte Studio clair</b> — portee depuis <code>iakagraph/theme/studio/clair</code> (papier + indigo #5b5bd6), AA respecte ; Cinabre reste le defaut. Merge <code>7ef37d3</code>.</li>
+  <li><b>E2c</b> — copilote de forge mocke deterministe (zero reseau) : boucle intention -&gt; proposition -&gt; diff -&gt; Valider/Rejeter ; frontiere runner d'authoring != execution verrouillee par test. Merge <code>867c3c7</code>.</li>
+</ul>
 <h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr>
-<tr><td><code>e1b5a0b</code></td><td>2026-07-07</td><td>feat(handoff): livraison du paquet forge -&gt; cockpit (H1 MVP)</td></tr>
-<tr><td><code>9bced3d</code></td><td>2026-07-07</td><td>docs(cadrage): E1 (Binding+AR-1 revise) + P7 + H1</td></tr>
-<tr><td><code>cafa0ac</code></td><td>2026-07-06</td><td>feat(workflow): concept Workflow/Phase/Gate en donnee + renderer (P6)</td></tr>
-<tr><td><code>a8c38fe</code></td><td>2026-07-06</td><td>feat(theme): skin Cinabre par defaut + selecteur de charte (P5)</td></tr>
-<tr><td><code>129c9cc</code></td><td>2026-07-06</td><td>feat(adapters): adaptateur Open WebUI (5e noeud, P3c)</td></tr>
-<tr><td><code>4f6aa2a</code></td><td>2026-07-06</td><td>feat(core): adaptateurs codex + ollama (4 noeuds, P3b)</td></tr>
-<tr><td><code>3baa59d</code></td><td>2026-07-06</td><td>feat(core): adaptateur de runner Claude Code (P3)</td></tr>
-<tr><td><code>8c71811</code></td><td>2026-07-06</td><td>feat(ui): forge authoring + editeurs persona/team (P1)</td></tr>
+<tr><td><code>867c3c7</code></td><td>2026-07-15</td><td>merge(e2c): copilote de forge mocke (gate Legolas PASS)</td></tr>
+<tr><td><code>7ef37d3</code></td><td>2026-07-15</td><td>merge(theme): charte Studio clair (gate Legolas PASS)</td></tr>
+<tr><td><code>b71e86f</code></td><td>2026-07-15</td><td>merge(e2b): GUI de la forge — 3 onglets Team/Methode/Kit (gate Legolas PASS)</td></tr>
+<tr><td><code>8aad61b</code></td><td>2026-07-15</td><td>merge(e2a): integration du coeur Methode/Team/Principes (gate Legolas PASS)</td></tr>
 </table>
+<h2>A reprendre (backlog)</h2>
+<ul>
+  <li>Couche CLI/terminal sur la bibliotheque : <code>list</code> / <code>add</code> (= livraison) / <code>assemble</code> / <code>switch</code> — cadrage a faire (prochaine etape).</li>
+  <li>Persistance Methode/Kit (etat local aujourd'hui) + handoff Rust additif — differes.</li>
+  <li>Vrai LLM d'authoring du copilote (E2c = mock) — differe.</li>
+  <li>Micro-dette : <code>iakaframe library/skills/README.md</code> obsolete (« Treize skills » + ancien chemin agents/).</li>
+  <li>Recette visuelle/interactive fine = geste humain (Legolas ne valide pas le pixel).</li>
+</ul>
+<h2>Pieges connus</h2>
+<ul>
+  <li>runner+modele JAMAIS dans Team ni Methode — uniquement dans le Binding, propriete du Cockpit.</li>
+  <li>Deux selecteurs de runner distincts : authoring (build-time) != execution (run-time).</li>
+</ul>
 <h2>Journal (versions &amp; pauses)</h2>
 <table><tr><th>Date</th><th>Motif</th><th>Version</th><th>Branche</th><th>Note</th></tr>
 <tr><td>2026-07-05 22:24</td><td><span class='r r-version'>version</span></td><td>v0.1.0</td><td>main</td><td>onboarding initial</td></tr>
 <tr><td>2026-07-11</td><td><span class='r r-reprise'>reprise</span></td><td>v0.1.0</td><td>main</td><td>reconciliation etat des lieux + backlog ; MVP forge quasi complet (33 commits, H1 livre)</td></tr>
+<tr><td>2026-07-15</td><td><span class='r r-pause'>pause</span></td><td>v0.1.0</td><td>main</td><td>seance E2 (a+b+c) : Methode != Team bindes au Cockpit + copilote mocke + charte Studio clair ; 57 commits, 237 tests verts</td></tr>
 </table>
 <footer>iakaframe - etat des lieux. Le recit de reprise est tenu dans specs/etat-des-lieux.md et specs/PROJET.md.</footer>
 </body></html>
