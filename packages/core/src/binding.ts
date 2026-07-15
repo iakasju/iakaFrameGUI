@@ -9,7 +9,7 @@
  * kit pur (non-régression P3/P3b/P3c).
  *
  * Invariant secret (dur) : un Binding **ne contient AUCUN credential** — `runner` est un *kind*
- * (harnais), `model` un *alias*/nom de modèle, jamais une clé/token (ceux-là restent au
+ * (harnais), `model` un alias (nom de modèle), jamais une clé/token (ceux-là restent au
  * keychain, hors forge). Les parseurs sont **défensifs** (calqués sur `parseTeam`/`parsePersona`) :
  * un record invalide est ignoré, jamais d'exception.
  */
