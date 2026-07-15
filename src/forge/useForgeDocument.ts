@@ -49,6 +49,12 @@ export interface DocConfig<T> {
   nameOf: (artifact: T) => string;
   /** Intégrité référentielle I1 au Save (Team/Méthode/Kit). Absent → aucune vérif. */
   validateRefs?: (artifact: T) => Promise<RefsReport>;
+  /**
+   * Pose le `name` (texte libre) sur l'artefact, **par type** — active le renommage en ligne
+   * (`DocTitle` éditable, `setName`). Absent → titre read-only (ex. Kit, sans champ `name`).
+   * **Ne slugifie jamais** (texte libre, cf. saut de curseur §10) ; ne touche que le libellé.
+   */
+  withName?: (artifact: T, name: string) => T;
   /** Façade backend injectable (tests). */
   api?: Backend;
 }
@@ -83,6 +89,13 @@ export interface UseForgeDocument<T> {
   source: DocSource;
   /** Édite l'artefact courant (marque `dirty`). */
   edit: (next: T) => void;
+  /**
+   * Renomme l'artefact courant en ligne (pose le `name`, marque `dirty`) via `config.withName`.
+   * No-op si aucun artefact ouvert ou si `withName` absent. **Ne touche ni `id` ni `source`.**
+   */
+  setName: (name: string) => void;
+  /** Vrai ssi le renommage en ligne est possible (`config.withName` fourni **et** artefact ouvert). */
+  canRename: boolean;
   /** New / Open / Close — passent par la garde si `dirty`. */
   requestNew: () => void;
   requestOpen: (id: string) => void;
@@ -139,6 +152,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
   idRef.current = id;
 
   const name = artifact ? config.nameOf(artifact) : "sans-titre";
+  const canRename = config.withName != null && artifact !== null;
 
   const loadBlank = useCallback((): void => {
     setArtifact(config.blank());
@@ -154,6 +168,17 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
     setArtifact(next);
     setDirty(true);
   }, []);
+
+  // --- Renommage en ligne (DocTitle éditable) : pose le `name`, marque dirty, garde id/source ---
+  const setName = useCallback(
+    (newName: string): void => {
+      const current = artifactRef.current;
+      if (!current || !config.withName) return; // no-op : on ne renomme pas le vide.
+      setArtifact(config.withName(current, newName)); // réutilise le chemin d'`edit`.
+      setDirty(true);
+    },
+    [config],
+  );
 
   // --- Écriture bas niveau (partagée Save / Save As), avec I1 (§8) ---
   const writeArtifact = useCallback(
@@ -351,6 +376,8 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
       dirty,
       source,
       edit,
+      setName,
+      canRename,
       requestNew,
       requestOpen,
       requestClose,
@@ -375,6 +402,8 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
       dirty,
       source,
       edit,
+      setName,
+      canRename,
       requestNew,
       requestOpen,
       requestClose,
