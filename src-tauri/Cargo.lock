@@ -1317,6 +1317,7 @@ name = "iakaframegui"
 version = "0.1.0"
 dependencies = [
  "dirs 5.0.1",
+ "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

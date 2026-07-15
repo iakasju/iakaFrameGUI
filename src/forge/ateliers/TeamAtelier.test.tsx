@@ -1,23 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { useEffect } from "react";
+import { useState } from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { buildTeamFromRoster } from "@iakaframe/core";
-import { useForgeTeams } from "../../hooks/useForgeTeams";
+import { buildTeamFromRoster, type Team } from "@iakaframe/core";
 import { TeamAtelier } from "./TeamAtelier";
 
-/** Harnais : vraie autorité `useForgeTeams`, team de départ semée (gabarit AR-5). */
+/** Harnais : atelier CONTRÔLÉ (team + onTeamChange), team de départ semée (gabarit AR-5). */
 function TeamHarness() {
-  const forge = useForgeTeams();
-  useEffect(() => {
-    if (forge.loaded && forge.teams.length === 0) {
-      void forge.upsertTeam(buildTeamFromRoster("Team iakaframe", "iakaframe"));
-    }
-  }, [forge.loaded, forge.teams.length, forge]);
-  const team = forge.teams[0];
+  const [team, setTeam] = useState<Team>(() =>
+    buildTeamFromRoster("Team iakaframe", "iakaframe"),
+  );
   return (
     <div className="forge">
       <div className="workbench">
-        {team ? <TeamAtelier forge={forge} team={team} /> : <p>chargement</p>}
+        <TeamAtelier team={team} onTeamChange={setTeam} />
       </div>
     </div>
   );

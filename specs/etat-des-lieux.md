@@ -76,5 +76,6 @@
 | 2026-07-05 22:24 | version | v0.1.0 | main | onboarding initial |
 | 2026-07-11 | reprise | v0.1.0 | main | reconciliation etat des lieux + backlog ; MVP forge quasi complet (33 commits, H1 livre) |
 | 2026-07-15 | pause | v0.1.0 | main | seance E2 (a+b+c) : Methode != Team bindes au Cockpit + copilote mocke + charte Studio clair ; 57 commits, 237 tests verts |
+| 2026-07-15 | reprise | v0.1.0 | main | reprise post-E2 : arbre propre, a jour origin/main. Cadrage `gui-fonctions-fichier-persistance.md` livre (commit 3eadcb8) — **CADRE, EN ATTENTE DE VALIDATION du decideur** (6 arbitrages Q-1..Q-6). Aucune implementation avant feu vert. |
 </content>
 </invoke>

@@ -17,7 +17,6 @@ import {
   type Persona,
   type Team,
 } from "@iakaframe/core";
-import type { UseForgeTeams } from "../../hooks/useForgeTeams";
 import { RailElement, RailNote, RailSection, StockItem } from "../Rail";
 import { Vignette, UploadChip } from "../Vignette";
 import { initialsOf } from "../casting";
@@ -68,7 +67,14 @@ function personaNodes(persona: Persona): FoldNode[] {
   return [...skillNodes, ...guardNodes];
 }
 
-export function TeamAtelier({ forge, team }: { forge: UseForgeTeams; team: Team }) {
+export function TeamAtelier({
+  team,
+  onTeamChange,
+}: {
+  team: Team;
+  /** Remonte toute édition de la team au document (dirty tracking + persistance `.md`). */
+  onTeamChange: (team: Team) => void;
+}) {
   const [currentId, setCurrentId] = useState<string>(
     () => team.coordinator || team.personas[0]?.id || "",
   );
@@ -81,22 +87,24 @@ export function TeamAtelier({ forge, team }: { forge: UseForgeTeams; team: Team 
   const tree = useMemo(() => generateClaudeCodeKit(team), [team]);
   const personaFile = persona ? `.claude/agents/${persona.id}.md` : null;
 
-  /** Insère une skill dans la persona éditée (persisté). */
-  function addSkill(skillId: string) {
-    if (!persona || persona.skills.includes(skillId)) return;
-    void forge.upsertPersona(team.id, {
-      ...persona,
-      skills: [...persona.skills, skillId],
+  /** Remplace une persona éditée dans la team et remonte le changement (pur). */
+  function updatePersona(next: Persona) {
+    onTeamChange({
+      ...team,
+      personas: team.personas.map((p) => (p.id === next.id ? next : p)),
     });
   }
 
-  /** Insère une garde (par id de garde canonique) dans la persona éditée (persisté). */
+  /** Insère une skill dans la persona éditée. */
+  function addSkill(skillId: string) {
+    if (!persona || persona.skills.includes(skillId)) return;
+    updatePersona({ ...persona, skills: [...persona.skills, skillId] });
+  }
+
+  /** Insère une garde (par id de garde canonique) dans la persona éditée. */
   function addGuardrail(guardId: string) {
     if (!persona || persona.guardrails.includes(guardId)) return;
-    void forge.upsertPersona(team.id, {
-      ...persona,
-      guardrails: [...persona.guardrails, guardId],
-    });
+    updatePersona({ ...persona, guardrails: [...persona.guardrails, guardId] });
   }
 
   // Contexte du copilote : ids déjà présents sur la persona éditée (pour le diff avant→après).

@@ -8,8 +8,10 @@
 
 pub mod handoff;
 pub mod kit_deploy;
+pub mod library_store;
 pub mod pathguard;
 pub mod paths;
+pub mod settings;
 pub mod teams_store;
 
 /// Commande de santé minimale — prouve le pont front↔back sans logique métier.
@@ -31,6 +33,14 @@ pub fn run() {
             teams_store::team_write,
             teams_store::team_delete,
             teams_store::workspace_path,
+            library_store::library_list,
+            library_store::library_read,
+            library_store::library_write,
+            library_store::library_exists,
+            library_store::pool_list,
+            library_store::pool_present,
+            settings::iakaframe_home,
+            settings::set_iakaframe_home,
             kit_deploy::kit_deploy,
             handoff::handoff_deliver,
             handoff::now_millis,

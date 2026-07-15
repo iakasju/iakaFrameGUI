@@ -64,6 +64,85 @@ export function workspacePath(): Promise<string> {
   return call<string>("workspace_path");
 }
 
+// --- Bibliothèque iakaframe (P5 : artefacts `.md`-frontmatter sous `IAKAFRAME_HOME`) ---
+
+/** Collections gérées par la forge (les 3 onglets, Q-6). */
+export type LibraryCollection = "teams" | "methods" | "kits";
+
+/**
+ * Liste le contenu `.md` brut de chaque artefact de `<home>/<collection>/` (scan, invariant I2).
+ * Le front parse chaque entrée via `parse{Team,Method,Kit}Md` (`@iakaframe/core`) — un fichier
+ * illisible est ignoré. Racine non résolue / dossier absent → `[]` (Rust ne rejette pas).
+ */
+export function libraryList(collection: LibraryCollection): Promise<string[]> {
+  return call<string[]>("library_list", { collection });
+}
+
+/** Lit le `.md` d'un artefact (`null` si absent ou racine non résolue). */
+export function libraryRead(
+  collection: LibraryCollection,
+  id: string,
+): Promise<string | null> {
+  return call<string | null>("library_read", { collection, id });
+}
+
+/** Écrit (ou remplace) `<home>/<collection>/<id>.md`. `text` = artefact sérialisé (frontmatter). */
+export function libraryWrite(
+  collection: LibraryCollection,
+  id: string,
+  text: string,
+): Promise<void> {
+  return call<void>("library_write", { collection, id, text });
+}
+
+/** Indique si `<home>/<collection>/<id>.md` existe (garde Save As non destructif). */
+export function libraryExists(
+  collection: LibraryCollection,
+  id: string,
+): Promise<boolean> {
+  return call<boolean>("library_exists", { collection, id });
+}
+
+/** Types d'atomes du pool `library/<type>/` référencés par les assemblages (I1). */
+export type PoolType =
+  | "personas"
+  | "skills"
+  | "guardrails"
+  | "principles"
+  | "rituals"
+  | "roles"
+  | "workflows"
+  | "scaffolds";
+
+/**
+ * Scanne les **ids** d'atomes du pool `<home>/library/<type>/` (I1, miroir de `checkRefs`). Sert à
+ * vérifier au Save que chaque id référencé existe. Dossier/racine absent → `[]`.
+ */
+export function poolList(poolType: PoolType): Promise<string[]> {
+  return call<string[]>("pool_list", { poolType });
+}
+
+/**
+ * Le pool `library/` existe-t-il sous la racine ? (Q-4 : pool absent → I1 non vérifiable →
+ * avertissement NON bloquant, Save autorisé.)
+ */
+export function poolPresent(): Promise<boolean> {
+  return call<boolean>("pool_present");
+}
+
+/**
+ * Racine bibliothèque résolue (`IAKAFRAME_HOME`, partagée CLI — §5) ou `null` si introuvable
+ * (l'UI Réglages invite alors à la définir).
+ */
+export function iakaframeHome(): Promise<string | null> {
+  return call<string | null>("iakaframe_home");
+}
+
+/** Définit (ou retire, si vide) l'override persisté de la racine bibliothèque. */
+export function setIakaframeHome(path: string): Promise<void> {
+  return call<void>("set_iakaframe_home", { path });
+}
+
 // --- Déploiement de kit (P3 : écrit une arborescence générée dans un dossier cible) ---
 
 /**
@@ -131,6 +210,14 @@ export const backend = {
   teamWrite,
   teamDelete,
   workspacePath,
+  libraryList,
+  libraryRead,
+  libraryWrite,
+  libraryExists,
+  poolList,
+  poolPresent,
+  iakaframeHome,
+  setIakaframeHome,
   kitDeploy,
   handoffDeliver,
   nowMillis,
