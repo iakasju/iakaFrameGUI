@@ -1,23 +1,21 @@
 # Etat des lieux - iakaFrameGUI
 
-> Regenere manuellement le 2026-07-15 (motif: reprise) apres le palier **fonctions fichier +
-> persistance bibliotheque** (merge `2a950fc`, gate Legolas PASS, pousse). Corrige un decalage :
-> la session precedente avait ete **coupee net juste apres le merge**, avant la regeneration ;
-> l'ancien recit s'arretait a E2c et decrivait a tort ce palier comme « cadre, en attente ».
+> Regenere manuellement le 2026-07-15 (motif: pause) apres le lot **DocTitle editable + New**
+> (merge `fc22eec`, gate Legolas PASS 301/301, pousse) qui suit le palier fonctions fichier.
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
 | Champ | Valeur |
 |---|---|
-| Version | v0.1.0 (dev en cours, **non encore tague** ; forge feature-complete + gestes fichier) |
+| Version | v0.1.0 (dev en cours, **non encore tague** ; forge feature-complete + gestes fichier + titre editable) |
 | Branche | main |
-| Sync remote | **a jour avec origin/main** (0 ahead / 0 behind ; `2a950fc` pousse) |
-| Dernier commit | `2a950fc` merge(gui): fonctions fichier + persistance bibliotheque (gate Legolas PASS) — 2026-07-15 |
+| Sync remote | **a jour avec origin/main** (0 ahead / 0 behind ; `42af030` pousse) |
+| Dernier commit | `42af030` docs(backlog) ; feature = `fc22eec` merge(gui): DocTitle editable + New (gate Legolas PASS) — 2026-07-15 |
 | Arbre | propre |
-| Commits | 65 |
+| Commits | 74 |
 | Fichiers suivis (hors node_modules) | 180 |
-| Tests | **287 verts** (`npm run test`, 37 fichiers) |
+| Tests | **301 verts** (`npm run test`, 37 fichiers) |
 
 ## Ce qui est livre (code committe)
 
@@ -54,24 +52,27 @@
     dirty tracking) + facade `library*` ; cote coeur, (de)serialiseurs **frontmatter .md par type**
     (team/method/kit), zero-dep (`b846f4c`) ; cote Rust, `library_store` .md sous pathguard
     `IAKAFRAME_HOME` + `resolve_iakaframe_home` (`d867561`).
+- **DocTitle editable + consolidation New** (instruction `specs/instructions/gui-doctitle-editable-et-new.md`,
+  merge `fc22eec`, **gate Legolas PASS 301/301 + pousse**) : le grand titre central est **editable en ligne**
+  pour **Team et Methode** (Kit read-only, sans champ `name`) — input controle labellise (`aria-label`,
+  texte libre non slugifie, `•` dirty preserve). Hook : `setName` + `canRename` + `withName?` dans `DocConfig`
+  (ne touche ni `id` ni `source`, no-op si vierge). Invite **Save As prereremplie** depuis le nom saisi
+  (`nom -> slugifyId(id)`). Geste **New** confirme de bout en bout (creer vierge -> nommer -> Save As).
+  Zero Rust, facade unique preservee (AR-1 tenue : `withName` ne pose qu'un libelle). Commits `242b0c4`->`cab86a3`.
 
 ## Reprise du travail
 
-- **Ce qui vient d'etre fait (dernier palier)** : **fonctions fichier + persistance bibliotheque**
-  (cadrage `gui-fonctions-fichier-persistance.md` VALIDE puis **implemente, gate Legolas PASS, merge `2a950fc`,
-  pousse**). Cote **IHM** : les 5 gestes New/Open/Save/Save As/Close sous les 3 onglets, `DocTitle` centre,
-  Settings racine, garde « modifs non sauvees ». Cote **interne** : `useForgeDocument<T>`, (de)serialiseurs
-  frontmatter .md par type, `library_store` Rust sous pathguard. **287 tests verts.** NB : la session
-  precedente s'est arretee juste apres ce merge, **avant** la regeneration de l'etat des lieux — d'ou le
-  present rattrapage.
-- **Demande du decideur a (re)traiter — recuperee 2026-07-15 (elle avait disparu du backlog)** :
-  - **Champ nom EDITABLE en grand, au milieu, sous les boutons fichier.** Aujourd'hui `DocTitle`
-    (`src/forge/DocTitle.tsx`) est **purement presentationnel** (affiche le nom, non editable ; le renommage
-    passe seulement par Save As). Le decideur veut pouvoir **editer le nom directement** dans ce grand titre
-    centre place **sous la `DocBar`**. -> a cadrer (edition inline, propagation `name`/`dirty`, non-destructif).
-  - **Fonction New** — le bouton New existe deja dans `DocBar` (`doc.requestNew`) ; a **verifier/consolider
-    dans le parcours vecu** (creer un artefact vierge « sans-titre », puis nommer via le champ editable
-    ci-dessus). Confirmer que le geste attendu par le decideur est bien couvert.
+- **Ce qui vient d'etre fait (dernier lot)** : **DocTitle editable + consolidation New**
+  (cadrage Gandalf `gui-doctitle-editable-et-new.md` VALIDE « tout vert » Q-1..Q-5 -> implemente par Gimli
+  sur `feat/doctitle-editable` -> **gate Legolas independant PASS 301/301** -> merge `--no-ff` `fc22eec` ->
+  pousse). Le grand titre central devient **editable en ligne** (Team/Methode ; Kit read-only), Save As
+  prereremplie, geste New confirme. Repond a la **demande du decideur recuperee** ce jour (le champ nom
+  n'etait qu'affiche, pas editable). Zero Rust, facade unique preservee.
+- **Palier precedent (meme jour)** : **fonctions fichier + persistance bibliotheque** (merge `2a950fc`,
+  gate PASS) — 5 gestes New/Open/Save/Save As/Close sous les 3 onglets, `DocTitle`, Settings racine ; cote
+  interne `useForgeDocument<T>`, (de)serialiseurs frontmatter .md, `library_store` Rust sous pathguard.
+- **Reliquat de ce lot** : **recette visuelle humaine** — voir le grand titre editable en vrai
+  (`npm run tauri dev`, onglet Team/Methode, saisir un nom, Save As prereremplie). Legolas ne valide pas le pixel.
 - **A reprendre / backlog** :
   - **Couche CLI/terminal** sur la bibliotheque : `list` / `add` (= livraison) / `assemble` / `switch` —
     cadrage a faire.
@@ -81,9 +82,9 @@
   - **Micro-dette** : `iakaframe` `library/skills/README.md` obsolete (« Treize skills » + ancien chemin
     `agents/`).
   - **Recette visuelle/interactive fine** = geste humain (Legolas ne valide pas le pixel).
-- **Prochaine etape concrete** : **cadrer le champ nom editable** (`DocTitle` -> input inline sous la `DocBar`)
-  + verifier le geste New de bout en bout, AVANT de coder ; puis la couche CLI/terminal de la bibliotheque
-  (`list`/`add`/`assemble`/`switch`).
+- **Prochaine etape concrete** : **recette visuelle** du titre editable (geste humain), puis **cadrer la
+  couche CLI/terminal** de la bibliotheque (`list`/`add`/`assemble`/`switch`) AVANT de coder. Ensuite :
+  editeur de workflow (P6 read-only) ; P7 Binding reel.
 - **Pieges connus** : le couple **runner+modele n'appartient JAMAIS a la Team ni a la Methode** — uniquement au
   **Binding**, propriete du Cockpit. **Deux selecteurs de runner distincts** : runner d'authoring (build-time,
   du copilote) != runner d'execution (run-time). Golden P6 byte-identique a preserver. Persistance .md sous
@@ -97,3 +98,4 @@
 | 2026-07-11 | reprise | v0.1.0 | main | reconciliation etat des lieux + backlog ; MVP forge quasi complet (33 commits, H1 livre) |
 | 2026-07-15 | pause | v0.1.0 | main | seance E2 (a+b+c) : Methode != Team bindes au Cockpit + copilote mocke + charte Studio clair ; 57 commits, 237 tests verts |
 | 2026-07-15 | reprise | v0.1.0 | main | rattrapage post-coupure : le palier **fonctions fichier + persistance bibliotheque** (merge `2a950fc`, gate PASS, pousse) etait absent du recit (session coupee avant regen). 65 commits, 180 fichiers, **287 tests verts**. Demande recuperee : **champ nom editable en grand sous les boutons fichier** + verifier **New**. |
+| 2026-07-15 | pause | v0.1.0 | main | lot **DocTitle editable + New** livre : titre editable en ligne (Team/Methode ; Kit read-only), Save As prereremplie, New confirme. Chaine Gandalf->Gimli->gate Legolas PASS **301/301**->merge `fc22eec`->pousse. 74 commits, 180 fichiers. Reliquat = recette visuelle humaine. |
