@@ -1,8 +1,8 @@
 # Etat des lieux - iakaFrameGUI
 
 > Regenere manuellement le 2026-07-15 (motif: pause) apres le lot **DocTitle editable + New**
-> (merge `fc22eec`, gate Legolas PASS 301/301, pousse) qui suit le palier fonctions fichier.
-> A regenerer a chaque changement de version et a chaque pause/reprise.
+> (merge `fc22eec`) et la cloture cross-depot de la **couche CLI bibliotheque** (depot `iakaframe`
+> main `2c85702`, gate Legolas PASS 86/86). A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
@@ -10,12 +10,12 @@
 |---|---|
 | Version | v0.1.0 (dev en cours, **non encore tague** ; forge feature-complete + gestes fichier + titre editable) |
 | Branche | main |
-| Sync remote | **a jour avec origin/main** (0 ahead / 0 behind ; `42af030` pousse) |
-| Dernier commit | `42af030` docs(backlog) ; feature = `fc22eec` merge(gui): DocTitle editable + New (gate Legolas PASS) — 2026-07-15 |
+| Sync remote | **a jour avec origin/main** (0 ahead / 0 behind ; `8158307` pousse) |
+| Dernier commit | `8158307` docs(backlog) ; derniere feature GUI = `fc22eec` DocTitle editable + New — 2026-07-15 |
 | Arbre | propre |
-| Commits | 74 |
-| Fichiers suivis (hors node_modules) | 180 |
-| Tests | **301 verts** (`npm run test`, 37 fichiers) |
+| Commits | 78 |
+| Fichiers suivis (hors node_modules) | 182 |
+| Tests | **301 verts** GUI (`npm run test`, 37 fichiers) ; CLI `iakaframe` **86 verts** |
 
 ## Ce qui est livre (code committe)
 
@@ -73,18 +73,24 @@
   interne `useForgeDocument<T>`, (de)serialiseurs frontmatter .md, `library_store` Rust sous pathguard.
 - **Reliquat de ce lot** : **recette visuelle humaine** — voir le grand titre editable en vrai
   (`npm run tauri dev`, onglet Team/Methode, saisir un nom, Save As prereremplie). Legolas ne valide pas le pixel.
+- **Chantier connexe cross-depot CLOS (meme jour)** : la **couche CLI/terminal de la bibliotheque**
+  (depot `iakaframe`, hors ce depot) etait deja livree (5 verbes `list`/`show`/`assemble`/`add`/`switch`, pool
+  materialise) ; un **lot de convergence** l'a alignee sur la GUI/cœur — racine partagee `<chapeau>/iakaframe`,
+  binding E1 (`node`/`origin`, additif), parite `assemble`<->`@iakaframe/core` (golden byte-a-byte), bonus
+  `etat.test.js` repare. Merge `iakaframe` `2c85702`, gate Legolas PASS **86/86**, pousse. Cadrage de ratification :
+  `specs/instructions/cli-bibliotheque-list-add-assemble-switch.md`.
 - **A reprendre / backlog** :
-  - **Couche CLI/terminal** sur la bibliotheque : `list` / `add` (= livraison) / `assemble` / `switch` —
-    cadrage a faire.
+  - **CLI bibliotheque** : CLOS (cf. ci-dessus). Reserve mineure non bloquante : CLI `existsSync` vs GUI
+    `is_dir()` sur le marqueur de racine (cas de bord).
   - **Persistance Methode/Kit** (l'etat local repartait a zero) — desormais couverte par le palier fichier
     pour les 3 onglets via `.md` ; **handoff Rust** additif encore differe.
   - **Vrai LLM d'authoring** du copilote (E2c = mock) — differe.
   - **Micro-dette** : `iakaframe` `library/skills/README.md` obsolete (« Treize skills » + ancien chemin
     `agents/`).
   - **Recette visuelle/interactive fine** = geste humain (Legolas ne valide pas le pixel).
-- **Prochaine etape concrete** : **recette visuelle** du titre editable (geste humain), puis **cadrer la
-  couche CLI/terminal** de la bibliotheque (`list`/`add`/`assemble`/`switch`) AVANT de coder. Ensuite :
-  editeur de workflow (P6 read-only) ; P7 Binding reel.
+- **Prochaine etape concrete** : **recette visuelle** du titre editable (geste humain). Puis, au choix :
+  **editeur de workflow** (P6 read-only), **P7 Binding reel** (cadre, non code), ou **modele Methode elargi**
+  (assemblage de principes composables, a graver par Gandalf). CLI bibliotheque = CLOS.
 - **Pieges connus** : le couple **runner+modele n'appartient JAMAIS a la Team ni a la Methode** — uniquement au
   **Binding**, propriete du Cockpit. **Deux selecteurs de runner distincts** : runner d'authoring (build-time,
   du copilote) != runner d'execution (run-time). Golden P6 byte-identique a preserver. Persistance .md sous
@@ -99,3 +105,4 @@
 | 2026-07-15 | pause | v0.1.0 | main | seance E2 (a+b+c) : Methode != Team bindes au Cockpit + copilote mocke + charte Studio clair ; 57 commits, 237 tests verts |
 | 2026-07-15 | reprise | v0.1.0 | main | rattrapage post-coupure : le palier **fonctions fichier + persistance bibliotheque** (merge `2a950fc`, gate PASS, pousse) etait absent du recit (session coupee avant regen). 65 commits, 180 fichiers, **287 tests verts**. Demande recuperee : **champ nom editable en grand sous les boutons fichier** + verifier **New**. |
 | 2026-07-15 | pause | v0.1.0 | main | lot **DocTitle editable + New** livre : titre editable en ligne (Team/Methode ; Kit read-only), Save As prereremplie, New confirme. Chaine Gandalf->Gimli->gate Legolas PASS **301/301**->merge `fc22eec`->pousse. 74 commits, 180 fichiers. Reliquat = recette visuelle humaine. |
+| 2026-07-15 | pause | v0.1.0 | main | cloture cross-depot **couche CLI bibliotheque** (`iakaframe`) : lot de convergence (racine partagee, binding E1, parite `assemble`<->cœur + golden) merge `iakaframe` `2c85702`, gate Legolas PASS **86/86**, pousse. GUI = 78 commits, 182 fichiers. Prochain = recette visuelle titre editable ; puis editeur workflow / P7 / modele Methode elargi. |
