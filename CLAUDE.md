@@ -94,4 +94,42 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 <!-- Liste des features priorisées. Chaque entrée pointe vers son instruction. -->
 
-- [ ] <!-- feature → specs/instructions/feature-xxx.md -->
+> Reste à faire sur **iakaFrameGUI** — miroir des items du backlog portefeuille
+> (`~/work/BACKLOG.md`) qui concernent ce projet, au **2026-07-15**. État détaillé et
+> récit de reprise : `specs/etat-des-lieux.md`.
+
+### Prochaine étape / à cadrer (avant tout code)
+- [ ] **Champ nom ÉDITABLE en grand, au milieu, sous les boutons fichier** — `DocTitle`
+  (`src/forge/DocTitle.tsx`) est aujourd'hui **read-only** (renommage seulement via *Save As*).
+  Le rendre **éditable en ligne** (édition du `name`, propagation `dirty`, non-destructif) +
+  **vérifier le geste `New`** de bout en bout (créer un « sans-titre » puis le nommer dans ce
+  champ). *Demande décideur récupérée le 2026-07-15.* → **cadrage Gandalf** avant de coder.
+- [ ] **Commandes terminal + livraison bibliothèque** (cadré au portefeuille 2026-07-15) : exposer
+  le CLI `@naonedge/iakaframe` sur la bibliothèque pool — `list` / `add` (= **geste de livraison**) /
+  `assemble` / `switch`|`use`. Racine iakaframe **partagée CLI + GUI** (même résolution). Couche code
+  **différée**. → instruction à écrire.
+- [ ] **Modèle Méthode élargi** — à graver par Gandalf : Méthode = scaffold + workflow (migré) +
+  **assemblage de principes composables** (qualité, backlog, doc/état des lieux, commits/versionnement,
+  isolation Docker, self-hosted-first, réutilisation, MVP-first, identité/badges, périmètres étanches,
+  langue, mock, cadrage-avant-code, confirmation actes destructifs) + rituels + gardes-fous + rôles.
+  *NB : la séparation **Méthode ≠ Team** est déjà livrée (E2a/b/c) ; reste le modèle de principes.*
+
+### Cadré, non codé
+- [ ] **P7 — Binding réel** : étape de liaison optionnelle au déploiement (`binding.json`, émission
+  conditionnelle du modèle par adaptateur). `specs/instructions/P7-forge-liaison-deploiement.md`.
+
+### À faire
+- [ ] **Éditeur de workflow** (P6 livré en read-only — `WorkflowPanel`).
+- [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code / Open WebUI**
+  (addition assumée + golden dédié ; aujourd'hui seuls codex/ollama la portent).
+
+### Recettes humaines (gestes visuels/interactifs — Legolas ne valide pas le pixel)
+- [ ] Forge **Cinabre** + écran **Générer / Déployer** : voir la charte, basculer, cycle
+  team → nœud → Générer → Déployer sur un dossier tmp (**U-10**).
+- [ ] Cycle **handoff** Livrer → Réceptionner (forge → cockpit).
+- [ ] **G-8** : déployer un kit dans un **vrai** projet Claude Code (subagents/skills reconnus +
+  canal d'identité opérationnel) — `specs/notes/P3-recette-manuelle-G8.md`.
+
+### North-star (design gardé ouvert, hors MVP)
+- [ ] **Import multi-méthodes** (BMAD / MetaGPT / SPARC) — agnosticisme de méthode gravé dès le cœur ;
+  ne rien hard-wirer « iakaframe-only ».
