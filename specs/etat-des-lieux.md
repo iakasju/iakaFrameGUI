@@ -1,8 +1,9 @@
 # Etat des lieux - iakaFrameGUI
 
-> Regenere manuellement le 2026-07-15 (motif: pause) apres le lot **DocTitle editable + New**
-> (merge `fc22eec`) et la cloture cross-depot de la **couche CLI bibliotheque** (depot `iakaframe`
-> main `2c85702`, gate Legolas PASS 86/86). A regenerer a chaque changement de version et a chaque pause/reprise.
+> Regenere manuellement le 2026-07-16 (motif: pause) apres deux lots livres le meme jour :
+> **P7 — Binding reel** (merge `9ecf97f`, gate Legolas PASS) et **P6b — Editeur de workflow** (merge
+> `be9dcd4`, gate Legolas PASS avec reserve front). A regenerer a chaque changement de version et a chaque
+> pause/reprise.
 
 ## Etat courant
 
@@ -142,4 +143,5 @@
 | 2026-07-15 | pause | v0.1.0 | main | cloture cross-depot **couche CLI bibliotheque** (`iakaframe`) : lot de convergence (racine partagee, binding E1, parite `assemble`<->cœur + golden) merge `iakaframe` `2c85702`, gate Legolas PASS **86/86**, pousse. GUI = 78 commits, 182 fichiers. Prochain = recette visuelle titre editable ; puis editeur workflow / P7 / modele Methode elargi. |
 | 2026-07-15 | reprise | v0.1.0 | main | **recette visuelle titre editable PASSEE (RAS)** : titre editable Team/Methode, `•` dirty, Save As prereremplie, Kit read-only — tous OK. Reserve non bloquante consignee (sans code) : **geste `New` = no-op visuel** (recharge un starter identique au seme du montage) ; arbitrage reporte par le decideur. Reliquat du lot DocTitle = SOLDE. Prochain = editeur workflow / P7 / modele Methode elargi. |
 | 2026-07-16 | version | v0.1.0 | main | **P6b — Editeur de workflow LIVRE** (workflow = artefact de 1re classe, collection `workflows/`). Chaine Gandalf (cadrage + revision Q-1) -> jalon valide decideur -> Gimli code (6 commits) -> **gate Legolas FAIL** (EW-13 faux-negatif I1 pool vs collection) -> correctif Gimli (`8c94769`) -> re-verif `refs` 10/10 (Odin) + coeur 251 + cargo 57 + front 116 hors ForgeShell -> **PASS avec reserve** (total front consolide non re-mesurable, machine saturee VM Docker) accepte par le decideur -> merge `--no-ff` `be9dcd4` -> pousse. |
+| 2026-07-16 | pause | v0.1.0 | main | **Pause apres livraison P7 + P6b** (tous deux merges + pousses ce jour, backlog a jour). Recette visuelle du 4e onglet Workflow (P6b) **tentee mais impossible** : `npm run tauri dev` build OK mais le webview ne survit pas au lancement — **RAM saturee (~15 Mo libres)**, meme apres fermeture de Docker. **A REPRENDRE** : (1) recette visuelle P6b (4e onglet) + P7 (B-7/B-10) sur **machine reposee/redemarree** ; (2) **total front vitest consolide** (~369) sur CI/machine reposee pour lever la reserve `ForgeShell.test.tsx` ; (3) prochain chantier cadrable sans IHM = **modele Methode elargi** (principes composables, a graver par Gandalf). Arbre propre, main a jour origin. |
 | 2026-07-16 | version | v0.1.0 | main | **P7 — Binding reel LIVRE**. Jalon valide decideur (Q-1->Q-5 = recos) -> Gimli code sur `feat/p7-binding` (6 commits) -> **gate Legolas independant PASS** (typecheck/lint 0, vitest **330/330**, cargo **56/56**, build OK ; invariants B-2 golden byte-identique / B-8 zero Rust / facade / Team pure / zero credential tenus) -> merge `--no-ff` `9ecf97f` -> pousse. Emission conditionnelle du modele via `KitGenOptions.binding?` optionnel, `LiaisonPanel`, `binding.json` par la forge. Restent recettes humaines B-7/B-10. |
