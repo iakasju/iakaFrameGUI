@@ -326,3 +326,174 @@ export function renderWorkflowMarkdown(workflow: Workflow): string {
   }
   return sections.join("\n\n");
 }
+
+// ---------------------------------------------------------------------------
+// Helpers d'ÉDITION **purs** (P6b) — ajout/suppression/réordonnancement + normalisation `order`
+// + nettoyage des overrides de calage (Q-3). Aucune I/O, aucun modèle/runner (AR-1). Le canonique
+// gelé n'est **jamais** muté : toutes ces fonctions renvoient une **copie** (seed = `cloneWorkflow`).
+// ---------------------------------------------------------------------------
+
+/** Deep-clone d'une gate (copie de valeur, aucun partage de référence). */
+function cloneGate(g: Gate): Gate {
+  const gate: Gate = { kind: g.kind, condition: g.condition };
+  if (g.from !== undefined) gate.from = g.from;
+  if (g.to !== undefined) gate.to = g.to;
+  if (g.display !== undefined) gate.display = g.display;
+  return gate;
+}
+
+/** Deep-clone d'une phase (roleKeys et gate copiés — aucun partage de référence). */
+export function clonePhase(p: Phase): Phase {
+  const phase: Phase = {
+    id: p.id,
+    order: p.order,
+    name: p.name,
+    description: p.description,
+    roleKeys: [...p.roleKeys],
+    gate: cloneGate(p.gate),
+  };
+  if (p.offChain !== undefined) phase.offChain = p.offChain;
+  if (p.badge !== undefined) phase.badge = p.badge;
+  if (p.roleDisplay !== undefined) phase.roleDisplay = p.roleDisplay;
+  return phase;
+}
+
+/**
+ * **`cloneWorkflow(wf)`** — deep-clone d'un workflow (EW-8) : copie de valeur intégrale, aucun
+ * partage de référence avec la source. Sert au **seed** du document Workflow depuis le **canonique
+ * gelé** (`IAKAFRAME_CANONICAL_WORKFLOW`) — éditer la copie ne mute jamais le constant.
+ */
+export function cloneWorkflow(wf: Workflow): Workflow {
+  const clone: Workflow = {
+    id: wf.id,
+    name: wf.name,
+    methodId: wf.methodId,
+    phases: wf.phases.map(clonePhase),
+  };
+  if (wf.sectionTitle !== undefined) clone.sectionTitle = wf.sectionTitle;
+  if (wf.sectionNote !== undefined) clone.sectionNote = wf.sectionNote;
+  return clone;
+}
+
+/** Renumérote les phases `0..N-1` selon leur position dans le tableau (source de vérité). */
+function renumber(phases: Phase[]): Phase[] {
+  return phases.map((p, i) => (p.order === i ? p : { ...p, order: i }));
+}
+
+/** Slug d'id unique pour une nouvelle phase (`phase`, `phase-2`, … évite les collisions). */
+function uniquePhaseId(existing: Set<string>, base = "phase"): string {
+  if (!existing.has(base)) return base;
+  let n = 2;
+  while (existing.has(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+/**
+ * **`addPhase(wf)`** — ajoute une phase valide en **fin de chaîne** (EW-9) : `id` unique
+ * auto-slugifié, `name` par défaut, `roleKeys: []` (autorisé mais signalé — Q-6), gate `human`
+ * vide. Renvoie une **copie** ; `order` reste contigu.
+ */
+export function addPhase(wf: Workflow): Workflow {
+  const ids = new Set(wf.phases.map((p) => p.id));
+  const id = uniquePhaseId(ids);
+  const phase: Phase = {
+    id,
+    order: wf.phases.length,
+    name: "Nouvelle phase",
+    description: "",
+    roleKeys: [],
+    gate: { kind: "human", condition: "" },
+  };
+  return { ...wf, phases: renumber([...wf.phases.map(clonePhase), phase]) };
+}
+
+/**
+ * **`removePhase(wf, id)`** — retire une phase et **renumérote** `order` (EW-9/EW-10). **Refuse**
+ * de descendre sous **1 phase** (renvoie le workflow inchangé). Renvoie une copie.
+ */
+export function removePhase(wf: Workflow, id: string): Workflow {
+  const kept = wf.phases.filter((p) => p.id !== id);
+  if (kept.length === 0 || kept.length === wf.phases.length) {
+    return wf; // suppression sous 1 refusée, ou id inconnu → no-op
+  }
+  return { ...wf, phases: renumber(kept.map(clonePhase)) };
+}
+
+/**
+ * **`movePhase(wf, id, dir)`** — échange une phase avec sa voisine (`"up"`/`"down"`) et
+ * **normalise** `order` (Q-2, EW-9). No-op aux bornes ou id inconnu. Renvoie une copie.
+ */
+export function movePhase(wf: Workflow, id: string, dir: "up" | "down"): Workflow {
+  const phases = wf.phases.map(clonePhase);
+  const i = phases.findIndex((p) => p.id === id);
+  if (i < 0) return wf;
+  const j = dir === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= phases.length) return wf;
+  [phases[i], phases[j]] = [phases[j], phases[i]];
+  return { ...wf, phases: renumber(phases) };
+}
+
+/** Champs de phase librement éditables (hors calage, hors gate — Q-3). */
+export type PhaseFieldsPatch = Partial<
+  Pick<Phase, "name" | "description" | "roleKeys" | "offChain">
+>;
+
+/**
+ * **`updatePhaseFields(wf, id, patch)`** — édite les champs libres d'une phase (`name`,
+ * `description`, `roleKeys`, `offChain`). **Nettoie l'override de calage correspondant** (Q-3) :
+ * éditer `roleKeys` **supprime** `roleDisplay` (sinon l'override masquerait l'édition au rendu).
+ * Renvoie une copie ; id inconnu → no-op.
+ */
+export function updatePhaseFields(
+  wf: Workflow,
+  id: string,
+  patch: PhaseFieldsPatch,
+): Workflow {
+  let touched = false;
+  const phases = wf.phases.map((p) => {
+    if (p.id !== id) return p;
+    touched = true;
+    const next = clonePhase(p);
+    if (patch.name !== undefined) next.name = patch.name;
+    if (patch.description !== undefined) next.description = patch.description;
+    if (patch.offChain !== undefined) next.offChain = patch.offChain;
+    if (patch.roleKeys !== undefined) {
+      next.roleKeys = [...patch.roleKeys];
+      delete next.roleDisplay; // Q-3 : le calage dérivé ne doit plus masquer l'édition.
+    }
+    return next;
+  });
+  return touched ? { ...wf, phases } : wf;
+}
+
+/**
+ * **`updatePhaseGate(wf, id, patch)`** — édite la gate d'une phase (`kind`, `condition`,
+ * `from`/`to`). **Nettoie l'override de calage** `gate.display` (Q-3) dès qu'un champ rendu change,
+ * pour que l'édition soit visible au rendu/diagramme. Renvoie une copie ; id inconnu → no-op.
+ */
+export function updatePhaseGate(
+  wf: Workflow,
+  id: string,
+  patch: Partial<Pick<Gate, "kind" | "condition" | "from" | "to">>,
+): Workflow {
+  let touched = false;
+  const phases = wf.phases.map((p) => {
+    if (p.id !== id) return p;
+    touched = true;
+    const next = clonePhase(p);
+    const gate = next.gate;
+    if (patch.kind !== undefined) gate.kind = patch.kind;
+    if (patch.condition !== undefined) gate.condition = patch.condition;
+    if (patch.from !== undefined) {
+      if (patch.from === "") delete gate.from;
+      else gate.from = patch.from;
+    }
+    if (patch.to !== undefined) {
+      if (patch.to === "") delete gate.to;
+      else gate.to = patch.to;
+    }
+    delete gate.display; // Q-3 : override de gate nettoyé à toute édition de la gate.
+    return next;
+  });
+  return touched ? { ...wf, phases } : wf;
+}

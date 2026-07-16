@@ -15,6 +15,7 @@
 import type { Team } from "../team";
 import type { Method } from "../method";
 import type { Binding } from "../binding";
+import type { Workflow } from "../workflow";
 import type { KitFormat, NodeKind } from "../node";
 
 /**
@@ -51,6 +52,15 @@ export interface KitGenOptions {
    * **toujours du Binding**, **jamais de la Team**.
    */
   binding?: Binding;
+  /**
+   * **Workflow résolu** (P6b) : le workflow **externe** (fichier `workflows/<id>.md`) référencé par
+   * la Méthode, **résolu par la forge AVANT génération** (lecture `.md` + `parseWorkflowMd`) et
+   * injecté ici — **exactement** comme `binding?`. **Optionnel** (rétro-compat) : **sans
+   * `workflow`**, l'adaptateur se replie sur `resolveWorkflow(opts?.method)` → **sans `method`** non
+   * plus → **canonique** → sortie **byte-identique** (non-régression P6/P3, EW-6). Le cœur ne lit
+   * **jamais** le disque : la résolution du `.md` est une responsabilité de la forge (front).
+   */
+  workflow?: Workflow;
 }
 
 /**

@@ -66,8 +66,12 @@ export function workspacePath(): Promise<string> {
 
 // --- Bibliothèque iakaframe (P5 : artefacts `.md`-frontmatter sous `IAKAFRAME_HOME`) ---
 
-/** Collections gérées par la forge (les 3 onglets, Q-6). */
-export type LibraryCollection = "teams" | "methods" | "kits";
+/**
+ * Collections gérées par la forge (les 4 onglets, Q-6 + P6b). `workflows` = la collection
+ * **éditable** `<home>/workflows/` (P6b) — **distincte** du pool d'atomes read-only
+ * `<home>/library/workflows/` (`PoolType`, cf. Q-9 : même nom, deux espaces séparés au MVP).
+ */
+export type LibraryCollection = "teams" | "methods" | "kits" | "workflows";
 
 /**
  * Liste le contenu `.md` brut de chaque artefact de `<home>/<collection>/` (scan, invariant I2).
