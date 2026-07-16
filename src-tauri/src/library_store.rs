@@ -3,7 +3,10 @@
 //! **passe-plat de texte** — il ne (dé)sérialise PAS le frontmatter (le cœur front tient le
 //! schéma, cf. `packages/core/src/frontmatter.ts`). Il lit/écrit des chaînes `.md` opaques sous
 //! `<home>/<collection>/<id>.md`, avec :
-//!   - `collection` validée ∈ { teams, methods, kits } (les 3 onglets de la forge, Q-6) ;
+//!   - `collection` validée ∈ { teams, methods, kits, workflows } (les 4 onglets de la forge,
+//!     Q-6 + P6b) ; NB : la collection **éditable** `<home>/workflows/` est **distincte** du pool
+//!     d'atomes read-only `<home>/library/workflows/` (`POOL_TYPES`, cf. P6b Q-9) — même nom, deux
+//!     espaces séparés au MVP ;
 //!   - `id` validé (segment simple, sans séparateur) puis chemin résolu via `pathguard::safe_path`.
 //!
 //! Aucune notion de runner/modèle, aucun secret, aucun réseau. Les fonctions `*_in(home, …)` sont
@@ -18,8 +21,10 @@ use crate::paths::resolve_iakaframe_home;
 /// Extension des fichiers d'artefact de la bibliothèque.
 const LIBRARY_EXT: &str = "md";
 
-/// Collections gérées par la forge (les 3 onglets, Q-6). Sous-ensemble du mapping CLI.
-const COLLECTIONS: [&str; 3] = ["teams", "methods", "kits"];
+/// Collections gérées par la forge (les 4 onglets, Q-6 + P6b `workflows`). Sous-ensemble du
+/// mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/` (P6b) — à ne pas
+/// confondre avec le pool d'atomes read-only `<home>/library/workflows/` (`POOL_TYPES`, Q-9).
+const COLLECTIONS: [&str; 4] = ["teams", "methods", "kits", "workflows"];
 
 /// Types d'ATOMES du pool `library/<type>/` (référencés par les assemblages, I1). En lecture
 /// seule : la forge n'édite pas encore les atomes (E2 différé), mais doit les **scanner** pour
@@ -279,6 +284,27 @@ mod tests {
         assert!(!exists_in(&home, "teams", "x").unwrap());
         write_in(&home, "teams", "x", "---\nid: x\n---\n").unwrap();
         assert!(exists_in(&home, "teams", "x").unwrap());
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn workflows_collection_roundtrip_md() {
+        // P6b : `workflows` est une collection de 1re classe (allow-list COLLECTIONS).
+        let home = tmp_dir("wf");
+        let md = "---\nid: mon-workflow\nname: Mon workflow\nmethodId: iakaframe\n---\n# corps\n";
+        write_in(&home, "workflows", "mon-workflow", md).unwrap();
+        assert_eq!(
+            read_in(&home, "workflows", "mon-workflow").unwrap(),
+            Some(md.to_string())
+        );
+        assert!(exists_in(&home, "workflows", "mon-workflow").unwrap());
+        let got = list_in(&home, "workflows").unwrap();
+        assert_eq!(got.len(), 1);
+        assert!(got[0].contains("id: mon-workflow"));
+        assert_eq!(
+            library_file(&home, "workflows", "mon-workflow").unwrap(),
+            home.join("workflows").join("mon-workflow.md")
+        );
         std::fs::remove_dir_all(&home).ok();
     }
 
