@@ -12,22 +12,28 @@
 import { useEffect, useRef, useState } from "react";
 import {
   buildTeamFromRoster,
+  cloneWorkflow,
   serializeTeamMd,
   serializeMethodMd,
   serializeKitMd,
+  serializeWorkflowMd,
   parseTeamMd,
   parseMethodMd,
   parseKitMd,
+  parseWorkflowMd,
+  IAKAFRAME_CANONICAL_WORKFLOW,
   DEFAULT_KIT_NODE,
   type Kit,
   type Method,
   type Team,
+  type Workflow,
 } from "@iakaframe/core";
 import { useForgeHandoff } from "../hooks/useForgeHandoff";
-import { useForgeDocument } from "./useForgeDocument";
+import { useForgeDocument, type LibraryEntry } from "./useForgeDocument";
 import { IAKAFRAME_STARTER_METHOD } from "./useForgeMethod";
 import { insertMethodRef, type MethodRef } from "./methodEdit";
 import { makeTeamValidateRefs, makeMethodValidateRefs } from "./refs";
+import { resolveMethodWorkflow } from "./workflowResolve";
 import {
   teamToMd,
   mdToTeam,
@@ -43,12 +49,14 @@ import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
 import { MethodeAtelier } from "./ateliers/MethodeAtelier";
 import { KitAtelier } from "./ateliers/KitAtelier";
+import { WorkflowAtelier } from "./ateliers/WorkflowAtelier";
 
-type Tab = "team" | "methode" | "kit";
+type Tab = "team" | "methode" | "kit" | "workflow";
 
 const TABS: { key: Tab; label: string; sub: string }[] = [
   { key: "team", label: "Team", sub: "casting pur" },
-  { key: "methode", label: "Méthode", sub: "discipline · workflow" },
+  { key: "methode", label: "Méthode", sub: "discipline" },
+  { key: "workflow", label: "Workflow", sub: "phases · gates" },
   { key: "kit", label: "Kit", sub: "assemblage total" },
 ];
 
@@ -59,6 +67,8 @@ const methodBody = (m: Method): string =>
   `# ${m.name}\n\nAssemblage de discipline (ids vers \`library/*\`). Forgé par iakaFrameGUI.\n`;
 const kitBody = (k: Kit): string =>
   `# Kit ${k.id || "sans-titre"}\n\nManifeste d'assemblage (méthode + team + binding). Forgé par iakaFrameGUI.\n`;
+const workflowBody = (w: Workflow): string =>
+  `# ${w.name}\n\nWorkflow (phases + gates) — artefact autonome de \`workflows/\`. Forgé par iakaFrameGUI.\n`;
 
 export function ForgeShell() {
   const handoff = useForgeHandoff();
@@ -115,6 +125,18 @@ export function ForgeShell() {
     nameOf: (k) => k.id,
   });
 
+  // P6b : 4ᵉ document — Workflow (collection `workflows/`). Blank = **deep-clone du canonique gelé**
+  // (EW-8, jamais muté) ; (dé)sérialisation `.md` = frontmatter plat + phases dans le corps (Q-8).
+  const workflowDoc = useForgeDocument<Workflow>({
+    collection: "workflows",
+    blank: () => cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW),
+    serialize: (w) => serializeWorkflowMd(w, workflowBody(w)),
+    parse: (txt) => parseWorkflowMd(txt),
+    idOf: (w) => w.id,
+    nameOf: (w) => w.name,
+    withName: (w, name) => ({ ...w, name }),
+  });
+
   // Sème un artefact vierge dans chaque onglet au premier montage (un élément à éditer).
   const seeded = useRef(false);
   useEffect(() => {
@@ -123,14 +145,62 @@ export function ForgeShell() {
     teamDoc.requestNew();
     methodDoc.requestNew();
     kitDoc.requestNew();
-  }, [teamDoc, methodDoc, kitDoc]);
+    workflowDoc.requestNew();
+  }, [teamDoc, methodDoc, kitDoc, workflowDoc]);
 
   const team = teamDoc.artifact;
   const method = methodDoc.artifact;
   const kit = kitDoc.artifact;
+  const workflowArtifact = workflowDoc.artifact;
+
+  // P6b : la Méthode **référence** un workflow (`workflowId`) de la collection. Le sélecteur de
+  // l'onglet Méthode liste les workflows de `workflows/` ; le diagramme reflète le **résolu**
+  // (collection → objet, sinon canonique — EW-7). Résolution isolée dans `resolveMethodWorkflow`.
+  const [workflowOptions, setWorkflowOptions] = useState<LibraryEntry[]>([]);
+  const [resolvedMethodWorkflow, setResolvedMethodWorkflow] = useState<Workflow>(
+    IAKAFRAME_CANONICAL_WORKFLOW,
+  );
+
+  // Rafraîchit la liste des workflows de la collection quand on entre dans l'onglet Méthode.
+  useEffect(() => {
+    if (tab !== "methode") return;
+    let alive = true;
+    void workflowDoc.listEntries().then((entries) => {
+      if (alive) setWorkflowOptions(entries);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [tab, workflowDoc, workflowArtifact]);
+
+  // Résout le workflow référencé par la Méthode (pour le diagramme + le rail read-only).
+  useEffect(() => {
+    if (method === null) return;
+    let alive = true;
+    void resolveMethodWorkflow(method).then((res) => {
+      if (alive) setResolvedMethodWorkflow(res.workflow);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [method]);
+
+  const setMethodWorkflowId = (id: string | undefined): void => {
+    if (method === null) return;
+    const next: Method = { ...method };
+    if (id && id.trim().length > 0) next.workflowId = id;
+    else delete next.workflowId;
+    methodDoc.edit(next);
+  };
 
   const activeDoc = (
-    tab === "team" ? teamDoc : tab === "methode" ? methodDoc : kitDoc
+    tab === "team"
+      ? teamDoc
+      : tab === "methode"
+        ? methodDoc
+        : tab === "workflow"
+          ? workflowDoc
+          : kitDoc
   ) as unknown as import("./useForgeDocument").UseForgeDocument<unknown>;
 
   return (
@@ -211,9 +281,23 @@ export function ForgeShell() {
           ) : (
             <MethodeAtelier
               method={method}
+              workflow={resolvedMethodWorkflow}
+              workflowOptions={workflowOptions}
+              onWorkflowIdChange={setMethodWorkflowId}
               insert={(ref: MethodRef, id: string) =>
                 methodDoc.edit(insertMethodRef(method, ref, id))
               }
+            />
+          )
+        ) : tab === "workflow" ? (
+          workflowArtifact === null ? (
+            <div className="edit">
+              <p className="empty">Aucun artefact ouvert — New ou Open.</p>
+            </div>
+          ) : (
+            <WorkflowAtelier
+              workflow={workflowArtifact}
+              onWorkflowChange={(w) => workflowDoc.edit(w)}
             />
           )
         ) : kit === null ? (

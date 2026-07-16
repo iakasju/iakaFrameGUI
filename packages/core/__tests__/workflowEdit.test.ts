@@ -52,6 +52,9 @@ describe("EW-8 — cloneWorkflow : deep-clone sans mutation du canonique", () =>
     seed = updatePhaseFields(seed, "cadrage", { name: "MUTÉ", roleKeys: [] });
     seed = removePhase(seed, "staging");
     seed = movePhase(seed, "prod", "up");
+    // La copie a bien changé…
+    expect(seed.phases.some((p) => p.name === "MUTÉ")).toBe(true);
+    // …mais le constant gelé, jamais.
     expect(JSON.stringify(IAKAFRAME_CANONICAL_WORKFLOW)).toBe(before);
   });
 });
@@ -166,7 +169,16 @@ describe("EW-5 / EW-6 — injection KitGenOptions.workflow + non-régression byt
     const custom: Workflow = { ...fake(), sectionTitle: "PRIORITAIRE" };
     const md = generateCodexKit(team, {
       workflow: custom,
-      method: { ...({ workflowId: "iakaframe-canonical" } as never) },
+      method: {
+        id: "iakaframe",
+        name: "M",
+        scaffoldIds: [],
+        workflowId: "iakaframe-canonical",
+        principleIds: [],
+        ritualIds: [],
+        guardrailIds: [],
+        roleKeys: [],
+      },
     }).files["AGENTS.md"];
     expect(md).toContain("## PRIORITAIRE");
   });

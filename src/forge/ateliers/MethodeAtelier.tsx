@@ -19,8 +19,10 @@ import {
   type Gate,
   type Method,
   type Phase,
+  type Workflow,
 } from "@iakaframe/core";
 import type { MethodRef } from "../useForgeMethod";
+import type { LibraryEntry } from "../useForgeDocument";
 import { RailNote, RailSection, StockItem } from "../Rail";
 import { UploadChip } from "../Vignette";
 import { CopiloteShell, RunnerFrontier } from "../CopiloteShell";
@@ -46,11 +48,23 @@ const TARGET_TO_REF: Partial<Record<MaterializeTarget, MethodRef>> = {
 export function MethodeAtelier({
   method,
   insert,
+  workflow: resolvedWorkflow,
+  workflowOptions = [],
+  onWorkflowIdChange,
 }: {
   method: Method;
   insert: (ref: MethodRef, id: string) => void;
+  /**
+   * P6b : workflow **résolu** (référence `method.workflowId` → collection `workflows/`, sinon
+   * canonique) pour l'affichage (rail read-only + diagramme). Absent → repli catalogue/canonique.
+   */
+  workflow?: Workflow;
+  /** Workflows de la collection pour le sélecteur de référence (`workflowId`). */
+  workflowOptions?: LibraryEntry[];
+  /** Pose/retire la référence `method.workflowId` (undefined = canonique par défaut). */
+  onWorkflowIdChange?: (id: string | undefined) => void;
 }) {
-  const workflow = resolveWorkflow(method);
+  const workflow = resolvedWorkflow ?? resolveWorkflow(method);
   const mainPhases = [...workflow.phases]
     .filter((p) => p.offChain !== true)
     .sort((a, b) => a.order - b.order);
@@ -111,6 +125,27 @@ export function MethodeAtelier({
         <div className="railhead">Stock — atelier Méthode · la discipline</div>
 
         <RailSection title="Workflow" count="phases + gates" defaultOpen>
+          <div className="sub wfref">
+            <label className="sn" style={{ display: "block" }}>
+              Workflow référencé
+              <select
+                aria-label="Workflow référencé par la méthode"
+                value={method.workflowId ?? ""}
+                disabled={onWorkflowIdChange === undefined}
+                onChange={(e) => onWorkflowIdChange?.(e.target.value || undefined)}
+              >
+                <option value="">canonique (par défaut)</option>
+                {workflowOptions.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} ({w.id})
+                  </option>
+                ))}
+              </select>
+              <span className="sd">
+                référence (pas d'édition inline) — éditez le workflow dans l'onglet Workflow
+              </span>
+            </label>
+          </div>
           {mainPhases.map((p) => (
             <div className="sub" key={`phase-${p.id}`}>
               <span className="tagg phase">PHASE</span>
