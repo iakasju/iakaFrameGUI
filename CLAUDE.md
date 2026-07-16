@@ -130,7 +130,16 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   `specs/instructions/P7-forge-liaison-deploiement.md`. *Reste : **recettes humaines B-7/B-10** (voir ci-dessous).*
 
 ### À faire
-- [ ] **Éditeur de workflow** (P6 livré en read-only — `WorkflowPanel`).
+- [x] **Éditeur de workflow** — **LIVRÉ 2026-07-16** (instruction `specs/instructions/P6b-editeur-workflow.md`,
+  jalon validé décideur : Q-1 = **workflow = artefact de 1re classe de la bibliothèque** (collection `workflows/`),
+  Q-2→Q-9 = recos ; merge `--no-ff` `be9dcd4`, poussé). Collection `workflows/` (4ᵉ onglet, `useForgeDocument`,
+  sérialiseur `.md` frontmatter plat + phases en corps), résolution **pure** par injection `KitGenOptions.workflow`
+  (moule P7), extension Rust `COLLECTIONS += workflows`, I1 Méthode validant `workflowId` contre la collection +
+  catalogue. Golden P6 byte-identique, canonique non muté, façade unique, zéro runner/modèle. **Gate Legolas :
+  FAIL initial (EW-13 = faux-négatif I1 pool vs collection) → corrigé (`8c94769`) → re-vérif indépendante `refs`
+  10/10, cœur 251/251, cargo 57/57, front 116/116 hors ForgeShell**. *Réserve documentée (acceptée décideur) :
+  total front consolidé non re-mesuré ici (machine saturée VM Docker) — 2 tests `ForgeShell.test.tsx` à
+  reconfirmer sur CI/machine reposée. Reste : recette visuelle du 4ᵉ onglet.*
 - [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code / Open WebUI**
   (addition assumée + golden dédié ; aujourd'hui seuls codex/ollama la portent).
 
@@ -144,6 +153,11 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   (importable), Codex avec modèle référencé ; Claude Code sans modèle = pur et valide.
 - [ ] **B-10 (P7)** : smoke visuel Binding bout-en-bout — team → nœud → **cocher « Lier »** (Open WebUI,
   un modèle) → Générer (voir `base_model_id` rempli) → Déployer sur tmp → `binding.json` présent à la racine.
+- [ ] **P6b — 4ᵉ onglet Workflow** : recette visuelle — liste des phases, boutons monter/descendre/ajouter/
+  supprimer, éditeur de phase (nom, description, rôles par cases, offChain, gate), reflet dans le `FlowDiagram`,
+  sélecteur `workflowId` de l'onglet Méthode (`npm run tauri dev`).
+- [ ] **P6b — total front consolidé** : rejouer `npm run test` complet (≈ 42 fichiers / ~369 tests) sur
+  **CI / machine reposée** pour lever la réserve `ForgeShell.test.tsx` (non re-mesurable sur machine saturée).
 
 ### North-star (design gardé ouvert, hors MVP)
 - [ ] **Import multi-méthodes** (BMAD / MetaGPT / SPARC) — agnosticisme de méthode gravé dès le cœur ;

@@ -15,7 +15,7 @@
 | Arbre | propre |
 | Commits | 78 |
 | Fichiers suivis (hors node_modules) | 182 |
-| Tests | **330 verts** GUI (`npm run test`, 38 fichiers ; core 226 + front 104) + Rust `cargo test` **56 verts** ; CLI `iakaframe` **86 verts** |
+| Tests | GUI : coeur **251 verts** + front **116 verts** hors `ForgeShell` (reserve : total consolide ~369 a rejouer sur CI/machine reposee) ; Rust `cargo test` **57 verts** ; CLI `iakaframe` **86 verts** |
 
 ## Ce qui est livre (code committe)
 
@@ -52,6 +52,19 @@
     dirty tracking) + facade `library*` ; cote coeur, (de)serialiseurs **frontmatter .md par type**
     (team/method/kit), zero-dep (`b846f4c`) ; cote Rust, `library_store` .md sous pathguard
     `IAKAFRAME_HOME` + `resolve_iakaframe_home` (`d867561`).
+- **P6b — Editeur de workflow** (instruction `specs/instructions/P6b-editeur-workflow.md`, jalon **VALIDE decideur** :
+  Q-1 = workflow = **artefact de 1re classe de la bibliotheque** (collection `workflows/`), Q-2->Q-9 = recos ;
+  merge `--no-ff` `be9dcd4`, pousse) : le workflow devient **editable** et **sauvegardable** comme Team/Methode/Kit.
+  Collection `workflows/` (4e onglet forge, `useForgeDocument`, (de)serialiseur `.md` = frontmatter plat + phases
+  en corps, Q-8) ; **resolution PURE** preservee par injection `KitGenOptions.workflow?` (moule P7, zero I/O au cœur) ;
+  extension Rust `COLLECTIONS += workflows` (une entree + test) ; I1 Methode valide `workflowId` contre la
+  **collection + catalogue** (fix EW-13). Golden P6 byte-identique, canonique gele non mute, facade unique, zero
+  runner/modele. **Gate Legolas : FAIL initial** (EW-13 = faux-negatif, l'I1 validait `workflowId` contre le pool
+  `library/workflows/` au lieu de la collection editable -> Save Methode refuse a tort) **-> corrige** (`8c94769`,
+  I1 alignee sur la resolution EW-7 : collection + catalogue) **-> re-verif** : `refs` 10/10 (verif independante
+  Odin), cœur 251/251, cargo 57/57, front 116/116 hors ForgeShell, typecheck/lint/build verts. **Reserve documentee
+  (acceptee decideur)** : total front consolide non re-mesurable (machine saturee, VM Docker) — 2 tests
+  `ForgeShell.test.tsx` (passaient au run initial exit 0) a reconfirmer sur CI/machine reposee.
 - **P7 — Binding reel** (instruction `specs/instructions/P7-forge-liaison-deploiement.md`, jalon **VALIDE decideur**
   Q-1->Q-5 = recos, merge `--no-ff` `9ecf97f`, **gate Legolas PASS** : typecheck/lint 0, vitest **330/330**,
   cargo **56/56**, build OK, pousse) : schema `Binding`/`PersonaBinding` + `defaultBindingForNode` dans
@@ -105,9 +118,13 @@
   - **Recettes humaines P7** : **B-7** (import reel d'un kit lie : Open WebUI `base_model_id` rempli / Codex modele
     reference / Claude sans modele = pur) et **B-10** (smoke visuel : team -> nœud -> cocher Lier -> Generer ->
     Deployer tmp -> `binding.json` present). Gestes du decideur.
-- **Prochaine etape concrete** : **P7 Binding reel LIVRE** (merge `9ecf97f`, gate PASS, pousse). Au choix desormais :
-  **editeur de workflow** (P6 read-only), **modele Methode elargi** (assemblage de principes composables, a graver
-  par Gandalf), ou les recettes humaines P7 (B-7/B-10). CLI bibliotheque = CLOS.
+  - **Recettes humaines P6b** : **4e onglet Workflow** (liste phases, boutons monter/descendre/ajouter/supprimer,
+    editeur de phase, reflet `FlowDiagram`, selecteur `workflowId` de l'onglet Methode) ; **total front consolide**
+    a rejouer sur CI/machine reposee (lever la reserve `ForgeShell.test.tsx`).
+- **Prochaine etape concrete** : **P6b Editeur de workflow LIVRE** (merge `be9dcd4`, gate PASS avec reserve, pousse) ;
+  **P7 Binding reel LIVRE** (merge `9ecf97f`, gate PASS, pousse). Au choix desormais : **modele Methode elargi**
+  (assemblage de principes composables, a graver par Gandalf), l'**editeur de workflow avance** (drag-and-drop,
+  differe), ou les recettes humaines (P6b 4e onglet, P7 B-7/B-10). CLI bibliotheque = CLOS.
 - **Pieges connus** : le couple **runner+modele n'appartient JAMAIS a la Team ni a la Methode** — uniquement au
   **Binding**, propriete du Cockpit. **Deux selecteurs de runner distincts** : runner d'authoring (build-time,
   du copilote) != runner d'execution (run-time). Golden P6 byte-identique a preserver. Persistance .md sous
@@ -124,4 +141,5 @@
 | 2026-07-15 | pause | v0.1.0 | main | lot **DocTitle editable + New** livre : titre editable en ligne (Team/Methode ; Kit read-only), Save As prereremplie, New confirme. Chaine Gandalf->Gimli->gate Legolas PASS **301/301**->merge `fc22eec`->pousse. 74 commits, 180 fichiers. Reliquat = recette visuelle humaine. |
 | 2026-07-15 | pause | v0.1.0 | main | cloture cross-depot **couche CLI bibliotheque** (`iakaframe`) : lot de convergence (racine partagee, binding E1, parite `assemble`<->cœur + golden) merge `iakaframe` `2c85702`, gate Legolas PASS **86/86**, pousse. GUI = 78 commits, 182 fichiers. Prochain = recette visuelle titre editable ; puis editeur workflow / P7 / modele Methode elargi. |
 | 2026-07-15 | reprise | v0.1.0 | main | **recette visuelle titre editable PASSEE (RAS)** : titre editable Team/Methode, `•` dirty, Save As prereremplie, Kit read-only — tous OK. Reserve non bloquante consignee (sans code) : **geste `New` = no-op visuel** (recharge un starter identique au seme du montage) ; arbitrage reporte par le decideur. Reliquat du lot DocTitle = SOLDE. Prochain = editeur workflow / P7 / modele Methode elargi. |
+| 2026-07-16 | version | v0.1.0 | main | **P6b — Editeur de workflow LIVRE** (workflow = artefact de 1re classe, collection `workflows/`). Chaine Gandalf (cadrage + revision Q-1) -> jalon valide decideur -> Gimli code (6 commits) -> **gate Legolas FAIL** (EW-13 faux-negatif I1 pool vs collection) -> correctif Gimli (`8c94769`) -> re-verif `refs` 10/10 (Odin) + coeur 251 + cargo 57 + front 116 hors ForgeShell -> **PASS avec reserve** (total front consolide non re-mesurable, machine saturee VM Docker) accepte par le decideur -> merge `--no-ff` `be9dcd4` -> pousse. |
 | 2026-07-16 | version | v0.1.0 | main | **P7 — Binding reel LIVRE**. Jalon valide decideur (Q-1->Q-5 = recos) -> Gimli code sur `feat/p7-binding` (6 commits) -> **gate Legolas independant PASS** (typecheck/lint 0, vitest **330/330**, cargo **56/56**, build OK ; invariants B-2 golden byte-identique / B-8 zero Rust / facade / Team pure / zero credential tenus) -> merge `--no-ff` `9ecf97f` -> pousse. Emission conditionnelle du modele via `KitGenOptions.binding?` optionnel, `LiaisonPanel`, `binding.json` par la forge. Restent recettes humaines B-7/B-10. |
