@@ -15,6 +15,7 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { Command } from "@tauri-apps/plugin-shell";
 
 /** Wrapper typé minimal autour de `invoke`. SEUL endroit autorisé à l'appeler. */
 export async function call<T>(
@@ -202,6 +203,137 @@ export async function pickDirectory(): Promise<string | null> {
   return typeof selection === "string" ? selection : null;
 }
 
+// ============================================================================================
+// Pilote « Apprentissage » — review (U1, surface-apprentissage.md, Q-1 / § 4.2bis)
+// --------------------------------------------------------------------------------------------
+// DÉROGATION ASSUMÉE ET BORNÉE à l'invariant AR-1/AR-6 (« backend passe-plat de texte, AUCUN
+// sous-processus, aucun appel runner »). Cette section — et ELLE SEULE — exécute un sous-processus :
+// la CLI SŒUR DÉTERMINISTE `iakaframe review --json`. Raison (tranchée Q-1) : garder UNE source
+// unique du garde de consentement et des plafonds (le réservoir vu par `review`, T5). Réimplémenter
+// apply/reject en Rust dupliquerait T5+T1 et risquerait de rendre un amendement STRUCTUREL
+// (`skill`/`hook`/`config`) auto-applicable — refusé.
+//
+// Ce n'est PAS un « appel runner » au sens AR-1 : un runner = un moteur LLM (Claude Code, codex,
+// ollama). Ici on appelle l'outil frère déterministe d'iakaframe, jamais un modèle, jamais le réseau.
+//
+// BORNAGE : l'exécution est allow-listée dans `src-tauri/capabilities/default.json`
+// (`shell:allow-execute`) à UN binaire (`iakaframe` sur le PATH, repli `node <entrée CLI>`), la
+// SOUS-COMMANDE `review`, un argv FIGÉ (seul `<id>` est un validateur), la sortie `--json`. Tout
+// appel hors liste est refusé par Tauri (bloqué par défaut). AUCUNE logique de consentement/plafond
+// n'est réimplémentée ici : on parse la sortie `--json` de `review` et on la relaie telle quelle.
+// ============================================================================================
+
+/** Une proposition du réservoir, telle que renvoyée par `review list --json` (T5). */
+export interface ReviewProposal {
+  id: string;
+  type: string;
+  target?: string | null;
+  slug?: string;
+  status: "en-attente" | "applique" | "rejete";
+  created?: string;
+  occurrences?: number;
+  /** Politique de consentement calculée par `review` (jamais ici) : `auto` ⇒ REGISTRE auto-applicable. */
+  policy?: "auto" | "file";
+}
+
+export interface ReviewListResult {
+  ok: boolean;
+  home?: string;
+  count?: number;
+  proposals: ReviewProposal[];
+  error?: string;
+}
+export interface ReviewShowResult {
+  ok: boolean;
+  proposal?: ReviewProposal;
+  text?: string;
+  error?: string;
+}
+export interface ReviewMaterialize {
+  ok?: boolean;
+  kind?: string;
+  dest?: string;
+  target?: string;
+  length?: number;
+  cap?: number;
+  reason?: string;
+  type?: string;
+  id?: string;
+}
+export interface ReviewApplyResult {
+  ok: boolean;
+  id?: string;
+  type?: string;
+  status?: string;
+  reason?: string;
+  materialize?: ReviewMaterialize;
+}
+export interface ReviewRejectResult {
+  ok: boolean;
+  id?: string;
+  type?: string;
+  status?: string;
+  reason?: string;
+}
+
+/** Chemin d'entrée de la CLI pour le repli `node` (résolu relativement à `IAKAFRAME_HOME`). */
+function cliEntryPoint(home: string): string {
+  const sep = home.includes("\\") && !home.includes("/") ? "\\" : "/";
+  return `${home}${sep}cli${sep}src${sep}index.js`;
+}
+
+/**
+ * Exécute `iakaframe review <verb> [id] --json` via l'allow-list `plugin-shell`. `iakaframe` sur
+ * le PATH **d'abord** ; si le binaire est introuvable (spawn en échec), **repli** sur
+ * `node <IAKAFRAME_HOME>/cli/src/index.js …`. Un code de sortie non-nul n'est **pas** une erreur
+ * d'exécution : `review --json` imprime un JSON `{ ok:false, … }` sur un refus (plafond, déjà
+ * traité…) tout en sortant en code 1 — on renvoie donc `stdout` tel quel dès qu'il est présent.
+ */
+async function execReview(verb: string, id?: string): Promise<string> {
+  const args = id === undefined ? ["review", verb, "--json"] : ["review", verb, id, "--json"];
+  try {
+    const out = await Command.create(`iaka-review-${verb}`, args).execute();
+    if (out.stdout.trim().length > 0) return out.stdout;
+    throw new Error(out.stderr || `review ${verb} : sortie vide`);
+  } catch (pathErr) {
+    // PATH indisponible (`iakaframe` introuvable) → repli `node <entrée CLI>` sous IAKAFRAME_HOME.
+    const home = await iakaframeHome();
+    if (!home) throw pathErr;
+    const nodeArgs = [cliEntryPoint(home), ...args];
+    const out = await Command.create(`iaka-review-${verb}-node`, nodeArgs).execute();
+    if (out.stdout.trim().length > 0) return out.stdout;
+    throw new Error(out.stderr || `review ${verb} : sortie vide (repli node)`);
+  }
+}
+
+function parseReview<T>(stdout: string, label: string): T {
+  try {
+    return JSON.parse(stdout) as T;
+  } catch {
+    throw new Error(`sortie \`review ${label}\` illisible (JSON attendu)`);
+  }
+}
+
+/** Liste TOUTES les propositions du réservoir (le filtre de statut est appliqué côté vue, Q-4). */
+export async function reviewList(): Promise<ReviewListResult> {
+  return parseReview<ReviewListResult>(await execReview("list"), "list");
+}
+
+/** Détail d'une proposition (`proposal.md` complet via `review show <id> --json`). */
+export async function reviewShow(id: string): Promise<ReviewShowResult> {
+  return parseReview<ReviewShowResult>(await execReview("show", id), "show");
+}
+
+/** Valide (matérialise via `review apply <id>`). Aucune re-décision côté GUI (source unique = review). */
+export async function reviewApply(id: string): Promise<ReviewApplyResult> {
+  return parseReview<ReviewApplyResult>(await execReview("apply", id), "apply");
+}
+
+/** Rejette (`review reject <id>`) : statut `rejete`, rien matérialisé. */
+export async function reviewReject(id: string): Promise<ReviewRejectResult> {
+  return parseReview<ReviewRejectResult>(await execReview("reject", id), "reject");
+}
+
 /**
  * Façade backend en objet — facilite le mock dans les tests (les hooks `useForgeTeams`
  * et `useForgeDeploy` acceptent une implémentation de `Backend` en dépendance injectable).
@@ -226,6 +358,10 @@ export const backend = {
   handoffDeliver,
   nowMillis,
   pickDirectory,
+  reviewList,
+  reviewShow,
+  reviewApply,
+  reviewReject,
 };
 
 export type Backend = typeof backend;

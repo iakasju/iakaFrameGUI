@@ -1,7 +1,24 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capabilities minimales de la fenetre principale (P1).",
+  "description": "Capabilities minimales de la fenetre principale (P1) + allow-list STRICTE du pilote review (U1).",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "description": "DEROGATION ASSUMEE ET BORNEE (AR-1/AR-6) — U1 de surface-apprentissage.md, Q-1 / 4.2bis. La GUI est un PILOTE de `iakaframe review --json` (source unique du garde de consentement + plafonds) : elle N'implemente aucune logique de revue en Rust. Cette allow-list borne l'execution a UN outil (`iakaframe` sur le PATH, repli `node <entree CLI>`), la SOUS-COMMANDE `review`, un argv FIGE (seul `<id>` est un validateur), la sortie `--json`. Aucun shell, aucun autre binaire, aucun autre verbe. Ce n'est PAS un appel runner (LLM) : c'est l'outil frere deterministe d'iakaframe. Tout appel hors liste est refuse par Tauri (bloque par defaut).",
+      "allow": [
+        { "name": "iaka-review-list", "cmd": "iakaframe", "args": ["review", "list", "--json"] },
+        { "name": "iaka-review-show", "cmd": "iakaframe", "args": ["review", "show", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-review-apply", "cmd": "iakaframe", "args": ["review", "apply", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-review-reject", "cmd": "iakaframe", "args": ["review", "reject", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-review-list-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "list", "--json"] },
+        { "name": "iaka-review-show-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "show", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-review-apply-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "apply", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-review-reject-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "reject", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] }
+      ]
+    }
+  ]
 }

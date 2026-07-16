@@ -26,6 +26,13 @@ pub fn run() {
         // Plugin `dialog` (P4) : sélecteur de dossier natif pour choisir la destination
         // de déploiement. Seule capacité backend ajoutée par P4 ; `kit_deploy` inchangé.
         .plugin(tauri_plugin_dialog::init())
+        // Plugin `shell` (U1, surface-apprentissage.md, Q-1) — DÉROGATION ASSUMÉE ET BORNÉE à
+        // l'invariant AR-1/AR-6 : pilote la CLI sœur déterministe `iakaframe review --json`
+        // (source unique du garde de consentement + plafonds). L'allow-list STRICTE de
+        // `capabilities/default.json` borne l'exécution à un binaire (`iakaframe`/`node`), la
+        // sous-commande `review`, un argv figé (seul `<id>` est un validateur). Ce n'est PAS un
+        // appel runner (LLM) ; aucune logique de revue n'est réimplémentée en Rust. Cf. § 4.2bis.
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             ping,
             teams_store::team_list,

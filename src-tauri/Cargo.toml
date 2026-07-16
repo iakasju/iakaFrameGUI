@@ -21,6 +21,13 @@ tauri = { version = "2.11.2", features = [] }
 # Selecteur de dossier natif (P4) — meme montage que le Cockpit. Ne fournit qu'un
 # chemin ; l'ecriture non destructive reste portee par kit_deploy (pathguard).
 tauri-plugin-dialog = "2"
+# DEROGATION ASSUMEE ET BORNEE a l'invariant AR-1/AR-6 (« backend sans sous-processus »).
+# U1 de surface-apprentissage.md (Q-1) : pilote de `iakaframe review --json` (source unique du
+# garde de consentement + plafonds). Ce plugin N'EXECUTE QUE ce que l'allow-list stricte de
+# capabilities/default.json autorise (un binaire `iakaframe`/`node`, sous-commande `review`, argv
+# fige). Ce n'est PAS un appel runner (LLM) : c'est l'outil frere deterministe d'iakaframe. Aucune
+# logique de revue cote Rust. Cf. instruction § 4.2 / § 4.2bis.
+tauri-plugin-shell = "2"
 # Resolution du home cross-OS (chapeau + workspace), zero constante Windows.
 dirs = "5"
 # Lecture/ecriture du settings.json (override de la racine bibliotheque IAKAFRAME_HOME).
