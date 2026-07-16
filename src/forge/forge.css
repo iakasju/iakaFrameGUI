@@ -1199,3 +1199,95 @@
   gap: 8px;
   margin-top: 14px;
 }
+
+/* --- Atelier Workflow (P6b) : éditeur de phase + boutons de réordonnancement --- */
+.forge .sub.sel {
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+.forge .sub .rowbtns button {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--forge-line-soft);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.forge .sub .rowbtns button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.forge .addphase {
+  margin: 8px 0 2px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px dashed var(--blue);
+  background: var(--panel-2);
+  color: var(--blue);
+  font: 600 11px/1 var(--font-sans);
+  cursor: pointer;
+}
+.forge .wfref select {
+  display: block;
+  width: 100%;
+  margin: 4px 0;
+  padding: 5px 6px;
+  border-radius: 7px;
+  border: 1px solid var(--forge-line-soft);
+  background: var(--panel);
+  color: var(--ink);
+  font: 500 11px/1 var(--font-sans);
+}
+.forge .phase-editor {
+  flex: 2;
+  min-width: 0;
+}
+.forge .phase-editor fieldset {
+  border: 1px solid var(--forge-line-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+}
+.forge .phase-editor legend {
+  font: 700 11px/1 var(--font-sans);
+  padding: 0 6px;
+  color: var(--ink);
+}
+.forge .phase-editor label {
+  display: block;
+  font: 600 10.5px/1.4 var(--font-sans);
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+.forge .phase-editor label.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+}
+.forge .phase-editor input[type="text"],
+.forge .phase-editor select {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  padding: 6px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--forge-line-soft);
+  background: var(--panel);
+  color: var(--ink);
+  font: 500 12px/1.2 var(--font-sans);
+}
+.forge .phase-editor fieldset.roles label.chk,
+.forge .phase-editor fieldset.gate label {
+  font-weight: 600;
+}
+.forge .phase-editor .warnrole {
+  display: block;
+  margin-top: 6px;
+  font: 600 10px/1.3 var(--font-sans);
+  color: var(--orange);
+}
