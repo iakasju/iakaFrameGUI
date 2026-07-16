@@ -50,14 +50,17 @@ import { TeamAtelier } from "./ateliers/TeamAtelier";
 import { MethodeAtelier } from "./ateliers/MethodeAtelier";
 import { KitAtelier } from "./ateliers/KitAtelier";
 import { WorkflowAtelier } from "./ateliers/WorkflowAtelier";
+import { LearningAtelier } from "./ateliers/LearningAtelier";
+import { useForgeLearning } from "../hooks/useForgeLearning";
 
-type Tab = "team" | "methode" | "kit" | "workflow";
+type Tab = "team" | "methode" | "kit" | "workflow" | "apprentissage";
 
 const TABS: { key: Tab; label: string; sub: string }[] = [
   { key: "team", label: "Team", sub: "casting pur" },
   { key: "methode", label: "Méthode", sub: "discipline" },
   { key: "workflow", label: "Workflow", sub: "phases · gates" },
   { key: "kit", label: "Kit", sub: "assemblage total" },
+  { key: "apprentissage", label: "Apprentissage", sub: "réservoir · revue" },
 ];
 
 /** Corps `.md` minimal généré au Save (renvoie au récit humain de la bibliothèque). */
@@ -74,6 +77,9 @@ export function ForgeShell() {
   const handoff = useForgeHandoff();
   const [tab, setTab] = useState<Tab>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
+  const learning = useForgeLearning();
 
   // Validations I1 (miroir `checkRefs`), créées une fois (identité stable).
   const validateTeamRefs = useRef(makeTeamValidateRefs()).current;
@@ -249,14 +255,19 @@ export function ForgeShell() {
         </button>
       </div>
 
-      {/* Barre de gestes fichier + titre de document de l'onglet actif. */}
-      <DocBar doc={activeDoc} />
-      <DocTitle
-        name={activeDoc.name}
-        dirty={activeDoc.dirty}
-        onNameChange={activeDoc.canRename ? activeDoc.setName : undefined}
-        disabled={activeDoc.artifact === null}
-      />
+      {/* Barre de gestes fichier + titre de document de l'onglet actif. L'onglet « Apprentissage »
+          n'est PAS un document (pilote de `review`, pas de New/Open/Save) : on masque DocBar/DocTitle. */}
+      {tab !== "apprentissage" && (
+        <>
+          <DocBar doc={activeDoc} />
+          <DocTitle
+            name={activeDoc.name}
+            dirty={activeDoc.dirty}
+            onNameChange={activeDoc.canRename ? activeDoc.setName : undefined}
+            disabled={activeDoc.artifact === null}
+          />
+        </>
+      )}
 
       {settingsOpen && (
         <div className="settings-panel">
@@ -300,6 +311,8 @@ export function ForgeShell() {
               onWorkflowChange={(w) => workflowDoc.edit(w)}
             />
           )
+        ) : tab === "apprentissage" ? (
+          <LearningAtelier learning={learning} />
         ) : kit === null ? (
           <div className="edit">
             <p className="empty">Aucun artefact ouvert — New ou Open.</p>
