@@ -24,6 +24,9 @@
  * Défensif : jamais d'exception ; champ inconnu ignoré ; artefact sans `id` → `null`.
  */
 
+import type { Workflow } from "./workflow";
+import { parseWorkflow } from "./workflow";
+
 // ---------------------------------------------------------------------------
 // 1. PARSEUR générique (miroir du CLI) : parseFrontmatter(text) -> { data, body }
 // ---------------------------------------------------------------------------
@@ -507,6 +510,82 @@ export function parseKitMd(text: string | undefined | null): KitMd | null {
   if (bindingId) kit.bindingId = bindingId;
   if (Array.isArray(data.emits)) kit.emits = asStringArray(data.emits);
   return kit;
+}
+
+// --- workflow (P6b) ----------------------------------------------------------
+
+/**
+ * Encodage `.md` du **workflow** (P6b, Q-8) : frontmatter **plat** (`id`/`name`/`methodId`, lisible
+ * par le CLI/`iakaframe show` **sans** étendre `buildDocument` — protège le golden) + les
+ * **phases/gates** sérialisées **dans le corps** en bloc JSON structuré round-trippé. Ce bloc reste
+ * **contenu dans le fichier workflow** (les autres schémas — team/method/kit — ne le voient jamais).
+ * Le parseur est **défensif** (bloc absent/illisible → `null` → repli canonique côté forge).
+ */
+
+/** Marqueur du bloc de phases (données) dans le corps — informatif, non porteur de sens au parse. */
+const WORKFLOW_PHASES_MARKER =
+  "<!-- iakaframe:workflow — phases/gates (données, ne pas éditer à la main) -->";
+
+/** Extrait le contenu du **premier** bloc ```json du corps (`null` si absent). */
+function extractJsonBlock(body: string): string | null {
+  const m = body.match(/```json\s*\n([\s\S]*?)\n?```/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Sérialise un `Workflow` en `.md` (Q-8). Frontmatter plat `id`/`name`/`methodId` via
+ * `buildDocument` (champs scalaires — **aucune** extension du frontmatter partagé) ; les phases +
+ * le calage de section (`sectionTitle`/`sectionNote`) vivent dans le **corps** en bloc JSON. `body`
+ * = prose humaine optionnelle (insérée avant le bloc de données).
+ */
+export function serializeWorkflowMd(wf: Workflow, body = ""): string {
+  const payload: Record<string, unknown> = { phases: wf.phases };
+  if (wf.sectionTitle !== undefined) payload.sectionTitle = wf.sectionTitle;
+  if (wf.sectionNote !== undefined) payload.sectionNote = wf.sectionNote;
+  const dataBlock = `${WORKFLOW_PHASES_MARKER}\n\n\`\`\`json\n${JSON.stringify(
+    payload,
+    null,
+    2,
+  )}\n\`\`\`\n`;
+  const fullBody = body.trim().length > 0 ? `${body.trim()}\n\n${dataBlock}` : dataBlock;
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: wf.id },
+      { key: "name", kind: "scalar", value: wf.name },
+      { key: "methodId", kind: "scalar", value: wf.methodId },
+    ],
+    fullBody,
+  );
+}
+
+/**
+ * Parse un `.md` workflow → `Workflow` (défensif ; `null` sans `id`, sans bloc de données lisible,
+ * ou sans phase valide). Fusionne le frontmatter plat (`id`/`name`/`methodId`) et le bloc JSON du
+ * corps (phases + calage), puis délègue à `parseWorkflow` (mêmes garanties défensives que le cœur).
+ */
+export function parseWorkflowMd(text: string | undefined | null): Workflow | null {
+  const { data, body } = parseFrontmatter(text);
+  const id = asString(data.id).trim();
+  if (!id) return null;
+  const raw = extractJsonBlock(body);
+  if (raw === null) return null;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof payload !== "object" || payload === null) return null;
+  const p = payload as Record<string, unknown>;
+  const methodId = asString(data.methodId).trim();
+  return parseWorkflow({
+    id,
+    name: asString(data.name) || id,
+    methodId: methodId.length > 0 ? methodId : undefined,
+    phases: p.phases,
+    sectionTitle: p.sectionTitle,
+    sectionNote: p.sectionNote,
+  });
 }
 
 /** Interne exposé pour les tests (parité fine avec le CLI). */

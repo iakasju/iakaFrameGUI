@@ -186,9 +186,10 @@ export function buildAgentsMd(
     // Section « moteur par persona » P7 : **conditionnelle** (null sans binding → absente →
     // sortie byte-identique au pur ; non-régression B-2).
     renderEngineSection(personas, opts),
-    // Section phases/gates rendue **depuis la donnée** (P6), le workflow venant de la **Méthode**
-    // du Kit (E2) — **sans `method`** → workflow canonique → sortie byte-identique (non-régression).
-    renderWorkflowMarkdown(resolveWorkflow(opts?.method)),
+    // Section phases/gates rendue **depuis la donnée** (P6). Le workflow est **injecté résolu** par
+    // la forge (P6b `opts.workflow`, moule du Binding) ; **à défaut** il vient de la **Méthode** du
+    // Kit (E2, `resolveWorkflow`) ; **sans `method`** → canonique → byte-identique (EW-6).
+    renderWorkflowMarkdown(opts?.workflow ?? resolveWorkflow(opts?.method)),
     CADRAGE_AVANT_CODE,
     renderMethodGuards(),
     CONVENTIONS,
