@@ -52,6 +52,7 @@ import { KitAtelier } from "./ateliers/KitAtelier";
 import { WorkflowAtelier } from "./ateliers/WorkflowAtelier";
 import { LearningAtelier } from "./ateliers/LearningAtelier";
 import { useForgeLearning } from "../hooks/useForgeLearning";
+import { useForgeRetrait } from "../hooks/useForgeRetrait";
 
 type Tab = "team" | "methode" | "kit" | "workflow" | "apprentissage";
 
@@ -80,6 +81,8 @@ export function ForgeShell() {
 
   // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
   const learning = useForgeLearning();
+  // Retrait symétrique +/− (S6) : PILOTE de `iakaframe detach/attach/remove` (source unique CLI).
+  const retrait = useForgeRetrait();
 
   // Validations I1 (miroir `checkRefs`), créées une fois (identité stable).
   const validateTeamRefs = useRef(makeTeamValidateRefs()).current;
@@ -312,7 +315,7 @@ export function ForgeShell() {
             />
           )
         ) : tab === "apprentissage" ? (
-          <LearningAtelier learning={learning} />
+          <LearningAtelier learning={learning} retrait={retrait} />
         ) : kit === null ? (
           <div className="edit">
             <p className="empty">Aucun artefact ouvert — New ou Open.</p>

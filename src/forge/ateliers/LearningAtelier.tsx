@@ -15,6 +15,8 @@ import {
   type LearningFilter,
   type UseForgeLearning,
 } from "../../hooks/useForgeLearning";
+import type { UseForgeRetrait } from "../../hooks/useForgeRetrait";
+import { RetraitPanel } from "./RetraitPanel";
 import type { ReviewProposal } from "../../api/backend";
 
 const FILTERS: { key: LearningFilter; label: string }[] = [
@@ -53,7 +55,14 @@ function ConsentBadge({ p }: { p: ReviewProposal }) {
   );
 }
 
-export function LearningAtelier({ learning }: { learning: UseForgeLearning }) {
+export function LearningAtelier({
+  learning,
+  retrait,
+}: {
+  learning: UseForgeLearning;
+  /** Pilote du retrait symétrique +/− (S6). Optionnel : absent = panneau non rendu (tests unitaires). */
+  retrait?: UseForgeRetrait;
+}) {
   const {
     ready,
     loading,
@@ -178,6 +187,9 @@ export function LearningAtelier({ learning }: { learning: UseForgeLearning }) {
           <pre className="ld-body">{detail.text}</pre>
         </div>
       )}
+
+      {/* Retrait symétrique +/− (S6) : le `−` aussi accessible que le `+`, sous la revue. */}
+      {retrait && <RetraitPanel retrait={retrait} />}
     </div>
   );
 }
