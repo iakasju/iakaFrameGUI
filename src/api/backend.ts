@@ -334,6 +334,161 @@ export async function reviewReject(id: string): Promise<ReviewRejectResult> {
   return parseReview<ReviewRejectResult>(await execReview("reject", id), "reject");
 }
 
+// ============================================================================================
+// Pilote « Retrait symétrique +/− » — attach / detach / remove (S6, symetrie-ajout-suppression.md)
+// --------------------------------------------------------------------------------------------
+// MÊME DÉROGATION AR-1/AR-6 ASSUMÉE ET BORNÉE que le pilote review ci-dessus, ÉTENDUE au RETRAIT.
+// Raison (Q-4 tranchée) : la logique de retrait sûr — RESTRICT (`findReferrers`), corbeille
+// `<root>/.trash-<ts>/`, cascade explicite, mutation du `skills:[]` du frontmatter (Option 1) — vit
+// DÉJÀ dans la CLI 1ʳᵉ tranche (`attach`/`detach`/`remove`, S1..S5). La réimplémenter en Rust
+// dupliquerait ce socle et risquerait une suppression sèche / une cascade silencieuse. La GUI n'est
+// donc qu'un PILOTE : elle appelle les verbes CLI `--json` et relaie la sortie telle quelle (les
+// référents d'un refus RESTRICT, le chemin de corbeille, le `skills:[]` après mutation).
+//
+// Ce n'est PAS un « appel runner » (AR-1) : `list`/`show`/`attach`/`detach`/`remove` sont l'outil
+// frère DÉTERMINISTE d'iakaframe, jamais un modèle LLM, jamais le réseau.
+//
+// BORNAGE : allow-listé dans `src-tauri/capabilities/default.json` — sous-commandes FIGÉES, argv
+// FIGÉ, seuls `<id>`/`<personaId>`/`<kind>`/`<type>` sont des validateurs (enum ou regex étroite),
+// sortie `--json`. `remove` non forcé et `remove --cascade --yes` sont DEUX entrées distinctes : la
+// cascade (retrait de référents) exige donc un appel explicite séparé (jamais atteint sans geste
+// humain côté vue). Tout appel hors liste est refusé par Tauri (bloqué par défaut).
+// ============================================================================================
+
+/** Une entrée de la bibliothèque telle que renvoyée par `list <type> --json` (scan, I2). */
+export interface LibraryEntry {
+  type: string;
+  id: string;
+  label: string;
+  path: string;
+}
+
+/** Résultat d'un `attach`/`detach <skillId> --persona <id> --json` (mute le seul `skills:[]`, Option 1). */
+export interface AttachDetachResult {
+  ok: boolean;
+  mode?: "attach" | "detach";
+  skillId?: string;
+  personaId?: string;
+  /** `false` = no-op idempotent (déjà attaché / déjà absent). */
+  changed?: boolean;
+  /** `skills:[]` du persona APRÈS mutation (la vue Option 1 se rafraîchit dessus). */
+  skills?: string[];
+  path?: string;
+  error?: string;
+}
+
+/** Un référent renvoyé par un refus RESTRICT (`findReferrers`, inverse de `checkRefs`). */
+export interface RemoveReferrer {
+  type: string;
+  id: string;
+  field: string;
+}
+
+/** Résultat d'un `remove <kind> <id> [--cascade --yes] --json` (retrait sûr : RESTRICT + corbeille). */
+export interface RemoveResult {
+  ok: boolean;
+  /** `restrict` = refusé (encore référencé) ; `confirm-required` = cascade demandée non confirmée. */
+  reason?: "restrict" | "confirm-required" | string;
+  kind?: string;
+  id?: string;
+  /** Référents à traiter d'abord (refus RESTRICT ou plan de cascade). */
+  referrers?: RemoveReferrer[];
+  /** Corbeille horodatée où l'artefact est archivé (restaurable) — jamais de suppression sèche. */
+  trash?: string;
+  trashed?: { type: string; id: string; rel: string }[];
+  /** Personas détachés par une cascade skill (leur `skills:[]` a été mis à jour). */
+  detached?: string[];
+  manifest?: string;
+  error?: string;
+}
+
+/** Type d'artefact retirable par `remove` (le `−` de `add` + dé-matérialisation d'un skill). */
+export type RemoveKind = "team" | "method" | "binding" | "skill";
+
+/**
+ * Exécute un verbe iakaframe `--json` via l'allow-list `plugin-shell`. `iakaframe` sur le PATH
+ * **d'abord** ; à défaut, **repli** `node <IAKAFRAME_HOME>/cli/src/index.js …` (nom de commande
+ * `${name}-node`). Un code de sortie non-nul n'est **pas** une erreur : un refus RESTRICT ou une
+ * confirmation requise imprime un JSON `{ ok:false, … }` en sortant en code 1 — on renvoie donc
+ * `stdout` dès qu'il est présent. Générique (mêmes bornes que `execReview`), réutilisé par le retrait.
+ */
+async function execIaka(name: string, args: string[]): Promise<string> {
+  try {
+    const out = await Command.create(name, args).execute();
+    if (out.stdout.trim().length > 0) return out.stdout;
+    throw new Error(out.stderr || `${name} : sortie vide`);
+  } catch (pathErr) {
+    const home = await iakaframeHome();
+    if (!home) throw pathErr;
+    const nodeArgs = [cliEntryPoint(home), ...args];
+    const out = await Command.create(`${name}-node`, nodeArgs).execute();
+    if (out.stdout.trim().length > 0) return out.stdout;
+    throw new Error(out.stderr || `${name} : sortie vide (repli node)`);
+  }
+}
+
+function parseIaka<T>(stdout: string, label: string): T {
+  try {
+    return JSON.parse(stdout) as T;
+  } catch {
+    throw new Error(`sortie \`${label}\` illisible (JSON attendu)`);
+  }
+}
+
+/** Types de bibliothèque scannables par le pilote de retrait (bornés par l'allow-list). */
+export type LibraryScanType = "personas" | "skills" | "teams" | "methods" | "bindings";
+
+/** Liste les entrées d'une collection (`list <type> --json`) — sert les sélecteurs de la vue. */
+export async function libraryScan(type: LibraryScanType): Promise<LibraryEntry[]> {
+  return parseIaka<LibraryEntry[]>(await execIaka("iaka-lib-list", ["list", type, "--json"]), `list ${type}`);
+}
+
+/**
+ * `skills:[]` d'un persona (VUE Option 1) via `show <id> --type personas --json` → `data.skills`.
+ * Le frontmatter est la **source unique** ; on ne lit jamais le corps. Absent/illisible → `[]`.
+ */
+export async function personaSkills(personaId: string): Promise<string[]> {
+  const parsed = parseIaka<{ data?: { skills?: unknown } }>(
+    await execIaka("iaka-persona-show", ["show", personaId, "--type", "personas", "--json"]),
+    `show ${personaId}`,
+  );
+  const skills = parsed?.data?.skills;
+  return Array.isArray(skills) ? skills.map(String) : [];
+}
+
+/** Attache un skill à un persona (`attach`) — mute le seul `skills:[]` (le `+` symétrique). */
+export async function attachSkill(skillId: string, personaId: string): Promise<AttachDetachResult> {
+  return parseIaka<AttachDetachResult>(
+    await execIaka("iaka-attach", ["attach", skillId, "--persona", personaId, "--json"]),
+    "attach",
+  );
+}
+
+/** Détache un skill d'un persona (`detach`) — mute le seul `skills:[]` (le `−` au titre du skill). */
+export async function detachSkill(skillId: string, personaId: string): Promise<AttachDetachResult> {
+  return parseIaka<AttachDetachResult>(
+    await execIaka("iaka-detach", ["detach", skillId, "--persona", personaId, "--json"]),
+    "detach",
+  );
+}
+
+/**
+ * Retire un artefact livré (`remove <kind> <id>`), non destructif (corbeille). RESTRICT par défaut ;
+ * `cascade` = **appel séparé** `remove … --cascade --yes` (retrait des référents) — jamais atteint
+ * sans un geste humain explicite côté vue. Aucune décision ici : on relaie la sortie de la CLI.
+ */
+export async function removeArtifact(
+  kind: RemoveKind,
+  id: string,
+  cascade = false,
+): Promise<RemoveResult> {
+  const name = cascade ? "iaka-remove-cascade" : "iaka-remove";
+  const args = cascade
+    ? ["remove", kind, id, "--cascade", "--yes", "--json"]
+    : ["remove", kind, id, "--json"];
+  return parseIaka<RemoveResult>(await execIaka(name, args), `remove ${kind}`);
+}
+
 /**
  * Façade backend en objet — facilite le mock dans les tests (les hooks `useForgeTeams`
  * et `useForgeDeploy` acceptent une implémentation de `Backend` en dépendance injectable).
@@ -362,6 +517,11 @@ export const backend = {
   reviewShow,
   reviewApply,
   reviewReject,
+  libraryScan,
+  personaSkills,
+  attachSkill,
+  detachSkill,
+  removeArtifact,
 };
 
 export type Backend = typeof backend;

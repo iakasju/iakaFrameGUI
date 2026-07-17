@@ -8,7 +8,7 @@
     "dialog:allow-open",
     {
       "identifier": "shell:allow-execute",
-      "description": "DEROGATION ASSUMEE ET BORNEE (AR-1/AR-6) — U1 de surface-apprentissage.md, Q-1 / 4.2bis. La GUI est un PILOTE de `iakaframe review --json` (source unique du garde de consentement + plafonds) : elle N'implemente aucune logique de revue en Rust. Cette allow-list borne l'execution a UN outil (`iakaframe` sur le PATH, repli `node <entree CLI>`), la SOUS-COMMANDE `review`, un argv FIGE (seul `<id>` est un validateur), la sortie `--json`. Aucun shell, aucun autre binaire, aucun autre verbe. Ce n'est PAS un appel runner (LLM) : c'est l'outil frere deterministe d'iakaframe. Tout appel hors liste est refuse par Tauri (bloque par defaut).",
+      "description": "DEROGATION ASSUMEE ET BORNEE (AR-1/AR-6) — U1 de surface-apprentissage.md (Q-1 / 4.2bis) ETENDUE par S6 de symetrie-ajout-suppression.md. La GUI est un PILOTE des outils freres deterministes d'iakaframe (`review` pour la revue ; `list`/`show`/`attach`/`detach`/`remove` pour le RETRAIT symetrique +/-) : elle N'implemente en Rust AUCUNE logique de revue, de consentement, de plafond, de RESTRICT, de corbeille ni de cascade — ces logiques vivent dans la CLI (source unique). Cette allow-list borne l'execution a UN outil (`iakaframe` sur le PATH, repli `node <entree CLI>`), a des SOUS-COMMANDES FIGEES, un argv FIGE (seuls `<id>`, `<personaId>`, `<kind>`, `<type>` sont des validateurs a enum/regex etroite), la sortie `--json`. Aucun shell, aucun autre binaire, aucun autre verbe, aucune ecriture arbitraire. Ce n'est PAS un appel runner (LLM). Tout appel hors liste est refuse par Tauri (bloque par defaut).",
       "allow": [
         { "name": "iaka-review-list", "cmd": "iakaframe", "args": ["review", "list", "--json"] },
         { "name": "iaka-review-show", "cmd": "iakaframe", "args": ["review", "show", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
@@ -17,7 +17,21 @@
         { "name": "iaka-review-list-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "list", "--json"] },
         { "name": "iaka-review-show-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "show", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
         { "name": "iaka-review-apply-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "apply", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
-        { "name": "iaka-review-reject-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "reject", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] }
+        { "name": "iaka-review-reject-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "review", "reject", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+
+        { "name": "iaka-lib-list", "cmd": "iakaframe", "args": ["list", { "validator": "^(personas|skills|teams|methods|bindings)$" }, "--json"] },
+        { "name": "iaka-persona-show", "cmd": "iakaframe", "args": ["show", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--type", "personas", "--json"] },
+        { "name": "iaka-attach", "cmd": "iakaframe", "args": ["attach", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--persona", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-detach", "cmd": "iakaframe", "args": ["detach", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--persona", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-remove", "cmd": "iakaframe", "args": ["remove", { "validator": "^(team|method|binding|skill)$" }, { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-remove-cascade", "cmd": "iakaframe", "args": ["remove", { "validator": "^(team|method|binding|skill)$" }, { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--cascade", "--yes", "--json"] },
+
+        { "name": "iaka-lib-list-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "list", { "validator": "^(personas|skills|teams|methods|bindings)$" }, "--json"] },
+        { "name": "iaka-persona-show-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "show", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--type", "personas", "--json"] },
+        { "name": "iaka-attach-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "attach", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--persona", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-detach-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "detach", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--persona", { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-remove-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "remove", { "validator": "^(team|method|binding|skill)$" }, { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--json"] },
+        { "name": "iaka-remove-cascade-node", "cmd": "node", "args": [{ "validator": "^.+[\\\\/]index\\.js$" }, "remove", { "validator": "^(team|method|binding|skill)$" }, { "validator": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }, "--cascade", "--yes", "--json"] }
       ]
     }
   ]
