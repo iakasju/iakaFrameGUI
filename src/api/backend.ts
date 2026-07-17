@@ -6,6 +6,9 @@
  * fichier = 0 — critère C-8). Ce cloisonnement rend le backend mockable (tests) et empêche
  * un god-component mêlant I/O et rendu.
  *
+ * G2 (open-frame-gui-stefframe2.md) ajoute `bindings` à `LibraryCollection` : les appariements d'un
+ * frame sont à plat sous `<home>/bindings/` — lus comme les autres collections (`library_list`).
+ *
  * P1 = persistance de teams PURES par **fichiers JSON** (un fichier par team), via les
  * commandes Rust `teams_store` (pathguard). Le front tient le schéma (`@iakaframe/core`) ;
  * Rust est un passe-plat (aucune connaissance de runner/model — AR-1).
@@ -72,7 +75,7 @@ export function workspacePath(): Promise<string> {
  * **éditable** `<home>/workflows/` (P6b) — **distincte** du pool d'atomes read-only
  * `<home>/library/workflows/` (`PoolType`, cf. Q-9 : même nom, deux espaces séparés au MVP).
  */
-export type LibraryCollection = "teams" | "methods" | "kits" | "workflows";
+export type LibraryCollection = "teams" | "methods" | "kits" | "workflows" | "bindings";
 
 /**
  * Liste le contenu `.md` brut de chaque artefact de `<home>/<collection>/` (scan, invariant I2).
@@ -125,6 +128,15 @@ export type PoolType =
  */
 export function poolList(poolType: PoolType): Promise<string[]> {
   return call<string[]>("pool_list", { poolType });
+}
+
+/**
+ * Lit le **CONTENU** `.md` de tous les atomes d'un pool `<home>/library/<type>/` (G1, « Open frame »).
+ * Miroir de `poolList` mais renvoie le contenu (le front parse via `@iakaframe/core`), pas les ids.
+ * Skills lus depuis `<id>/SKILL.md`. Dossier/racine absent → `[]`. `_*`/`README.md` exclus.
+ */
+export function poolReadAll(poolType: PoolType): Promise<string[]> {
+  return call<string[]>("pool_read_all", { poolType });
 }
 
 /**
@@ -506,6 +518,7 @@ export const backend = {
   libraryWrite,
   libraryExists,
   poolList,
+  poolReadAll,
   poolPresent,
   iakaframeHome,
   setIakaframeHome,

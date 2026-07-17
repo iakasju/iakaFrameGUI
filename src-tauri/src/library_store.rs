@@ -3,8 +3,9 @@
 //! **passe-plat de texte** — il ne (dé)sérialise PAS le frontmatter (le cœur front tient le
 //! schéma, cf. `packages/core/src/frontmatter.ts`). Il lit/écrit des chaînes `.md` opaques sous
 //! `<home>/<collection>/<id>.md`, avec :
-//!   - `collection` validée ∈ { teams, methods, kits, workflows } (les 4 onglets de la forge,
-//!     Q-6 + P6b) ; NB : la collection **éditable** `<home>/workflows/` est **distincte** du pool
+//!   - `collection` validée ∈ { teams, methods, kits, workflows, bindings } (les onglets de la
+//!     forge, Q-6 + P6b ; `bindings` ajouté par G2 « Open frame » — les bindings d'un frame sont à
+//!     plat sous `<home>/bindings/`) ; NB : la collection **éditable** `<home>/workflows/` est **distincte** du pool
 //!     d'atomes read-only `<home>/library/workflows/` (`POOL_TYPES`, cf. P6b Q-9) — même nom, deux
 //!     espaces séparés au MVP ;
 //!   - `id` validé (segment simple, sans séparateur) puis chemin résolu via `pathguard::safe_path`.
@@ -21,10 +22,11 @@ use crate::paths::resolve_iakaframe_home;
 /// Extension des fichiers d'artefact de la bibliothèque.
 const LIBRARY_EXT: &str = "md";
 
-/// Collections gérées par la forge (les 4 onglets, Q-6 + P6b `workflows`). Sous-ensemble du
-/// mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/` (P6b) — à ne pas
+/// Collections gérées par la forge (les onglets, Q-6 + P6b `workflows` + G2 `bindings`). Sous-ensemble
+/// du mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/` (P6b) — à ne pas
 /// confondre avec le pool d'atomes read-only `<home>/library/workflows/` (`POOL_TYPES`, Q-9).
-const COLLECTIONS: [&str; 4] = ["teams", "methods", "kits", "workflows"];
+/// `bindings` (G2 « Open frame ») = les appariements à plat `<home>/bindings/` (read-only au MVP).
+const COLLECTIONS: [&str; 5] = ["teams", "methods", "kits", "workflows", "bindings"];
 
 /// Types d'ATOMES du pool `library/<type>/` (référencés par les assemblages, I1). En lecture
 /// seule : la forge n'édite pas encore les atomes (E2 différé), mais doit les **scanner** pour
@@ -165,6 +167,46 @@ pub fn pool_list_in(home: &Path, pool_type: &str) -> Result<Vec<String>, String>
     Ok(ids)
 }
 
+/// Lit le **CONTENU** `.md` de chaque atome de `<home>/library/<pool_type>/` (G1 « Open frame »).
+/// Miroir de `pool_list_in` mais renvoie le contenu (le front parse le frontmatter via
+/// `@iakaframe/core`), pas les ids. Dossier absent → `[]`. Fichiers `.md` → contenu ; dossiers de
+/// type skill (`<id>/SKILL.md`) → contenu du `SKILL.md`. `_*` et `README.md` ignorés (parité
+/// `pool_list_in`). Trié par id (nom de fichier/dossier) pour une lecture déterministe.
+pub fn pool_read_all_in(home: &Path, pool_type: &str) -> Result<Vec<String>, String> {
+    validate_pool_type(pool_type)?;
+    let dir = home.join("library").join(pool_type);
+    let entries = match std::fs::read_dir(&dir) {
+        Ok(e) => e,
+        Err(_) => return Ok(Vec::new()),
+    };
+    let mut named: Vec<(String, String)> = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        if name.starts_with('_') || name == "README.md" {
+            continue;
+        }
+        if path.is_dir() {
+            // Atome de type « skill » : le contenu est celui de `<id>/SKILL.md`.
+            let skill = path.join("SKILL.md");
+            if skill.exists() {
+                if let Ok(content) = std::fs::read_to_string(&skill) {
+                    named.push((name, content));
+                }
+            }
+        } else if path.extension().and_then(|e| e.to_str()) == Some(LIBRARY_EXT) {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                named.push((name.trim_end_matches(".md").to_string(), content));
+            }
+        }
+    }
+    named.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(named.into_iter().map(|(_, c)| c).collect())
+}
+
 /// Le pool `<home>/library/` existe-t-il ? (Q-4 : pool absent → I1 non vérifiable, warning.)
 pub fn pool_present_in(home: &Path) -> bool {
     home.join("library").is_dir()
@@ -177,6 +219,15 @@ pub fn pool_present_in(home: &Path) -> bool {
 pub fn pool_list(pool_type: String) -> Result<Vec<String>, String> {
     match resolve_iakaframe_home() {
         Some(home) => pool_list_in(&home, &pool_type),
+        None => Ok(Vec::new()),
+    }
+}
+
+/// Lit le contenu `.md` de tous les atomes d'un pool `library/<type>/` (G1). Racine introuvable → `[]`.
+#[tauri::command]
+pub fn pool_read_all(pool_type: String) -> Result<Vec<String>, String> {
+    match resolve_iakaframe_home() {
+        Some(home) => pool_read_all_in(&home, &pool_type),
         None => Ok(Vec::new()),
     }
 }
@@ -383,6 +434,79 @@ mod tests {
         std::fs::create_dir_all(skills.join("sans-skillmd")).unwrap();
         let ids = pool_list_in(&home, "skills").unwrap();
         assert_eq!(ids, vec!["iakaframe-cadrage".to_string()]);
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    // --- G1 : pool_read_all (contenu des atomes) — critère E -----------------
+
+    #[test]
+    fn pool_read_all_renvoie_le_contenu_md_trie_et_exclut_template_readme() {
+        // Reproduit le layout SF2 : contenus non vides, `_TEMPLATE.md`/`README.md` exclus.
+        let home = tmp_dir("readall");
+        let dir = home.join("library").join("personas");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("odin.md"), "---\nid: odin\n---\n# Odin\n").unwrap();
+        std::fs::write(dir.join("aragorn.md"), "---\nid: aragorn\n---\n# Aragorn\n").unwrap();
+        std::fs::write(dir.join("_TEMPLATE.md"), "ignore").unwrap();
+        std::fs::write(dir.join("README.md"), "ignore").unwrap();
+        let contents = pool_read_all_in(&home, "personas").unwrap();
+        assert_eq!(contents.len(), 2);
+        // Trié par id : aragorn avant odin.
+        assert!(contents[0].contains("id: aragorn"));
+        assert!(contents[1].contains("id: odin"));
+        assert!(contents.iter().all(|c| !c.trim().is_empty()));
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_read_all_lit_les_skills_via_skill_md() {
+        let home = tmp_dir("readallskill");
+        let skills = home.join("library").join("skills");
+        std::fs::create_dir_all(skills.join("iakaframe-cadrage")).unwrap();
+        std::fs::write(
+            skills.join("iakaframe-cadrage").join("SKILL.md"),
+            "---\nid: iakaframe-cadrage\n---\n# Cadrage\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(skills.join("sans-skillmd")).unwrap();
+        let contents = pool_read_all_in(&home, "skills").unwrap();
+        assert_eq!(contents.len(), 1);
+        assert!(contents[0].contains("id: iakaframe-cadrage"));
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_read_all_dossier_absent_renvoie_vide() {
+        let home = tmp_dir("readallvoid");
+        assert!(pool_read_all_in(&home, "guardrails").unwrap().is_empty());
+    }
+
+    #[test]
+    fn pool_read_all_type_invalide_est_refuse() {
+        let home = tmp_dir("readallbad");
+        assert!(pool_read_all_in(&home, "secrets").is_err());
+        assert!(pool_read_all_in(&home, "..").is_err());
+    }
+
+    // --- G2 : bindings en collection (à plat) — critère C/E -------------------
+
+    #[test]
+    fn bindings_collection_est_lue_a_plat() {
+        // `bindings` est désormais une collection de 1re classe (allow-list COLLECTIONS, G2).
+        let home = tmp_dir("bind");
+        let md = "---\nid: iakaframe-claude-default\nmethodId: iakaframe\nteamId: iakaframe-8\nnode: claude\n---\n# binding\n";
+        write_in(&home, "bindings", "iakaframe-claude-default", md).unwrap();
+        let got = list_in(&home, "bindings").unwrap();
+        assert_eq!(got.len(), 1);
+        assert!(got[0].contains("id: iakaframe-claude-default"));
+        assert_eq!(
+            read_in(&home, "bindings", "iakaframe-claude-default").unwrap(),
+            Some(md.to_string())
+        );
+        assert_eq!(
+            library_file(&home, "bindings", "iakaframe-claude-default").unwrap(),
+            home.join("bindings").join("iakaframe-claude-default.md")
+        );
         std::fs::remove_dir_all(&home).ok();
     }
 }
