@@ -44,6 +44,7 @@ import {
 } from "./mappers";
 import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
+import { OpenFramePanel } from "../components/OpenFramePanel";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
@@ -275,6 +276,7 @@ export function ForgeShell() {
       {settingsOpen && (
         <div className="settings-panel">
           <SettingsRoot />
+          <OpenFramePanel />
         </div>
       )}
 
