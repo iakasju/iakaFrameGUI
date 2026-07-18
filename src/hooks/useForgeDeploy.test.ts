@@ -231,7 +231,7 @@ describe("useForgeDeploy", () => {
     expect(result.current.binding!.node).toBe("openwebui");
     expect(result.current.binding!.teamId).toBe("ma-team");
     expect(result.current.binding!.origin).toBe("forge-default");
-    expect(result.current.binding!.bindings).toHaveLength(team.personas.length);
+    expect(result.current.binding!.assignments).toHaveLength(team.personas.length);
 
     act(() => result.current.clearBinding());
     expect(result.current.binding).toBeNull();
@@ -273,7 +273,7 @@ describe("useForgeDeploy", () => {
 
     act(() => result.current.setPersonaModel(pid, "qwen2.5-coder:14b"));
     expect(result.current.kit).toBeNull(); // kit invalidé au changement de binding.
-    const entry = result.current.binding!.bindings.find((b) => b.personaId === pid);
+    const entry = result.current.binding!.assignments.find((b) => b.personaId === pid);
     expect(entry!.model).toBe("qwen2.5-coder:14b");
   });
 

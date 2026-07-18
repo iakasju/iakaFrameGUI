@@ -7,7 +7,7 @@ import {
   frameTotal,
   parsePortfolio,
   FRAME_ELEMENT_TYPES,
-  type BindingMd,
+  type Binding,
   type FrameAtom,
   type MethodMd,
   type Persona,
@@ -120,7 +120,7 @@ const TEAM: TeamMd = {
   vignetteTeam: "none",
 };
 
-const BINDING: BindingMd = {
+const BINDING: Binding = {
   id: "iakaframe-claude-default",
   methodId: "iakaframe",
   teamId: "iakaframe-8",
