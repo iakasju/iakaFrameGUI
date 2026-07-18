@@ -18,5 +18,15 @@
     "dirty": false,
     "files": 14915,
     "note": "Multi-runner Lot B2 (source de verite core) : vocab.json split hostKinds{claude,codex,openwebui} <-> runnerKinds{claude,chatgpt,ollama-local,ollama-distant,litellm} + toolKinds{comfyui-local} + alias legacy. Parite miroir avec le CLI iakaframe."
+  },
+  {
+    "date": "2026-07-18 17:18",
+    "reason": "version",
+    "version": "v0.3.0",
+    "branch": "main",
+    "commit": "a65a9c7 merge(binding): Lot B1 — triplet persona {runner,model,tools} + 5 runners + host-isation codex (decouple d'open-frame)",
+    "dirty": false,
+    "files": 14915,
+    "note": "Multi-runner Lot B1 : PersonaBinding porte le triplet {runner,model,tools} ; RunnerKind aligne sur les 5 cibles (claude,chatgpt,ollama-local,ollama-distant,litellm) ; host-isation de codex (alias legacy conserve). Self-contained sur main (decouple d'open-frame parke)."
   }
 ]
