@@ -21,14 +21,22 @@ import type { Team } from "./team";
 /** Origines possibles d'un Binding (E1). Le MVP forge n'émet que `forge-default`. */
 export type BindingOrigin = "forge-default" | "cockpit-override";
 
-/** Liaison d'UNE persona : son harnais (`runner`) + son modèle (alias ; `""` = défaut runner). */
+/**
+ * Liaison d'UNE persona (triplet du **modèle persona**, § 1.2/5.1) : son harnais (`runner`) +
+ * son modèle (`model`, alias ; `""` = défaut runner) + ses outils (`tools`, ids de `toolKinds`,
+ * ex. `["comfyui-local"]` ; défaut `[]`). Un id de tool n'est **pas** un credential (invariant
+ * secret inchangé). ⚠️ `tools` (par persona) ≠ `connectors` (par team) : deux axes distincts,
+ * sans couplage au MVP (§ 6.3).
+ */
 export interface PersonaBinding {
   /** Réf. `Persona.id` de la team. */
   personaId: string;
-  /** Harnais d'exécution (vocab `RunnerKind` existant). */
+  /** Cible d'exécution (`RunnerKind` : claude/chatgpt/ollama-local/ollama-distant/litellm). */
   runner: RunnerKind;
   /** Alias/modèle ; `""` = défaut du runner → **aucune émission de modèle** (kit pur pour cette persona). */
   model: string;
+  /** Outils attachés à ce persona (ids de `toolKinds`) ; défaut `[]` (aucun outil). */
+  tools: string[];
 }
 
 /** Le **Binding** d'une (team, nœud) : un jeu de liaisons par persona (E1 Q-2). */
@@ -46,26 +54,50 @@ export interface Binding {
 }
 
 /**
- * Runner **par défaut** d'un nœud (E1 Q-3) : `claude → claude-code`, `codex → codex`,
- * `ollama-* / openwebui → ollama`. Sert d'amorce au Binding par défaut (l'utilisateur peut
- * changer chaque runner ensuite).
+ * Runner **par défaut** d'un nœud (E1 Q-3), aligné sur le **modèle persona** (§ 6.1/6.2) :
+ * `claude → claude` ; `codex → chatgpt` ; `ollama-localhost → ollama-local` ;
+ * `ollama-lan → ollama-distant` ; `openwebui → ollama-local`. Sert d'amorce au Binding par
+ * défaut (l'utilisateur peut changer chaque runner ensuite).
+ *
+ * ⚠️ **Host-isation de `codex`** (§ 6.1/6.2) : `codex` est un **host** (point d'entrée), pas
+ * une cible d'exécution — il **sort du plan runner**. Un persona amorcé sur le nœud/host `codex`
+ * prend donc `chatgpt` (côté OpenAI) comme runner par défaut, jamais `codex`. L'alias legacy
+ * `codex` reste **résolvable** au parse (rétro-compat, cf. `parseRunnerKind`) pour ne casser
+ * aucun binding existant.
  */
 export function defaultRunnerForNode(node: NodeKind): RunnerKind {
   switch (node) {
     case "claude":
-      return "claude-code";
+      return "claude";
     case "codex":
-      return "codex";
+      // codex = host, pas un runner (host-isé) → cible d'exécution OpenAI par défaut.
+      return "chatgpt";
+    case "ollama-lan":
+      return "ollama-distant";
     default:
-      // ollama-localhost / ollama-lan / openwebui : harnais Ollama par défaut.
-      return "ollama";
+      // ollama-localhost / openwebui : harnais Ollama local par défaut.
+      return "ollama-local";
   }
+}
+
+/**
+ * Coerce une valeur brute `tools` en `string[]` (défensif, § 5.1) : non-tableau → `[]` ; items
+ * non-string filtrés ; chaque id `trim` ; ids vides écartés. **Jamais d'exception** (même contrat
+ * que `runner`/`model`). Un id de tool n'est pas un secret → invariant credential inchangé.
+ */
+export function parseTools(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((t): t is string => typeof t === "string")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
 }
 
 /**
  * Parse défensif d'UNE liaison de persona (record invalide → `null`, jamais d'exception).
  * `personaId` requis (string non vide) ; `runner` **validé** via `parseRunnerKind` (inconnu →
- * liaison ignorée) ; `model` non-string → `""`. Aucune autre clé (ex. credential) n'est lue.
+ * liaison ignorée) ; `model` non-string → `""` ; `tools` via `parseTools` (non-tableau → `[]`).
+ * Aucune autre clé (ex. credential) n'est lue.
  */
 export function parsePersonaBinding(raw: unknown): PersonaBinding | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -81,8 +113,9 @@ export function parsePersonaBinding(raw: unknown): PersonaBinding | null {
   if (runner === null) return null;
 
   const model = typeof r.model === "string" ? r.model.trim() : "";
+  const tools = parseTools(r.tools);
 
-  return { personaId, runner, model };
+  return { personaId, runner, model, tools };
 }
 
 /**
@@ -147,6 +180,7 @@ export function defaultBindingForNode(team: Team, node: NodeKind): Binding {
       personaId: p.id,
       runner,
       model: "",
+      tools: [],
     })),
     origin: "forge-default",
   };
