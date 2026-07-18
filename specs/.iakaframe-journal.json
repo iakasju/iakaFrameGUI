@@ -8,5 +8,15 @@
     "dirty": false,
     "files": 13,
     "note": "onboarding initial"
+  },
+  {
+    "date": "2026-07-18 14:54",
+    "reason": "version",
+    "version": "v0.2.0",
+    "branch": "main",
+    "commit": "ed96639 merge(vocab): Lot B2 — split host<->runner + chatgpt/litellm + toolKinds (source de verite core)",
+    "dirty": false,
+    "files": 14915,
+    "note": "Multi-runner Lot B2 (source de verite core) : vocab.json split hostKinds{claude,codex,openwebui} <-> runnerKinds{claude,chatgpt,ollama-local,ollama-distant,litellm} + toolKinds{comfyui-local} + alias legacy. Parite miroir avec le CLI iakaframe."
   }
 ]

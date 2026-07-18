@@ -16,9 +16,6 @@ code{font-family:'SF Mono',Consolas,monospace;background:rgba(200,164,78,.1);col
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1.2rem;font-size:.92rem;background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:1.1rem 1.3rem;}
 .kv .k{color:#888;}
 .ok{color:#2ecc71;}.bad{color:#e74c3c;font-weight:600;}
-.hot{color:#e67e22;font-weight:600;}
-ul{margin:.4rem 0 .4rem 1.2rem;font-size:.9rem;color:#bbb;}
-li{margin:.25rem 0;}
 .r{font-size:.7rem;font-weight:600;text-transform:uppercase;padding:.1rem .5rem;border-radius:999px;}
 .r-version{background:rgba(46,204,113,.15);color:#2ecc71;}
 .r-pause{background:rgba(230,126,34,.15);color:#e67e22;}
@@ -27,70 +24,31 @@ li{margin:.25rem 0;}
 footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#555;font-size:.78rem;}
 </style></head><body>
 <h1>Etat des lieux - <span class="accent">iakaFrameGUI</span></h1>
-<div class="sub">Regenere manuellement le 2026-07-15 - motif : pause (lot DocTitle editable + New ; + cloture cross-depot couche CLI bibliotheque, iakaframe 2c85702, gate Legolas PASS 86/86) - a regenerer a chaque version et a chaque pause/reprise.</div>
+<div class="sub">Genere le 2026-07-18 14:54 - motif : version - a regenerer a chaque version et a chaque pause/reprise.</div>
 <h2>Etat courant</h2>
 <div class="kv">
-  <div class="k">Version</div><div>v0.1.0 (dev en cours, non encore tague ; forge feature-complete + gestes fichier + titre editable)</div>
+  <div class="k">Version</div><div>v0.2.0</div>
   <div class="k">Branche</div><div>main</div>
-  <div class="k">Sync remote</div><div><span class='ok'>a jour avec origin/main</span> (0 ahead / 0 behind ; 8158307 pousse)</div>
-  <div class="k">Dernier commit</div><div><code>8158307 docs(backlog)</code> ; derniere feature GUI = <code>fc22eec DocTitle editable + New</code> — 2026-07-15</div>
+  <div class="k">Dernier commit</div><div><code>ed96639 merge(vocab): Lot B2 — split host&lt;-&gt;runner + chatgpt/litellm + toolKinds (source de verite core)</code></div>
   <div class="k">Arbre</div><div><span class='ok'>propre</span></div>
-  <div class="k">Commits</div><div>78</div>
-  <div class="k">Fichiers</div><div>182 (suivis, hors node_modules)</div>
-  <div class='k'>Tests</div><div><span class='ok'>301 verts</span> GUI (npm run test, 37 fichiers) ; <span class='ok'>86 verts</span> CLI iakaframe</div>
+  <div class="k">Fichiers</div><div>14915 (hors .git / node_modules)</div>
+  <div class='k'>Note</div><div>Multi-runner Lot B2 (source de verite core) : vocab.json split hostKinds{claude,codex,openwebui} &lt;-&gt; runnerKinds{claude,chatgpt,ollama-local,ollama-distant,litellm} + toolKinds{comfyui-local} + alias legacy. Parite miroir avec le CLI iakaframe.</div>
 </div>
-<h2>Dernier lot livre — DocTitle editable + consolidation New</h2>
-<ul>
-  <li><b>Titre editable en ligne</b> pour <b>Team et Methode</b> (Kit read-only, sans champ <code>name</code>) — input controle labellise (<code>aria-label</code>, texte libre non slugifie, <code>•</code> dirty preserve). <code>src/forge/DocTitle.tsx</code>.</li>
-  <li><b>Hook</b> : <code>setName</code> + <code>canRename</code> + <code>withName?</code> dans <code>DocConfig</code> (ne touche ni <code>id</code> ni <code>source</code>, no-op si vierge). <code>useForgeDocument.ts</code>.</li>
-  <li><b>Save As prereremplie</b> depuis le nom saisi (<code>nom -&gt; slugifyId(id)</code>) ; geste <b>New</b> confirme de bout en bout (creer vierge -&gt; nommer -&gt; Save As).</li>
-  <li>Chaine <b>Gandalf -&gt; Gimli -&gt; gate Legolas independant PASS 301/301</b> -&gt; merge <code>fc22eec</code> -&gt; pousse. Zero Rust, facade unique preservee (AR-1 : <code>withName</code> ne pose qu'un libelle). Instruction <code>specs/instructions/gui-doctitle-editable-et-new.md</code>.</li>
-</ul>
-<h2>Palier precedent (meme jour) — fonctions fichier + persistance bibliotheque</h2>
-<ul>
-  <li><b>Ecrans IHM</b> — barre <code>New / Open / Save / Save As / Close</code> sous les 3 onglets (<code>DocBar.tsx</code>), garde « modifs non sauvees », liste Open, invite Save As ; <code>DocTitle</code> + Settings racine. Merge <code>2a950fc</code>.</li>
-  <li><b>Palier interne</b> — <code>useForgeDocument&lt;T&gt;</code> + (de)serialiseurs frontmatter .md par type + <code>library_store</code> Rust sous pathguard <code>IAKAFRAME_HOME</code>.</li>
-</ul>
-<h2>Ce qui est livre (paliers precedents)</h2>
-<ul>
-  <li><b>P0 -&gt; P6 / H1</b> — contrat concepts + coeur <code>@iakaframe/core</code>, coquille Tauri, 5 noeuds/3 formats (Claude Code, codex AGENTS.md, ollama localhost/lan, Open WebUI), ecran Generer &amp; Deployer, skin Cinabre, Workflow concept, handoff forge-&gt;cockpit.</li>
-  <li><b>E2a/b/c</b> — separation Methode != Team, GUI 3 onglets (rail-stock, graphe contextuel, carte Binding), copilote mocke, charte Studio clair. Merges <code>8aad61b</code>/<code>b71e86f</code>/<code>7ef37d3</code>/<code>867c3c7</code>.</li>
-</ul>
-<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr>
-<tr><td><code>42af030</code></td><td>2026-07-15</td><td>docs(backlog): champ nom editable LIVRE</td></tr>
-<tr><td><code>fc22eec</code></td><td>2026-07-15</td><td>merge(gui): DocTitle editable en ligne + consolidation New (gate Legolas PASS)</td></tr>
-<tr><td><code>2a950fc</code></td><td>2026-07-15</td><td>merge(gui): fonctions fichier + persistance bibliotheque (gate Legolas PASS)</td></tr>
-<tr><td><code>867c3c7</code></td><td>2026-07-15</td><td>merge(e2c): copilote de forge mocke (gate Legolas PASS)</td></tr>
+<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>ed96639</code></td><td>2026-07-18</td><td>merge(vocab): Lot B2 — split host&lt;-&gt;runner + chatgpt/litellm + toolKinds (source de verite core)</td></tr>
+<tr><td><code>8801c09</code></td><td>2026-07-18</td><td>test(binding): repercute le renommage runner sur les alias (ps-&gt;claude, ollama-&gt;ollama-local)</td></tr>
+<tr><td><code>95bc9d3</code></td><td>2026-07-18</td><td>test(runner): aligne l'enum runner sur le modele persona (renommage + alias legacy)</td></tr>
+<tr><td><code>99fe0e3</code></td><td>2026-07-18</td><td>feat(vocab): split host&lt;-&gt;runner + tools + alias legacy (B2)</td></tr>
+<tr><td><code>9bdaabb</code></td><td>2026-07-17</td><td>feat(retrait): surface GUI du "-" au titre du skill (Option 1) + volet remove — S6</td></tr>
+<tr><td><code>507fb3b</code></td><td>2026-07-17</td><td>feat(retrait): etend le pont d'exec borne au retrait symetrique (attach/detach/remove) — S6</td></tr>
+<tr><td><code>77ede5c</code></td><td>2026-07-16</td><td>feat(learning): onglet Apprentissage (U2) — vue du reservoir, pilote de review</td></tr>
+<tr><td><code>b6e0b1d</code></td><td>2026-07-16</td><td>feat(learning): pont d'acces borne review depuis la GUI (U1, plugin-shell)</td></tr>
+<tr><td><code>0408fd4</code></td><td>2026-07-16</td><td>docs(etat-des-lieux): checkpoint pause — P7 + P6b livres, recette visuelle differee (RAM)</td></tr>
+<tr><td><code>22e4d3f</code></td><td>2026-07-16</td><td>docs(P6b): editeur de workflow LIVRE (merge be9dcd4, gate PASS avec reserve front ForgeShell)</td></tr>
 </table>
-<h2>Reliquat du lot <span class="hot">(geste humain)</span></h2>
-<ul>
-  <li><b>Recette visuelle</b> du titre editable : <code>npm run tauri dev</code>, onglet Team/Methode, saisir un nom dans le grand titre, verifier Save As prereremplie. Legolas ne valide pas le pixel.</li>
-</ul>
-<h2>A reprendre (backlog)</h2>
-<ul>
-  <li>Couche CLI/terminal sur la bibliotheque : <code>list</code> / <code>add</code> (= livraison) / <code>assemble</code> / <code>switch</code> — cadrage a faire.</li>
-  <li><b>P7 — Binding reel</b> (cadre, non code) ; <b>editeur de workflow</b> (P6 read-only) ; arbitrage phases dans kits Claude Code / Open WebUI ; import multi-methodes (north-star).</li>
-  <li>Vrai LLM d'authoring du copilote (E2c = mock) — differe.</li>
-  <li>Micro-dette : <code>iakaframe library/skills/README.md</code> obsolete ; dette CLI (<code>etat.test.js</code>, 2 JSDoc).</li>
-</ul>
-<h2>Prochaine etape concrete</h2>
-<ul>
-  <li><b>Recette visuelle</b> du titre editable (geste humain).</li>
-  <li>Puis <b>cadrer la couche CLI/terminal</b> de la bibliotheque (<code>list</code>/<code>add</code>/<code>assemble</code>/<code>switch</code>) avant de coder.</li>
-</ul>
-<h2>Pieges connus</h2>
-<ul>
-  <li>runner+modele JAMAIS dans Team ni Methode — uniquement dans le Binding, propriete du Cockpit.</li>
-  <li>Deux selecteurs de runner distincts : authoring (build-time) != execution (run-time).</li>
-  <li>Persistance .md sous pathguard <code>IAKAFRAME_HOME</code> — ne jamais ecrire hors perimetre. Golden P6 byte-identique a preserver. Inputs React controles : attention au caret jumping (valeur verbatim, pas de reformatage pendant la frappe).</li>
-</ul>
 <h2>Journal (versions &amp; pauses)</h2>
 <table><tr><th>Date</th><th>Motif</th><th>Version</th><th>Branche</th><th>Note</th></tr>
+<tr><td>2026-07-18 14:54</td><td><span class='r r-version'>version</span></td><td>v0.2.0</td><td>main</td><td>Multi-runner Lot B2 (source de verite core) : vocab.json split hostKinds{claude,codex,openwebui} &lt;-&gt; runnerKinds{claude,chatgpt,ollama-local,ollama-distant,litellm} + toolKinds{comfyui-local} + alias legacy. Parite miroir avec le CLI iakaframe.</td></tr>
 <tr><td>2026-07-05 22:24</td><td><span class='r r-version'>version</span></td><td>v0.1.0</td><td>main</td><td>onboarding initial</td></tr>
-<tr><td>2026-07-11</td><td><span class='r r-reprise'>reprise</span></td><td>v0.1.0</td><td>main</td><td>reconciliation etat des lieux + backlog ; MVP forge quasi complet (33 commits, H1 livre)</td></tr>
-<tr><td>2026-07-15</td><td><span class='r r-pause'>pause</span></td><td>v0.1.0</td><td>main</td><td>seance E2 (a+b+c) : Methode != Team + copilote mocke + charte Studio clair ; 57 commits, 237 tests verts</td></tr>
-<tr><td>2026-07-15</td><td><span class='r r-reprise'>reprise</span></td><td>v0.1.0</td><td>main</td><td>rattrapage post-coupure : palier fonctions fichier + persistance bibliotheque (merge 2a950fc) etait absent du recit. 65 commits, 287 tests verts. Demande recuperee : champ nom editable + New.</td></tr>
-<tr><td>2026-07-15</td><td><span class='r r-pause'>pause</span></td><td>v0.1.0</td><td>main</td><td>lot DocTitle editable + New livre (Team/Methode editables ; Kit read-only ; Save As prereremplie). Gandalf-&gt;Gimli-&gt;gate Legolas PASS 301/301-&gt;merge fc22eec-&gt;pousse. 74 commits. Reliquat = recette visuelle.</td></tr>
 </table>
-<footer>iakaframe - etat des lieux. Le recit de reprise est tenu dans specs/etat-des-lieux.md et specs/PROJET.md.</footer>
+<footer>iakaframe - etat des lieux automatique. Le recit de reprise est tenu dans specs/etat-des-lieux.md et specs/PROJET.md.</footer>
 </body></html>
