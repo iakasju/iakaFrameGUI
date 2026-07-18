@@ -280,7 +280,10 @@ describe("B-5 (renfort) — le modèle vient du Binding, jamais de la Team", () 
 // --- Porte `.md` (frame) : `parseBindingMd` déménagée du shim `frontmatter.ts` vers `binding.ts`.
 //     Le format `.md` est désormais une porte du MÊME type `Binding` (fusion de bindingMd.test.ts).
 
-// Reproduit le fichier réel `bindings/iakaframe-claude-default.md` de StefFrame2 (G2).
+// Mirror FIDÈLE du fichier réel `bindings/iakaframe-claude-default.md` de StefFrame2 (G2) :
+// les 8 assignations RÉELLES, opus → {odin, aragorn, gandalf}, sonnet → {gimli, legolas, helm,
+// loki, nathalie}, runner `claude-code` pour toutes (§8.6). Toute divergence avec le fichier
+// source doit casser un test ci-dessous.
 const SF2_BINDING = `---
 id: iakaframe-claude-default
 methodId: iakaframe
@@ -290,10 +293,27 @@ origin: forge-default
 assignments:
   - { personaId: odin,     runner: claude-code, model: "opus" }
   - { personaId: aragorn,  runner: claude-code, model: "opus" }
+  - { personaId: gandalf,  runner: claude-code, model: "opus" }
+  - { personaId: gimli,    runner: claude-code, model: "sonnet" }
+  - { personaId: legolas,  runner: claude-code, model: "sonnet" }
   - { personaId: helm,     runner: claude-code, model: "sonnet" }
+  - { personaId: loki,     runner: claude-code, model: "sonnet" }
+  - { personaId: nathalie, runner: claude-code, model: "sonnet" }
 ---
 # Binding iakaframe — défaut Claude Code
 `;
+
+// Les 8 assignations attendues (personaId → model), source de vérité de l'assertion de split.
+const SF2_EXPECTED = [
+  { personaId: "odin", runner: "claude-code", model: "opus" },
+  { personaId: "aragorn", runner: "claude-code", model: "opus" },
+  { personaId: "gandalf", runner: "claude-code", model: "opus" },
+  { personaId: "gimli", runner: "claude-code", model: "sonnet" },
+  { personaId: "legolas", runner: "claude-code", model: "sonnet" },
+  { personaId: "helm", runner: "claude-code", model: "sonnet" },
+  { personaId: "loki", runner: "claude-code", model: "sonnet" },
+  { personaId: "nathalie", runner: "claude-code", model: "sonnet" },
+];
 
 describe("parseBindingMd (G2 — porte `.md` du Binding unifié)", () => {
   it("parse le frontmatter d'un binding de frame (methodId, teamId, assignments)", () => {
@@ -304,12 +324,8 @@ describe("parseBindingMd (G2 — porte `.md` du Binding unifié)", () => {
     expect(b!.teamId).toBe("iakaframe-8");
     expect(b!.node).toBe("claude");
     expect(b!.origin).toBe("forge-default");
-    expect(b!.assignments.map((a) => a.personaId)).toEqual(["odin", "aragorn", "helm"]);
-    expect(b!.assignments[0]).toEqual({
-      personaId: "odin",
-      runner: "claude-code",
-      model: "opus",
-    });
+    // Ordre + contenu EXACTS des 8 assignations réelles (pas de troncature).
+    expect(b!.assignments).toEqual(SF2_EXPECTED);
   });
 
   it("null si id/methodId/teamId manquant (défensif) ; jamais d'exception", () => {
@@ -335,29 +351,23 @@ describe("parseBindingMd (G2 — porte `.md` du Binding unifié)", () => {
     expect(b!.node).toBe("claude");
   });
 
-  // Critère 6 : fixture du binding RÉEL (8 assignations, opus×3 / sonnet×5, runner claude-code).
-  it("le binding réel StefFrame2 : 8 assignations opus×3 / sonnet×5, runner claude-code", () => {
-    const REAL = `---
-id: iakaframe-claude-default
-methodId: iakaframe
-teamId: iakaframe-8
-node: claude
-origin: forge-default
-assignments:
-  - { personaId: odin,     runner: claude-code, model: "opus" }
-  - { personaId: aragorn,  runner: claude-code, model: "opus" }
-  - { personaId: gandalf,  runner: claude-code, model: "opus" }
-  - { personaId: gimli,    runner: claude-code, model: "sonnet" }
-  - { personaId: legolas,  runner: claude-code, model: "sonnet" }
-  - { personaId: helm,     runner: claude-code, model: "sonnet" }
-  - { personaId: loki,     runner: claude-code, model: "sonnet" }
-  - { personaId: nathalie, runner: claude-code, model: "sonnet" }
----
-`;
-    const b = parseBindingMd(REAL);
+  // §8.6 — verrou du split COMPLET du binding réel (8 assignations, opus×3 / sonnet×5).
+  it("le binding réel StefFrame2 : split complet 8 assignations opus×3 / sonnet×5, runner claude-code", () => {
+    const b = parseBindingMd(SF2_BINDING);
     expect(b).not.toBeNull();
     expect(b!.assignments).toHaveLength(8);
     expect(b!.assignments.every((a) => a.runner === "claude-code")).toBe(true);
+    // Les 8 personaId présents, dans l'ordre du fichier.
+    expect(b!.assignments.map((a) => a.personaId)).toEqual([
+      "odin",
+      "aragorn",
+      "gandalf",
+      "gimli",
+      "legolas",
+      "helm",
+      "loki",
+      "nathalie",
+    ]);
     const opus = b!.assignments.filter((a) => a.model === "opus").map((a) => a.personaId);
     const sonnet = b!.assignments.filter((a) => a.model === "sonnet").map((a) => a.personaId);
     expect(opus.sort()).toEqual(["aragorn", "gandalf", "odin"]);

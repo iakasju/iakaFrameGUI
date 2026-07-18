@@ -120,6 +120,9 @@ const TEAM: TeamMd = {
   vignetteTeam: "none",
 };
 
+// Les 8 assignations RÉELLES du frame StefFrame2 (§8.5 : chaque personaId doit résoudre dans
+// l'inventaire personas). opus → {odin, aragorn, gandalf}, sonnet → {gimli, legolas, helm, loki,
+// nathalie}, runner `claude-code` pour toutes.
 const BINDING: Binding = {
   id: "iakaframe-claude-default",
   methodId: "iakaframe",
@@ -128,7 +131,13 @@ const BINDING: Binding = {
   origin: "forge-default",
   assignments: [
     { personaId: "odin", runner: "claude-code", model: "opus" },
+    { personaId: "aragorn", runner: "claude-code", model: "opus" },
+    { personaId: "gandalf", runner: "claude-code", model: "opus" },
+    { personaId: "gimli", runner: "claude-code", model: "sonnet" },
+    { personaId: "legolas", runner: "claude-code", model: "sonnet" },
     { personaId: "helm", runner: "claude-code", model: "sonnet" },
+    { personaId: "loki", runner: "claude-code", model: "sonnet" },
+    { personaId: "nathalie", runner: "claude-code", model: "sonnet" },
   ],
 };
 
