@@ -48,7 +48,7 @@ export interface KitGenOptions {
    * **Binding** de liaison (P7, E1) : couple `runner + modèle` **par persona**, produit par la
    * forge. **Optionnel** (rétro-compat) : **sans `binding`**, aucun modèle n'est émis → sortie
    * **byte-identique** à l'actuelle (kit pur). Avec `binding`, chaque adaptateur émet le modèle
-   * **de la persona** (lookup `binding.bindings`, modèle vide → rien émis). Le modèle vient
+   * **de la persona** (lookup `binding.assignments`, modèle vide → rien émis). Le modèle vient
    * **toujours du Binding**, **jamais de la Team**.
    */
   binding?: Binding;

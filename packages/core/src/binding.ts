@@ -14,6 +14,7 @@
  * un record invalide est ignoré, jamais d'exception.
  */
 
+import { parseFrontmatter } from "./frontmatter";
 import { isNodeKind, type NodeKind } from "./node";
 import { parseRunnerKind, type RunnerKind } from "./runner";
 import type { Team } from "./team";
@@ -31,18 +32,28 @@ export interface PersonaBinding {
   model: string;
 }
 
-/** Le **Binding** d'une (team, nœud) : un jeu de liaisons par persona (E1 Q-2). */
+/**
+ * Le **Binding** d'une (team, nœud), **aligné sur le format frame** (`bindings/<id>.md`) : un jeu
+ * de liaisons par persona (E1 Q-2) + l'appariement `methodId ↔ teamId` (I3). Un **seul** type,
+ * lu par **deux portes** : `parseBinding` (JSON strict, déploiement) et `parseBindingMd` (`.md`
+ * frame, tolérant). La clé de liaisons est `assignments` (nom du fichier de frame).
+ */
 export interface Binding {
-  /** Slug stable (ex. `"iakaframe@claude"`). */
+  /** Slug stable (ex. `"iakaframe-claude-default"` en frame, `"iakaframe@claude"` en déploiement). */
   id: string;
-  /** Nœud de destination du kit lié — un Binding est PAR nœud (E1 Q-2). */
-  node: NodeKind;
+  /**
+   * Réf. `Method.id` appariée (venu du frame ; `""` toléré au parse). **Load-bearing** pour
+   * open-frame (résolution portefeuille) ; ignoré par la génération de kit.
+   */
+  methodId: string;
   /** Réf. `Team.id` liée. */
   teamId: string;
-  /** Liaisons par persona (aucune n'est requise ; l'absence = défaut runner). */
-  bindings: PersonaBinding[];
+  /** Nœud de destination du kit lié — un Binding est PAR nœud (E1 Q-2). */
+  node: NodeKind;
   /** Provenance : la forge produit toujours `forge-default` (override cockpit = autre lot). */
   origin: BindingOrigin;
+  /** Liaisons par persona (aucune n'est requise ; l'absence = défaut runner). */
+  assignments: PersonaBinding[];
 }
 
 /**
@@ -86,9 +97,26 @@ export function parsePersonaBinding(raw: unknown): PersonaBinding | null {
 }
 
 /**
- * Parse défensif d'UN Binding (record/liaisons invalides ignorés ; `null` si inutilisable).
- * `id`/`teamId` requis ; `node` validé via `isNodeKind` ; `origin` replié sur `forge-default`
- * si absent/invalide. Les liaisons passent par `parsePersonaBinding` (les invalides tombent).
+ * Coerce une séquence brute `assignments` en `PersonaBinding[]` (défensif, partagé par les deux
+ * portes). Chaque item passe par `parsePersonaBinding` : `runner` **validé** (inconnu → liaison
+ * jetée, P-C), `personaId` requis. Non-tableau → `[]`.
+ */
+function coerceAssignments(raw: unknown): PersonaBinding[] {
+  return Array.isArray(raw)
+    ? raw.map(parsePersonaBinding).filter((b): b is PersonaBinding => b !== null)
+    : [];
+}
+
+/** Replie une valeur brute sur l'union `BindingOrigin` (défaut `forge-default`). */
+function coerceOrigin(raw: unknown): BindingOrigin {
+  return raw === "cockpit-override" ? "cockpit-override" : "forge-default";
+}
+
+/**
+ * Parse défensif d'UN Binding depuis un objet **JSON** (`binding.json`, déploiement) — porte
+ * **stricte** (P-B) : `node` invalide → `null` (l'artefact déployé doit être valide). `id`/`teamId`
+ * requis ; `methodId` lu (défaut `""`, non requis en JSON) ; `origin` replié sur `forge-default` si
+ * absent/invalide. Les liaisons `assignments` passent par `parsePersonaBinding` (invalides tombent).
  */
 export function parseBinding(raw: unknown): Binding | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -104,16 +132,45 @@ export function parseBinding(raw: unknown): Binding | null {
   if (!isNodeKind(r.node)) return null;
   const node = (r.node as string).toLowerCase() as NodeKind;
 
-  const bindings = Array.isArray(r.bindings)
-    ? r.bindings
-        .map(parsePersonaBinding)
-        .filter((b): b is PersonaBinding => b !== null)
-    : [];
+  const methodId = typeof r.methodId === "string" ? r.methodId.trim() : "";
 
-  const origin: BindingOrigin =
-    r.origin === "cockpit-override" ? "cockpit-override" : "forge-default";
+  return {
+    id,
+    methodId,
+    teamId,
+    node,
+    origin: coerceOrigin(r.origin),
+    assignments: coerceAssignments(r.assignments),
+  };
+}
 
-  return { id, node, teamId, bindings, origin };
+/**
+ * Parse défensif d'UN Binding depuis un `.md` **frontmatter** (fichier de frame `bindings/<id>.md`)
+ * — porte **tolérante** (P-B) : `node`/`origin` invalides ou absents → défauts (`"claude"` /
+ * `"forge-default"`), on préfère afficher un frame imparfait plutôt que masquer le binding. `null`
+ * si `id`/`methodId`/`teamId` manquant (contrat frame). S'appuie sur `parseFrontmatter` et réutilise
+ * la coercion d'assignations partagée avec `parseBinding` (runner strict, P-C).
+ */
+export function parseBindingMd(text: string | undefined | null): Binding | null {
+  const { data } = parseFrontmatter(text);
+
+  const id = typeof data.id === "string" ? data.id.trim() : "";
+  const methodId = typeof data.methodId === "string" ? data.methodId.trim() : "";
+  const teamId = typeof data.teamId === "string" ? data.teamId.trim() : "";
+  if (!id || !methodId || !teamId) return null;
+
+  const node: NodeKind = isNodeKind(data.node)
+    ? ((data.node as string).toLowerCase() as NodeKind)
+    : "claude";
+
+  return {
+    id,
+    methodId,
+    teamId,
+    node,
+    origin: coerceOrigin(typeof data.origin === "string" ? data.origin.trim() : data.origin),
+    assignments: coerceAssignments(data.assignments),
+  };
 }
 
 /**
@@ -136,19 +193,22 @@ export function parseBindingText(text: string | undefined | null): Binding | nul
  * défaut du nœud, `model: ""` (à compléter par l'utilisateur). Pour `claude`, un modèle vide
  * suffit (Claude Code tourne sur ses défauts → kit équivalent au pur) ; pour `codex`/`ollama-*`/
  * `openwebui`, le modèle est **requis** pour un kit standalone (l'UI le signale, non bloquant).
+ * `methodId` est **optionnel** (défaut `""`) : le déploiement ne l'utilise pas, seul open-frame
+ * (résolution portefeuille) en a besoin — le passer si disponible en scope.
  */
-export function defaultBindingForNode(team: Team, node: NodeKind): Binding {
+export function defaultBindingForNode(team: Team, node: NodeKind, methodId = ""): Binding {
   const runner = defaultRunnerForNode(node);
   return {
     id: `${team.id}@${node}`,
-    node,
+    methodId,
     teamId: team.id,
-    bindings: team.personas.map((p) => ({
+    node,
+    origin: "forge-default",
+    assignments: team.personas.map((p) => ({
       personaId: p.id,
       runner,
       model: "",
     })),
-    origin: "forge-default",
   };
 }
 
@@ -162,7 +222,7 @@ export function modelForPersona(
   personaId: string,
 ): string {
   if (!binding) return "";
-  const found = binding.bindings.find((b) => b.personaId === personaId);
+  const found = binding.assignments.find((b) => b.personaId === personaId);
   return found ? found.model : "";
 }
 

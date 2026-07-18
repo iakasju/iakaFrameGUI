@@ -19,9 +19,11 @@
  * référentielle (I1) **dans le périmètre du frame** (miroir `checkRefs` du CLI / `refs.ts`).
  */
 
+import { parsePersonaBinding, type Binding, type BindingOrigin } from "./binding";
+import { isNodeKind, type NodeKind } from "./node";
 import { type Persona } from "./persona";
 import { PORTFOLIO_SCAFFOLD, type Scaffold } from "./scaffold";
-import type { BindingMd, MethodMd, TeamMd } from "./frontmatter";
+import type { MethodMd, TeamMd } from "./frontmatter";
 
 /** Les **11 types** d'éléments d'un frame (ordre canonique d'affichage). */
 export type FrameElementType =
@@ -64,7 +66,7 @@ export type FrameInventory = Record<FrameElementType, string[]>;
 export interface FrameAssembly {
   method: MethodMd | null;
   team: TeamMd | null;
-  binding: BindingMd | null;
+  binding: Binding | null;
 }
 
 /**
@@ -149,7 +151,7 @@ export interface PortfolioSources {
   skills: readonly FrameAtom[];
   methods: readonly MethodMd[];
   teams: readonly TeamMd[];
-  bindings: readonly BindingMd[];
+  bindings: readonly Binding[];
 }
 
 /** Ids d'une liste d'atomes (ordre préservé, vides ignorés). */
@@ -339,8 +341,13 @@ function coerceTeamMd(raw: unknown): TeamMd | null {
   };
 }
 
-/** Coerce un record en `BindingMd` (défensif ; `null` sans `id`/`methodId`/`teamId`). */
-function coerceBindingMd(raw: unknown): BindingMd | null {
+/**
+ * Coerce un record en `Binding` unifié (défensif ; `null` sans `id`/`methodId`/`teamId`). **Tolérant**
+ * comme la porte `.md` (open-frame charge un frame imparfait plutôt que de masquer le binding) :
+ * `node` invalide/absent → `"claude"`, `origin` invalide → `"forge-default"`. Les `assignments`
+ * passent par `parsePersonaBinding` (runner **strict**, P-C : liaison à runner inconnu jetée).
+ */
+function coerceBinding(raw: unknown): Binding | null {
   if (typeof raw !== "object" || raw === null) return null;
   const r = raw as Record<string, unknown>;
   const id = typeof r.id === "string" && r.id.trim().length > 0 ? r.id.trim() : null;
@@ -349,33 +356,19 @@ function coerceBindingMd(raw: unknown): BindingMd | null {
   const teamId =
     typeof r.teamId === "string" && r.teamId.trim().length > 0 ? r.teamId.trim() : null;
   if (!id || !methodId || !teamId) return null;
+
+  const node: NodeKind = isNodeKind(r.node)
+    ? ((r.node as string).toLowerCase() as NodeKind)
+    : "claude";
+  const origin: BindingOrigin =
+    r.origin === "cockpit-override" ? "cockpit-override" : "forge-default";
   const assignments = Array.isArray(r.assignments)
     ? r.assignments
-        .map((a): { personaId: string; runner: string; model: string } | null => {
-          if (typeof a !== "object" || a === null) return null;
-          const ar = a as Record<string, unknown>;
-          const personaId =
-            typeof ar.personaId === "string" && ar.personaId.trim().length > 0
-              ? ar.personaId.trim()
-              : null;
-          if (!personaId) return null;
-          return {
-            personaId,
-            runner: typeof ar.runner === "string" ? ar.runner.trim() : "",
-            model: typeof ar.model === "string" ? ar.model.trim() : "",
-          };
-        })
-        .filter((a): a is { personaId: string; runner: string; model: string } => a !== null)
+        .map(parsePersonaBinding)
+        .filter((a): a is NonNullable<typeof a> => a !== null)
     : [];
-  return {
-    id,
-    methodId,
-    teamId,
-    node: typeof r.node === "string" && r.node.trim().length > 0 ? r.node.trim() : "claude",
-    origin:
-      typeof r.origin === "string" && r.origin.trim().length > 0 ? r.origin.trim() : "forge-default",
-    assignments,
-  };
+
+  return { id, methodId, teamId, node, origin, assignments };
 }
 
 /** Coerce un inventaire brut en `FrameInventory` (11 clés ; types manquants → `[]`). */
@@ -416,7 +409,7 @@ export function parsePortfolio(raw: unknown): Portfolio | null {
     assembly: {
       method: coerceMethodMd(assemblyRaw.method),
       team: coerceTeamMd(assemblyRaw.team),
-      binding: coerceBindingMd(assemblyRaw.binding),
+      binding: coerceBinding(assemblyRaw.binding),
     },
     facet: {
       portfolioScaffoldId: strOrNull(facetRaw.portfolioScaffoldId),

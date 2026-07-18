@@ -493,64 +493,10 @@ export function serializeKitMd(k: KitMd, body = ""): string {
   );
 }
 
-// --- binding (G2, open-frame-gui-stefframe2.md) ------------------------------
-
-/** Une affectation de `bindings/<id>.md` : la persona, son runner et son modèle (I3). */
-export interface BindingAssignmentMd {
-  personaId: string;
-  runner: string;
-  model: string;
-}
-
-/**
- * `bindings/<id>.md` — appariement **méthode ↔ team** + runner/modèle par persona (I3). Schéma
- * du FICHIER de frame (frontmatter `.md`), distinct du `Binding` riche du cœur (`binding.ts`, JSON) :
- * le fichier porte `methodId`, `origin` et une séquence `assignments` (et non `bindings`). Read-only
- * au MVP (chargé par « Open frame », jamais réécrit ici).
- */
-export interface BindingMd {
-  id: string;
-  methodId: string;
-  teamId: string;
-  node: string;
-  origin: string;
-  assignments: BindingAssignmentMd[];
-}
-
-/** Coerce une séquence brute `assignments` du frontmatter en `BindingAssignmentMd[]` (défensif). */
-function asAssignments(raw: FrontmatterValue | undefined): BindingAssignmentMd[] {
-  if (!Array.isArray(raw)) return [];
-  const out: BindingAssignmentMd[] = [];
-  for (const item of raw) {
-    if (typeof item !== "object" || item === null || Array.isArray(item)) continue;
-    const rec = item as Record<string, FrontmatterValue>;
-    const personaId = asString(rec.personaId).trim();
-    if (!personaId) continue;
-    out.push({
-      personaId,
-      runner: asString(rec.runner).trim(),
-      model: asString(rec.model).trim(),
-    });
-  }
-  return out;
-}
-
-/** Parse un `.md` binding → `BindingMd` (défensif ; `null` sans `id`/`methodId`/`teamId`). */
-export function parseBindingMd(text: string | undefined | null): BindingMd | null {
-  const { data } = parseFrontmatter(text);
-  const id = asString(data.id).trim();
-  const methodId = asString(data.methodId).trim();
-  const teamId = asString(data.teamId).trim();
-  if (!id || !methodId || !teamId) return null;
-  return {
-    id,
-    methodId,
-    teamId,
-    node: asString(data.node).trim() || "claude",
-    origin: asString(data.origin).trim() || "forge-default",
-    assignments: asAssignments(data.assignments),
-  };
-}
+// --- binding : le domaine binding vit désormais dans `binding.ts` ------------
+// Le parseur `.md` de binding (`parseBindingMd`) et son type unifié (`Binding`) ont MIGRÉ vers
+// `binding.ts` (une seule notion de Binding, deux portes JSON/`.md`). `frontmatter.ts` redevient un
+// pur (dé)sérialiseur générique + team/method/kit/workflow, sans connaître le domaine binding.
 
 /** Parse un `.md` kit → `KitMd` (défensif ; `null` sans `id`/`methodId`/`teamId`). */
 export function parseKitMd(text: string | undefined | null): KitMd | null {
