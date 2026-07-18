@@ -18,6 +18,7 @@ import {
   parseBinding,
   parseBindingText,
   parsePersonaBinding,
+  parseTools,
   modelForPersona,
   serializeBinding,
   generateClaudeCodeKit,
@@ -25,6 +26,7 @@ import {
   generateOpenWebUIKit,
   NODE_KINDS,
   type Binding,
+  type PersonaBinding,
   type Team,
 } from "../src/index";
 
@@ -39,12 +41,13 @@ function bindingWithModel(team: Team, node: Binding["node"], model: string): Bin
 }
 
 describe("B-1 — schéma Binding + défaut par nœud exportés", () => {
-  it("defaultRunnerForNode : claude→claude-code, codex→codex, ollama-*/openwebui→ollama", () => {
-    expect(defaultRunnerForNode("claude")).toBe("claude-code");
-    expect(defaultRunnerForNode("codex")).toBe("codex");
-    expect(defaultRunnerForNode("ollama-localhost")).toBe("ollama");
-    expect(defaultRunnerForNode("ollama-lan")).toBe("ollama");
-    expect(defaultRunnerForNode("openwebui")).toBe("ollama");
+  it("defaultRunnerForNode : modèle persona — claude→claude, codex host-isé→chatgpt, ollama-*/openwebui alignés", () => {
+    expect(defaultRunnerForNode("claude")).toBe("claude");
+    // codex = host (host-isé, § 6.1/6.2) → sort du plan runner : défaut chatgpt (côté OpenAI).
+    expect(defaultRunnerForNode("codex")).toBe("chatgpt");
+    expect(defaultRunnerForNode("ollama-localhost")).toBe("ollama-local");
+    expect(defaultRunnerForNode("ollama-lan")).toBe("ollama-distant");
+    expect(defaultRunnerForNode("openwebui")).toBe("ollama-local");
   });
 
   it("defaultBindingForNode couvre chaque nœud : une liaison par persona, model vide", () => {
@@ -80,7 +83,7 @@ describe("B-1 — parseurs défensifs (jamais d'exception) + zéro credential", 
     expect(parsePersonaBinding({ personaId: "x", runner: "inconnu" })).toBeNull();
     expect(
       parsePersonaBinding({ personaId: "x", runner: "ollama", model: 42 }),
-    ).toEqual({ personaId: "x", runner: "ollama-local", model: "" }); // ollama→ollama-local (§ 6.1)
+    ).toEqual({ personaId: "x", runner: "ollama-local", model: "", tools: [] }); // ollama→ollama-local (§ 6.1)
   });
 
   it("parsePersonaBinding : alias de runner résolu (ps→claude, renommage § 6.1)", () => {
@@ -88,6 +91,7 @@ describe("B-1 — parseurs défensifs (jamais d'exception) + zéro credential", 
       personaId: "x",
       runner: "claude",
       model: "",
+      tools: [],
     });
   });
 
@@ -141,6 +145,126 @@ describe("B-1 — parseurs défensifs (jamais d'exception) + zéro credential", 
     const json = serializeBinding(b!);
     expect(json).not.toMatch(/secret-xyz|sk-123|sk-abc|hunter2/);
     expect(json).not.toMatch(/token|apiKey|password/i);
+  });
+});
+
+describe("B1 — tools par persona (triplet runner/model/tools, § 5.1)", () => {
+  it("parseTools : défensif — non-tableau → [] ; items non-string filtrés ; trim ; ids vides écartés", () => {
+    expect(parseTools(undefined)).toEqual([]);
+    expect(parseTools("comfyui-local")).toEqual([]); // non-tableau
+    expect(parseTools(42)).toEqual([]);
+    expect(parseTools(["comfyui-local", 7, null, "  a  ", "", "  "])).toEqual([
+      "comfyui-local",
+      "a",
+    ]);
+  });
+
+  it("parsePersonaBinding : tools portés + défensifs (jamais d'exception)", () => {
+    expect(
+      parsePersonaBinding({
+        personaId: "loki",
+        runner: "chatgpt",
+        model: "gpt-*",
+        tools: ["comfyui-local", 42, "  x  "],
+      }),
+    ).toEqual({
+      personaId: "loki",
+      runner: "chatgpt",
+      model: "gpt-*",
+      tools: ["comfyui-local", "x"],
+    });
+    // tools absent → [] ; tools invalide → [] (byte-équivalent au binding sans tools).
+    expect(parsePersonaBinding({ personaId: "x", runner: "claude" })!.tools).toEqual([]);
+    expect(
+      parsePersonaBinding({ personaId: "x", runner: "claude", tools: "nope" })!.tools,
+    ).toEqual([]);
+  });
+
+  it("defaultBindingForNode : chaque liaison porte tools:[] (défaut)", () => {
+    const b = defaultBindingForNode(gabaritTeam(), "claude");
+    expect(b.bindings.every((pb) => Array.isArray(pb.tools) && pb.tools.length === 0)).toBe(
+      true,
+    );
+  });
+
+  it("serializeBinding : round-trip parse∘serialize stable avec tools (aucun credential)", () => {
+    const team = gabaritTeam();
+    const base = defaultBindingForNode(team, "claude");
+    const withTools: Binding = {
+      ...base,
+      bindings: base.bindings.map((b, i) =>
+        i === 0 ? { ...b, tools: ["comfyui-local"] } : b,
+      ),
+    };
+    const json = serializeBinding(withTools);
+    const round = parseBindingText(json);
+    expect(round).not.toBeNull();
+    expect(round!.bindings[0].tools).toEqual(["comfyui-local"]);
+    // Stable : re-sérialiser le parse redonne le même texte.
+    expect(serializeBinding(round!)).toBe(json);
+  });
+
+  it("un persona sur litellm + un model → binding valide (litellm = runner, pas host)", () => {
+    const pb = parsePersonaBinding({
+      personaId: "gimli",
+      runner: "litellm",
+      model: "qwen 3.6",
+    });
+    expect(pb).toEqual({
+      personaId: "gimli",
+      runner: "litellm",
+      model: "qwen 3.6",
+      tools: [],
+    });
+  });
+});
+
+describe("B1 — illustration d'acceptation : team iakaframe multi-runner + tools (§ 9)", () => {
+  it("odin=claude/fable, legolas=claude/haiku, gimli=ollama-distant/qwen 3.6, loki=chatgpt/gpt-* + comfyui-local", () => {
+    // Le node = HOST claude ; l'enforcement reste au host, quel que soit le runner de chaque persona.
+    const overrides: Record<string, Omit<PersonaBinding, "personaId">> = {
+      odin: { runner: "claude", model: "fable", tools: [] },
+      legolas: { runner: "claude", model: "haiku", tools: [] },
+      gimli: { runner: "ollama-distant", model: "qwen 3.6", tools: [] },
+      loki: { runner: "chatgpt", model: "gpt-*", tools: ["comfyui-local"] },
+    };
+
+    const team = buildTeamFromRoster("iakaframe", "iakaframe");
+    const base = defaultBindingForNode(team, "claude");
+    const binding: Binding = {
+      ...base,
+      id: "iakaframe@claude",
+      bindings: base.bindings.map((b) => {
+        const o = overrides[b.personaId];
+        return o ? { ...b, ...o } : b;
+      }),
+    };
+
+    // Round-trip par la porte stricte : le binding illustré est VALIDE (aucune liaison jetée).
+    const parsed = parseBindingText(serializeBinding(binding));
+    expect(parsed).not.toBeNull();
+    expect(parsed!.node).toBe("claude"); // le HOST où vit l'enforcement.
+
+    const by = (id: string): PersonaBinding =>
+      parsed!.bindings.find((b) => b.personaId === id)!;
+
+    // Chaque persona porte runner + model + tools (le triplet du modèle persona).
+    expect(by("odin")).toMatchObject({ runner: "claude", model: "fable", tools: [] });
+    expect(by("legolas")).toMatchObject({ runner: "claude", model: "haiku", tools: [] });
+    expect(by("gimli")).toMatchObject({
+      runner: "ollama-distant",
+      model: "qwen 3.6",
+      tools: [],
+    });
+    expect(by("loki")).toMatchObject({
+      runner: "chatgpt",
+      model: "gpt-*",
+      tools: ["comfyui-local"],
+    });
+
+    // gimli sur Ollama distant et loki sur ChatGPT sont des CIBLES d'exécution : aucun n'est un host.
+    expect(by("gimli").runner).not.toBe("codex");
+    expect(by("loki").runner).not.toBe("codex");
   });
 });
 
