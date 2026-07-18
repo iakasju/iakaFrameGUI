@@ -80,13 +80,13 @@ describe("B-1 — parseurs défensifs (jamais d'exception) + zéro credential", 
     expect(parsePersonaBinding({ personaId: "x", runner: "inconnu" })).toBeNull();
     expect(
       parsePersonaBinding({ personaId: "x", runner: "ollama", model: 42 }),
-    ).toEqual({ personaId: "x", runner: "ollama", model: "" });
+    ).toEqual({ personaId: "x", runner: "ollama-local", model: "" }); // ollama→ollama-local (§ 6.1)
   });
 
-  it("parsePersonaBinding : alias de runner résolu (ps→claude-code)", () => {
+  it("parsePersonaBinding : alias de runner résolu (ps→claude, renommage § 6.1)", () => {
     expect(parsePersonaBinding({ personaId: "x", runner: "ps" })).toEqual({
       personaId: "x",
-      runner: "claude-code",
+      runner: "claude",
       model: "",
     });
   });
