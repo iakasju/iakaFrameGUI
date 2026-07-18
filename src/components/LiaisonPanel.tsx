@@ -58,9 +58,9 @@ export function LiaisonPanel({
   const enabled = binding !== null;
   const personas = team ? [...team.personas].sort(byRoleThenId) : [];
   const modelFor = (personaId: string): string =>
-    binding?.bindings.find((b) => b.personaId === personaId)?.model ?? "";
+    binding?.assignments.find((b) => b.personaId === personaId)?.model ?? "";
   const runnerFor = (personaId: string): RunnerKind | "" =>
-    binding?.bindings.find((b) => b.personaId === personaId)?.runner ?? "";
+    binding?.assignments.find((b) => b.personaId === personaId)?.runner ?? "";
 
   return (
     <div className="panel" aria-label="Liaison (runner + modèle par persona)">

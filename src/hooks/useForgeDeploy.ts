@@ -183,7 +183,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
         prev
           ? {
               ...prev,
-              bindings: prev.bindings.map((b) =>
+              assignments: prev.assignments.map((b) =>
                 b.personaId === personaId ? { ...b, runner } : b,
               ),
             }
@@ -201,7 +201,7 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
         prev
           ? {
               ...prev,
-              bindings: prev.bindings.map((b) =>
+              assignments: prev.assignments.map((b) =>
                 b.personaId === personaId ? { ...b, model } : b,
               ),
             }
