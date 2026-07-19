@@ -195,6 +195,62 @@ export function setAuthoringModel(model: string): Promise<void> {
   return call<void>("set_authoring_model", { model });
 }
 
+/**
+ * **Endpoint d'authoring** optionnel (§ D3) — l'hôte Ollama à joindre pour l'inférence d'authoring
+ * **live** (ex. un Ollama sur le LAN). `null`/vide ⇒ défaut `http://localhost:11434`. Persisté comme
+ * `authoringModel` (même `<workspace>/settings.json`, clé `authoringEndpoint`). Réglage build-time,
+ * DISTINCT du runner d'EXÉCUTION du Binding (frontière authoring ≠ exécution).
+ */
+export function authoringEndpoint(): Promise<string | null> {
+  return call<string | null>("authoring_endpoint");
+}
+
+/** Définit (ou retire, si vide) l'endpoint d'authoring persisté. Suit le pattern de `setAuthoringModel`. */
+export function setAuthoringEndpoint(endpoint: string): Promise<void> {
+  return call<void>("set_authoring_endpoint", { endpoint });
+}
+
+// ============================================================================================
+// Inférence d'authoring LIVE — commande Rust `llm_complete` (copilote-inference-live.md, D1)
+// --------------------------------------------------------------------------------------------
+// DÉROGATION ASSUMÉE ET BORNÉE à l'invariant AR-1/AR-6, dans le MÊME esprit que le pilote review
+// ci-dessous : le backend Rust fait UN appel HTTP allow-listé (provider `ollama` SEUL), borné en
+// HÔTE (localhost + endpoint réglé, garde côté Rust) et en TEMPS (timeout), pour de l'authoring
+// BUILD-TIME uniquement — JAMAIS le runner d'EXÉCUTION du Binding. Le front reste testable SANS
+// réseau : le chemin live passe par un `LlmTransport` injectable (`fakeLlm` en test). C'est la
+// SEULE voie réseau du front (façade unique C-8 préservée : aucun `invoke`/`fetch` hors ce module).
+// ============================================================================================
+
+/** Requête minimale de complétion d'authoring (les args snake_case côté Rust : `timeout_ms`). */
+export interface LlmCompleteArgs {
+  provider: string;
+  model: string;
+  host: string;
+  system: string;
+  user: string;
+  timeoutMs: number;
+  /** Schéma JSON de sortie (Ollama `format`, D4) — optionnel (absent ⇒ `format:"json"` côté Rust). */
+  format?: unknown;
+}
+
+/**
+ * Appelle la commande Rust `llm_complete` (reqwest, appel DIRECT à Ollama `POST {host}/api/chat`,
+ * `stream:false`, `format:<schema>`). Renvoie le **texte brut** de la complétion (le JSON produit
+ * par le modèle). Rejette (via `call`) hors Tauri ou sur réseau KO / timeout / hôte refusé — le
+ * résolveur traduit tout rejet en repli mock (jamais de stack à l'UI).
+ */
+export function llmComplete(args: LlmCompleteArgs): Promise<string> {
+  return call<string>("llm_complete", {
+    provider: args.provider,
+    model: args.model,
+    host: args.host,
+    system: args.system,
+    user: args.user,
+    timeoutMs: args.timeoutMs,
+    format: args.format,
+  });
+}
+
 // --- Déploiement de kit (P3 : écrit une arborescence générée dans un dossier cible) ---
 
 /**
@@ -560,6 +616,9 @@ export const backend = {
   setIakaframeHome,
   authoringModel,
   setAuthoringModel,
+  authoringEndpoint,
+  setAuthoringEndpoint,
+  llmComplete,
   kitDeploy,
   handoffDeliver,
   nowMillis,

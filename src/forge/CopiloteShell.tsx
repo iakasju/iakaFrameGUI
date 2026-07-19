@@ -11,15 +11,17 @@
  * changer. Le **LLM réel est [différé]** (§8/§11) : ici tout vient du mock déterministe `propose`.
  */
 import { useEffect, useState } from "react";
+import type { LlmTransport } from "@iakaframe/core";
 import {
   AUTHORING_RUNNERS,
   NO_AUTHORING_MODEL_HINT,
-  propose,
   type AuthoringRunner,
   type CopiloteContext,
   type MaterializeOp,
   type Proposition,
 } from "./mock/copilote";
+import { resolveProposition, type PropositionSource } from "./llm/resolve";
+import { realLlm } from "./llm/transport";
 import { backend, type Backend } from "../api/backend";
 
 export function CopiloteShell({
@@ -29,6 +31,7 @@ export function CopiloteShell({
   placeholder = "Décrivez une intention…",
   api = backend,
   model,
+  llm = realLlm(backend),
 }: {
   subject: string;
   context: CopiloteContext;
@@ -39,11 +42,20 @@ export function CopiloteShell({
   api?: Backend;
   /** Modèle d'authoring imposé (tests) — sinon lu depuis les Settings (`authoringModel`). */
   model?: string;
+  /** Transport LLM injectable (tests : `fakeLlm`) — défaut = `realLlm(backend)` (commande Rust). */
+  llm?: LlmTransport;
 }) {
   const [prompt, setPrompt] = useState("");
   const [runner, setRunner] = useState<AuthoringRunner>(AUTHORING_RUNNERS[0]);
   const [proposition, setProposition] = useState<Proposition | null>(null);
   const [done, setDone] = useState<null | "validated" | "rejected">(null);
+  // Provenance de la proposition affichée + raison éventuelle d'un repli (§3.6). `pending` = une
+  // inférence en vol (bouton désactivé, garde anti-double-clic — un seul appel à la fois).
+  const [source, setSource] = useState<PropositionSource | null>(null);
+  const [reason, setReason] = useState<string | undefined>(undefined);
+  const [pending, setPending] = useState(false);
+  // Endpoint d'authoring optionnel (D3) : hôte Ollama LAN. Vide → localhost (résolu par le résolveur).
+  const [endpoint, setEndpoint] = useState<string | null>(null);
   // § Volet B : le modèle d'authoring UNIQUE et global, lu depuis les Settings (persisté comme
   // `iakaframeHome`). **Aucun défaut** : vide tant que rien n'est réglé → l'absence est signalée
   // (jamais masquée). Défensif hors Tauri : le mock reste actif, il indique juste l'absence de modèle.
@@ -68,13 +80,43 @@ export function CopiloteShell({
     };
   }, [api, model]);
 
-  function handlePropose() {
+  // Endpoint d'authoring (D3) : lu des Settings (`authoringEndpoint`). Vide/absent → localhost.
+  // Défensif hors Tauri : on garde `null` (le résolveur retombe sur le défaut localhost).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        // Appel optionnel : un `api` de test minimal peut ne pas exposer `authoringEndpoint`.
+        const e = await api.authoringEndpoint?.();
+        if (alive && e && e.trim().length > 0) setEndpoint(e.trim());
+      } catch {
+        /* hors Tauri / non défini : défaut localhost côté résolveur */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api]);
+
+  async function handlePropose() {
     const trimmed = prompt.trim();
-    if (trimmed.length === 0) return;
-    // Runner d'authoring MOCKÉ, déterministe, sans réseau — sortie identique pour la même entrée.
-    // § Volet B : le modèle configuré PARAMÈTRE le mock (injecté dans le contexte) — pas d'appel LLM.
-    setProposition(propose(trimmed, { ...context, model: configuredModel }));
-    setDone(null);
+    if (trimmed.length === 0 || pending) return; // garde anti-double-clic (un seul appel en vol)
+    setPending(true);
+    try {
+      // Chemin d'authoring : le résolveur oriente vers l'inférence LIVE (transport injecté) ou le
+      // MOCK déterministe (repli). Il NE lève jamais — tout rejet réseau devient un repli mock propre.
+      const result = await resolveProposition(
+        trimmed,
+        { ...context, model: configuredModel },
+        { llm, endpoint },
+      );
+      setProposition(result.proposition);
+      setSource(result.source);
+      setReason(result.reason);
+      setDone(null);
+    } finally {
+      setPending(false);
+    }
   }
 
   /** Valider : l'HUMAIN décide → matérialisation réelle par l'atelier (jamais le copilote). */
@@ -138,7 +180,8 @@ export function CopiloteShell({
               ) : (
                 <em className="no-model">{NO_AUTHORING_MODEL_HINT}</em>
               )}{" "}
-              · LLM mocké
+              · {source === "live" ? "LLM live" : reason ? "LLM mocké (repli)" : "LLM mocké"}
+              {reason ? <> · {reason}</> : null}
             </div>
             <p>{proposition.intro}</p>
             {proposition.artefacts.map((a, i) => (
@@ -198,17 +241,17 @@ export function CopiloteShell({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") handlePropose();
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void handlePropose();
           }}
         />
         <button
           type="button"
           className="send"
-          onClick={handlePropose}
-          disabled={prompt.trim().length === 0}
-          title="Proposer des artefacts (copilote mocké)"
+          onClick={() => void handlePropose()}
+          disabled={prompt.trim().length === 0 || pending}
+          title="Proposer des artefacts (copilote d'authoring)"
         >
-          Proposer ▸
+          {pending ? "Le modèle réfléchit…" : "Proposer ▸"}
         </button>
       </div>
     </div>

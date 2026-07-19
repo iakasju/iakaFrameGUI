@@ -10,6 +10,8 @@ function fakeApi(over: Partial<Backend> = {}): Backend {
     setIakaframeHome: async () => {},
     authoringModel: async () => null,
     setAuthoringModel: async () => {},
+    authoringEndpoint: async () => null,
+    setAuthoringEndpoint: async () => {},
     pickDirectory: async () => "/autre/racine",
     ...over,
   } as unknown as Backend;
@@ -67,7 +69,27 @@ describe("SettingsRoot — modèle d'authoring global (§ Volet B)", () => {
       />,
     );
     await screen.findByText("litellm:gpt-4o");
-    fireEvent.click(screen.getByRole("button", { name: /Effacer/ }));
+    // Nom EXACT « Effacer » : distingue du bouton « Effacer l'endpoint » (§ D3, même section).
+    fireEvent.click(screen.getByRole("button", { name: "Effacer" }));
     await waitFor(() => expect(setAuthoringModel).toHaveBeenCalledWith(""));
+  });
+});
+
+describe("SettingsRoot — endpoint d'authoring optionnel (§ D3)", () => {
+  it("affiche l'endpoint configuré quand il est défini", async () => {
+    render(<SettingsRoot api={fakeApi({ authoringEndpoint: async () => "http://192.168.2.11:11434" })} />);
+    expect(await screen.findByText("http://192.168.2.11:11434")).toBeTruthy();
+  });
+
+  it("« Enregistrer l'endpoint » persiste la saisie (setAuthoringEndpoint)", async () => {
+    const setAuthoringEndpoint = vi.fn(async () => {});
+    render(<SettingsRoot api={fakeApi({ setAuthoringEndpoint })} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    const input = screen.getByLabelText(/Endpoint \(hôte\) du modèle/);
+    fireEvent.change(input, { target: { value: "http://192.168.2.11:11434" } });
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer l'endpoint/ }));
+    await waitFor(() =>
+      expect(setAuthoringEndpoint).toHaveBeenCalledWith("http://192.168.2.11:11434"),
+    );
   });
 });

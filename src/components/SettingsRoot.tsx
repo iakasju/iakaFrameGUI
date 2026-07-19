@@ -20,6 +20,9 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
   // signale l'absence). `draft` = la saisie en cours (identifiant/endpoint), enregistrée à la demande.
   const [model, setModel] = useState<string | null>(null);
   const [modelDraft, setModelDraft] = useState<string>("");
+  // § D3 : endpoint d'authoring optionnel (hôte Ollama LAN). `null` = non défini → défaut localhost.
+  const [endpoint, setEndpoint] = useState<string | null>(null);
+  const [endpointDraft, setEndpointDraft] = useState<string>("");
 
   const refresh = useCallback(async () => {
     let resolved: string | null = null;
@@ -37,6 +40,14 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
     }
     setModel(resolvedModel);
     setModelDraft(resolvedModel ?? "");
+    let resolvedEndpoint: string | null = null;
+    try {
+      resolvedEndpoint = await api.authoringEndpoint();
+    } catch {
+      resolvedEndpoint = null;
+    }
+    setEndpoint(resolvedEndpoint);
+    setEndpointDraft(resolvedEndpoint ?? "");
     setLoaded(true);
   }, [api]);
 
@@ -62,6 +73,31 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
     setBusy(true);
     try {
       await api.setAuthoringModel("");
+      await refresh();
+    } catch {
+      /* no-op */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, refresh]);
+
+  const saveEndpoint = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setAuthoringEndpoint(endpointDraft.trim());
+      await refresh();
+    } catch {
+      /* hors Tauri / erreur : on ne casse pas le rendu */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, endpointDraft, refresh]);
+
+  // Efface l'endpoint : `setAuthoringEndpoint("")` retire la clé (retour au défaut localhost).
+  const clearEndpoint = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setAuthoringEndpoint("");
       await refresh();
     } catch {
       /* no-op */
@@ -160,6 +196,44 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
         {model && (
           <p className="settings-line">
             Modèle configuré : <code className="model-value">{model}</code>
+          </p>
+        )}
+      </div>
+
+      {/* § D3 : endpoint d'authoring optionnel — hôte Ollama LAN (vide ⇒ localhost:11434). */}
+      <div className="settings-authoring" aria-label="Endpoint d'authoring iakaFrameGUI">
+        <h3>Endpoint d'authoring (optionnel)</h3>
+        <p className="settings-hint">
+          Hôte Ollama pour l'inférence d'authoring <b>live</b>. Vide ⇒{" "}
+          <code>http://localhost:11434</code>. Renseignez-le pour pointer un Ollama sur le{" "}
+          <b>LAN</b>. Build-time — <b>distinct</b> du runner d'exécution du Binding.
+        </p>
+        <div className="settings-actions">
+          <input
+            type="text"
+            className="model-input"
+            aria-label="Endpoint (hôte) du modèle d'authoring"
+            placeholder="ex. http://192.168.2.11:11434"
+            value={endpointDraft}
+            disabled={busy}
+            onChange={(e) => setEndpointDraft(e.target.value)}
+          />
+          <button type="button" className="docbtn" disabled={busy} onClick={() => void saveEndpoint()}>
+            Enregistrer l'endpoint
+          </button>
+          <button
+            type="button"
+            className="docbtn"
+            disabled={busy}
+            onClick={() => void clearEndpoint()}
+            title="Retire l'endpoint configuré (retour au défaut localhost)"
+          >
+            Effacer l'endpoint
+          </button>
+        </div>
+        {endpoint && (
+          <p className="settings-line">
+            Endpoint configuré : <code className="model-value">{endpoint}</code>
           </p>
         )}
       </div>

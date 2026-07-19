@@ -30,7 +30,7 @@ function mdpane(container: HTMLElement): HTMLElement {
 }
 
 describe("CopiloteShell — boucle intention → proposition → diff → valider/rejeter (E2c §8)", () => {
-  it("Proposer affiche une PROPOSITION (artefacts + diff + Valider/Rejeter) — rien avant", () => {
+  it("Proposer affiche une PROPOSITION (artefacts + diff + Valider/Rejeter) — rien avant", async () => {
     const { container } = render(<MethodeHarness />);
     const c = copilote(container);
 
@@ -39,19 +39,19 @@ describe("CopiloteShell — boucle intention → proposition → diff → valide
     const send = within(c).getByRole("button", { name: /Proposer/ }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);
 
-    // Saisie d'une intention → Proposer actif → proposition rendue.
+    // Saisie d'une intention → Proposer actif → proposition rendue (chemin async → repli mock hors Tauri).
     const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "un rituel log-conversation de fin de session" } });
     expect(send.disabled).toBe(false);
     fireEvent.click(send);
 
-    expect(c.querySelector(".conv")).not.toBeNull();
+    await waitFor(() => expect(c.querySelector(".conv")).not.toBeNull());
     expect(c.querySelector(".cdiff")).not.toBeNull();
     expect(within(c).getByRole("button", { name: /Valider/ })).toBeTruthy();
     expect(within(c).getByRole("button", { name: /Rejeter/ })).toBeTruthy();
   });
 
-  it("VALIDER matérialise réellement : l'artefact apparaît dans le MD de la méthode", () => {
+  it("VALIDER matérialise réellement : l'artefact apparaît dans le MD de la méthode", async () => {
     const { container } = render(<MethodeHarness />);
     const c = copilote(container);
 
@@ -61,7 +61,7 @@ describe("CopiloteShell — boucle intention → proposition → diff → valide
     const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "un rituel log-conversation de fin de session" } });
     fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
-    fireEvent.click(within(c).getByRole("button", { name: /Valider/ }));
+    fireEvent.click(await within(c).findByRole("button", { name: /Valider/ }));
 
     // Après validation : le rituel est RÉELLEMENT inséré → visible dans le contrat MD lu.
     expect(mdpane(container).textContent).toContain("log-conversation");
@@ -70,14 +70,14 @@ describe("CopiloteShell — boucle intention → proposition → diff → valide
     expect(copilote(container).textContent).toContain("Matérialisé");
   });
 
-  it("REJETER ne change RIEN : aucune écriture dans le MD", () => {
+  it("REJETER ne change RIEN : aucune écriture dans le MD", async () => {
     const { container } = render(<MethodeHarness />);
     const c = copilote(container);
 
     const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "un rituel log-conversation de fin de session" } });
     fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
-    fireEvent.click(within(c).getByRole("button", { name: /Rejeter/ }));
+    fireEvent.click(await within(c).findByRole("button", { name: /Rejeter/ }));
 
     // Rejet : la proposition disparaît, le MD reste intact (log-conversation toujours absent).
     expect(copilote(container).querySelector(".conv")).toBeNull();
@@ -102,14 +102,16 @@ describe("CopiloteShell — boucle intention → proposition → diff → valide
         "ollama:qwen2.5-coder",
       ),
     );
-    // Et une proposition le PORTE (le mock est paramétré par le modèle, pas par un défaut en dur).
+    // Et une proposition le PORTE (repli mock hors Tauri : le modèle configuré est conservé).
     const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "un rapport qualité" } });
     fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
-    expect(c.querySelector(".amsg")?.textContent).toContain("ollama:qwen2.5-coder");
+    await waitFor(() =>
+      expect(c.querySelector(".amsg")?.textContent).toContain("ollama:qwen2.5-coder"),
+    );
   });
 
-  it("MODÈLE absent (§ Volet B) : aucun défaut → l'absence est signalée (console + proposition)", () => {
+  it("MODÈLE absent (§ Volet B) : aucun défaut → l'absence est signalée (console + proposition)", async () => {
     const api = { authoringModel: async () => null } as unknown as Backend;
     const context: CopiloteContext = { surface: "methode", diffFile: "methode.md", present: {} };
     const { container } = render(
@@ -126,7 +128,9 @@ describe("CopiloteShell — boucle intention → proposition → diff → valide
     const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "un rapport qualité" } });
     fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
-    expect(c.querySelector(".hint")?.textContent).toContain("aucun modèle d'authoring configuré");
+    await waitFor(() =>
+      expect(c.querySelector(".hint")?.textContent).toContain("aucun modèle d'authoring configuré"),
+    );
   });
 
   it("FRONTIÈRE : le sélecteur de la console est un runner d'AUTHORING mocké (pas d'exécution)", () => {

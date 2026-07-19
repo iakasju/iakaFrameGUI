@@ -2,13 +2,22 @@
 //!
 //! P1 : socle minimal calqué sur l'esprit L0 du Cockpit — `paths` (chapeau + workspace
 //! cross-OS), `pathguard` (anti-traversal), `teams_store` (persistance des teams PURES en
-//! fichiers JSON sous `<workspace>/teams/`). AUCUNE commande réseau, AUCUN secret, AUCUN
-//! appel runner (AR-1/AR-6). Le front tient le schéma via `@iakaframe/core` ; Rust est un
-//! passe-plat.
+//! fichiers JSON sous `<workspace>/teams/`). Le front tient le schéma via `@iakaframe/core` ;
+//! Rust est un passe-plat.
+//!
+//! Invariant AR-1/AR-6 : Rust reste passe-plat, AUCUN appel **runner d'exécution**, AUCUN secret.
+//! DÉROGATIONS ASSUMÉES ET BORNÉES (documentées à leur point d'usage) :
+//!   1. `plugin-shell` — pilote des outils frères déterministes `iakaframe review`/`remove`
+//!      (allow-list stricte `capabilities/default.json`) — jamais un moteur LLM.
+//!   2. `llm` — **UN** appel HTTP d'authoring (copilote-inference-live.md, D1) : provider `ollama`
+//!      SEUL, hôte allow-listé (loopback + `authoringEndpoint` réglé), timeout dur. C'est de
+//!      l'authoring BUILD-TIME (composer la charte d'un élément), **jamais** un runner d'EXÉCUTION
+//!      du Binding. La frontière authoring ≠ exécution reste entière (cf. `llm.rs`).
 
 pub mod handoff;
 pub mod kit_deploy;
 pub mod library_store;
+pub mod llm;
 pub mod pathguard;
 pub mod paths;
 pub mod settings;
@@ -52,6 +61,9 @@ pub fn run() {
             settings::set_iakaframe_home,
             settings::authoring_model,
             settings::set_authoring_model,
+            settings::authoring_endpoint,
+            settings::set_authoring_endpoint,
+            llm::llm_complete,
             kit_deploy::kit_deploy,
             handoff::handoff_deliver,
             handoff::now_millis,

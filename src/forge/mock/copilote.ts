@@ -209,7 +209,12 @@ const ARRAY_LABEL: Record<MaterializeTarget, string> = {
   "kit-binding": "binding",
 };
 
-function buildDiff(ops: MaterializeOp[], context: CopiloteContext): DiffLine[] {
+/**
+ * Diff avant→après, calculé LOCALEMENT depuis `ops` + `context.present`. **Exporté** (réutilisé par
+ * le chemin d'authoring **live** : le diff n'est JAMAIS dicté par le LLM — même code, même confiance).
+ * Reste PUR (aucun réseau, aucun effet de bord).
+ */
+export function buildDiff(ops: MaterializeOp[], context: CopiloteContext): DiffLine[] {
   const lines: DiffLine[] = [];
   // Regroupe les ops par cible pour un diff de tableau lisible (avant → après).
   const byTarget = new Map<MaterializeTarget, MaterializeOp[]>();

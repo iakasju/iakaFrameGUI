@@ -1,23 +1,24 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-07-19 12:52 (motif: version).
+> Genere par iakaframe (CLI) le 2026-07-19 13:34 (motif: version).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
 | Champ | Valeur |
 |---|---|
-| Version | v0.3.6 |
+| Version | v0.3.7 |
 | Branche | main |
-| Dernier commit | 19d0119 chore(iakaframe): update etat des lieux + commit global (version v0.3.5) |
+| Dernier commit | 94cde16 chore(iakaframe): update etat des lieux + commit global (version v0.3.6) |
 | Arbre | MODIFICATIONS NON COMMITEES |
-| Fichiers (hors .git/node_modules) | 15266 |
-| Note | Forge : reservoir de sous-elements (buildReservoir cœur pur adosse a G1/G2 + panneau read-only) + modele d'authoring dans les Settings (persiste comme iakaframeHome, un seul modele global pour tous les etages). Modele VIDE par defaut (config forcee) -> copilote mock signale 'aucun modele configure'. Libelles des 11 types en source unique (core/frame.ts). Frontiere authoring != execution respectee ; inference LLM live differee. Gate Legolas PASS (445 front + 67 Rust verts). Reste : recette IPC Tauri. |
+| Fichiers (hors .git/node_modules) | 16966 |
+| Note | Copilote inference LLM live (MVP offline-first) : commande Rust llm_complete (reqwest http-only, /api/chat, host_allowed + timeout) ; transport injectable (fakeLlm -> 10 CA prouves sans reseau) ; resolveProposition (live/mock fallback, diff recalcule, jamais dicte par le LLM) ; parseLiveProposition defensif (core) ; Ollama seul, localhost + reglage authoringEndpoint LAN ; frontiere authoring != execution (binding inatteignable) ; derogation AR-1/AR-6 bornee + note d'audit capabilities. Inference reseau reelle = recette Tauri. Gate Legolas PASS (461 front + 75 Rust verts). |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
+| `94cde16` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.6) |
 | `19d0119` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.5) |
 | `940db15` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.4) |
 | `d037450` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.3) |
@@ -27,7 +28,6 @@
 | `a65a9c7` | 2026-07-18 | merge(binding): Lot B1 — triplet persona {runner,model,tools} + 5 runners + host-isation codex (decouple d'open-frame) |
 | `6a41073` | 2026-07-18 | test(binding): tools defensifs + illustration team iakaframe multi-runner (B1) |
 | `c19dc1c` | 2026-07-18 | feat(binding): triplet runner/model/tools par persona + host-isation codex (B1) |
-| `bc4a1db` | 2026-07-18 | chore(iakaframe): update etat des lieux + commit global (version v0.2.0) |
 
 ## Reprise du travail (a completer par Cowork)
 
@@ -40,6 +40,7 @@
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-07-19 13:34 | version | v0.3.7 | main | Copilote inference LLM live (MVP offline-first) : commande Rust llm_complete (reqwest http-only, /api/chat, host_allowed + timeout) ; transport injectable (fakeLlm -> 10 CA prouves sans reseau) ; resolveProposition (live/mock fallback, diff recalcule, jamais dicte par le LLM) ; parseLiveProposition defensif (core) ; Ollama seul, localhost + reglage authoringEndpoint LAN ; frontiere authoring != execution (binding inatteignable) ; derogation AR-1/AR-6 bornee + note d'audit capabilities. Inference reseau reelle = recette Tauri. Gate Legolas PASS (461 front + 75 Rust verts). |
 | 2026-07-19 12:52 | version | v0.3.6 | main | Forge : reservoir de sous-elements (buildReservoir cœur pur adosse a G1/G2 + panneau read-only) + modele d'authoring dans les Settings (persiste comme iakaframeHome, un seul modele global pour tous les etages). Modele VIDE par defaut (config forcee) -> copilote mock signale 'aucun modele configure'. Libelles des 11 types en source unique (core/frame.ts). Frontiere authoring != execution respectee ; inference LLM live differee. Gate Legolas PASS (445 front + 67 Rust verts). Reste : recette IPC Tauri. |
 | 2026-07-19 12:18 | version | v0.3.5 | main | Dette doc : comptes SF2 rafraichis dans g6-super-etage-portfolio.md AC-2 (principes 14->16, skills 16->17). Doc uniquement. |
 | 2026-07-19 12:10 | version | v0.3.4 | main | Open frame LOT 2 (G6 super-etage) : entite Frame de 1er ordre promue dans packages/core (root+counts+poolIds+assembly method/team/binding+facette portefeuille+integrite). Facette derivee par ROLE portefeuille (robuste au renommage persona) et scaffold level=portfolio, zero I/O backend neuf. parseFrame defensif. UI OpenFramePanel facette read-only + assemblage resolu. Gate Legolas PASS (AC-1..9 + AC-F ; 428 front + 63 Rust verts). Reste : recette IPC Tauri end-to-end. |

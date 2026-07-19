@@ -12,6 +12,9 @@ const HOME_KEY: &str = "iakaframeHome";
 /// Clé JSON du **modèle d'authoring** unique et global (§ Volet B) — l'identifiant/endpoint de
 /// modèle utilisé par TOUS les prompts d'authoring de la forge (tous les étages, pas par persona).
 const AUTHORING_MODEL_KEY: &str = "authoringModel";
+/// Clé JSON de l'**endpoint d'authoring** optionnel (§ D3) — l'hôte Ollama à joindre pour
+/// l'inférence LIVE (ex. un Ollama sur le LAN). Vide/absent ⇒ défaut `http://localhost:11434`.
+const AUTHORING_ENDPOINT_KEY: &str = "authoringEndpoint";
 
 /// Lit une clé chaîne du `settings_file` (`None` si absent/illisible/vide). Générique et partagée
 /// par tous les réglages simples (racine bibliothèque, modèle d'authoring…).
@@ -75,6 +78,17 @@ pub fn write_authoring_model(settings_file: &Path, model: &str) -> Result<(), St
     write_string_key(settings_file, AUTHORING_MODEL_KEY, model)
 }
 
+/// Lit l'**endpoint d'authoring** persisté (`None` si absent/illisible/vide → défaut localhost côté appelant).
+pub fn read_authoring_endpoint(settings_file: &Path) -> Option<String> {
+    read_string_key(settings_file, AUTHORING_ENDPOINT_KEY)
+}
+
+/// Écrit/fusionne l'**endpoint d'authoring**. Une valeur vide **retire** la clé (retour au défaut localhost).
+/// Même contrat de fusion non destructive que les autres réglages (préserve les autres clés).
+pub fn write_authoring_endpoint(settings_file: &Path, endpoint: &str) -> Result<(), String> {
+    write_string_key(settings_file, AUTHORING_ENDPOINT_KEY, endpoint)
+}
+
 // --- Commandes Tauri (façade unique côté front : `src/api/backend.ts`) ---
 
 /// Racine bibliothèque résolue (§5) — `null` si introuvable (l'UI invite à la définir).
@@ -100,6 +114,19 @@ pub fn authoring_model() -> Option<String> {
 #[tauri::command]
 pub fn set_authoring_model(model: String) -> Result<(), String> {
     write_authoring_model(&crate::paths::resolve_settings_file(), &model)
+}
+
+/// **Endpoint d'authoring** optionnel persisté (§ D3) — `null` si non défini (défaut localhost).
+/// Réglage build-time, DISTINCT du runner d'EXÉCUTION du Binding (frontière authoring ≠ exécution).
+#[tauri::command]
+pub fn authoring_endpoint() -> Option<String> {
+    read_authoring_endpoint(&crate::paths::resolve_settings_file())
+}
+
+/// Définit (ou retire, si vide) l'endpoint d'authoring persisté dans `<workspace>/settings.json`.
+#[tauri::command]
+pub fn set_authoring_endpoint(endpoint: String) -> Result<(), String> {
+    write_authoring_endpoint(&crate::paths::resolve_settings_file(), &endpoint)
 }
 
 #[cfg(test)]
@@ -206,6 +233,33 @@ mod tests {
         write_authoring_model(&f, "").unwrap();
         assert_eq!(read_authoring_model(&f), None);
         assert_eq!(read_home_override(&f), Some("/lib".to_string()));
+        std::fs::remove_dir_all(f.parent().unwrap()).ok();
+    }
+
+    // --- Endpoint d'authoring (D3) : même contrat, coexistence non destructive. ---
+
+    #[test]
+    fn authoring_endpoint_absent_renvoie_none() {
+        let f = tmp_file("ae-absent");
+        assert_eq!(read_authoring_endpoint(&f), None);
+    }
+
+    #[test]
+    fn authoring_endpoint_roundtrip_et_coexistence() {
+        let f = tmp_file("ae-rt");
+        write_authoring_model(&f, "ollama:qwen2.5-coder").unwrap();
+        write_authoring_endpoint(&f, "http://192.168.2.11:11434").unwrap();
+        assert_eq!(
+            read_authoring_endpoint(&f),
+            Some("http://192.168.2.11:11434".to_string())
+        );
+        // Effacer l'endpoint ne touche pas le modèle.
+        write_authoring_endpoint(&f, "").unwrap();
+        assert_eq!(read_authoring_endpoint(&f), None);
+        assert_eq!(
+            read_authoring_model(&f),
+            Some("ollama:qwen2.5-coder".to_string())
+        );
         std::fs::remove_dir_all(f.parent().unwrap()).ok();
     }
 }

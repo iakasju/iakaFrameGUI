@@ -34,4 +34,5 @@ export * from "./node";
 export * from "./binding";
 export * from "./frame";
 export * from "./reservoir";
+export * from "./llm";
 export * from "./adapters";
