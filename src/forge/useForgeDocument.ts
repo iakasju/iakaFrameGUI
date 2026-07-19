@@ -7,8 +7,10 @@
  * leur `validateRefs` (miroir de `add`, CLI). Il **remplace** l'auto-persistance JSON silencieuse
  * de `useForgeTeams` et **comble** l'absence de persistance de Méthode/Kit (« repart à zéro »).
  *
- * Toute I/O passe par la **façade unique** `backend` (injectable pour les tests). Hors Tauri / test
- * sans backend, les appels échouent silencieusement → l'état mémoire suffit (jamais d'échec de rendu).
+ * Toute I/O passe par la **façade unique** `backend` (injectable pour les tests). Hors Tauri, le
+ * **listing** échoue silencieusement (liste vide, l'état mémoire suffit) tandis que l'**écriture** et
+ * l'**ouverture ciblée** — gestes explicites — surfacent un message utilisateur propre si le backend
+ * est indisponible (garde `call()`, cf. `backend.ts`). Jamais d'échec de rendu.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
 import { backend, type Backend, type LibraryCollection } from "../api/backend";
@@ -162,6 +164,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
     setLastError(null);
     setLastWarning(null);
     setSavedPath(null);
+    setSaveAsOpen(false); // repart d'un vierge : referme une invite Save As orpheline.
   }, [config]);
 
   const edit = useCallback((next: T): void => {
@@ -305,6 +308,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
     setSavedPath(null);
     setLastError(null);
     setLastWarning(null);
+    setSaveAsOpen(false); // plus de document : referme une invite Save As orpheline.
   }, []);
 
   const runOrGuard = useCallback(

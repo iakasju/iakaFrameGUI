@@ -24,17 +24,18 @@ code{font-family:'SF Mono',Consolas,monospace;background:rgba(200,164,78,.1);col
 footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#555;font-size:.78rem;}
 </style></head><body>
 <h1>Etat des lieux - <span class="accent">iakaFrameGUI</span></h1>
-<div class="sub">Genere le 2026-07-18 17:18 - motif : version - a regenerer a chaque version et a chaque pause/reprise.</div>
+<div class="sub">Genere le 2026-07-19 09:20 - motif : version - a regenerer a chaque version et a chaque pause/reprise.</div>
 <h2>Etat courant</h2>
 <div class="kv">
-  <div class="k">Version</div><div>v0.3.0</div>
+  <div class="k">Version</div><div>v0.3.1</div>
   <div class="k">Branche</div><div>main</div>
-  <div class="k">Dernier commit</div><div><code>a65a9c7 merge(binding): Lot B1 — triplet persona {runner,model,tools} + 5 runners + host-isation codex (decouple d'open-frame)</code></div>
-  <div class="k">Arbre</div><div><span class='ok'>propre</span></div>
-  <div class="k">Fichiers</div><div>14915 (hors .git / node_modules)</div>
-  <div class='k'>Note</div><div>Multi-runner Lot B1 : PersonaBinding porte le triplet {runner,model,tools} ; RunnerKind aligne sur les 5 cibles (claude,chatgpt,ollama-local,ollama-distant,litellm) ; host-isation de codex (alias legacy conserve). Self-contained sur main (decouple d'open-frame parke).</div>
+  <div class="k">Dernier commit</div><div><code>f6cd81c chore(iakaframe): update etat des lieux + commit global (version v0.3.0)</code></div>
+  <div class="k">Arbre</div><div><span class='bad'>modifications non commitees</span></div>
+  <div class="k">Fichiers</div><div>15029 (hors .git / node_modules)</div>
+  <div class='k'>Note</div><div>Fix DocBar : garde backend en ecriture hors Tauri (message utilisateur propre au lieu d'une stack invoke) + reset saveAsOpen au Close/New (invite Save As orpheline). +2 tests vitest. Gate Legolas PASS 8/8. Inclut le protocole de recette Tauri (docs/recette-docbar-persistance.md). Hang pre-existant ForgeShell.test.tsx = ticket separe.</div>
 </div>
-<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>a65a9c7</code></td><td>2026-07-18</td><td>merge(binding): Lot B1 — triplet persona {runner,model,tools} + 5 runners + host-isation codex (decouple d'open-frame)</td></tr>
+<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>f6cd81c</code></td><td>2026-07-18</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.3.0)</td></tr>
+<tr><td><code>a65a9c7</code></td><td>2026-07-18</td><td>merge(binding): Lot B1 — triplet persona {runner,model,tools} + 5 runners + host-isation codex (decouple d'open-frame)</td></tr>
 <tr><td><code>6a41073</code></td><td>2026-07-18</td><td>test(binding): tools defensifs + illustration team iakaframe multi-runner (B1)</td></tr>
 <tr><td><code>c19dc1c</code></td><td>2026-07-18</td><td>feat(binding): triplet runner/model/tools par persona + host-isation codex (B1)</td></tr>
 <tr><td><code>bc4a1db</code></td><td>2026-07-18</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.2.0)</td></tr>
@@ -43,10 +44,10 @@ footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#55
 <tr><td><code>95bc9d3</code></td><td>2026-07-18</td><td>test(runner): aligne l'enum runner sur le modele persona (renommage + alias legacy)</td></tr>
 <tr><td><code>99fe0e3</code></td><td>2026-07-18</td><td>feat(vocab): split host&lt;-&gt;runner + tools + alias legacy (B2)</td></tr>
 <tr><td><code>9bdaabb</code></td><td>2026-07-17</td><td>feat(retrait): surface GUI du "-" au titre du skill (Option 1) + volet remove — S6</td></tr>
-<tr><td><code>507fb3b</code></td><td>2026-07-17</td><td>feat(retrait): etend le pont d'exec borne au retrait symetrique (attach/detach/remove) — S6</td></tr>
 </table>
 <h2>Journal (versions &amp; pauses)</h2>
 <table><tr><th>Date</th><th>Motif</th><th>Version</th><th>Branche</th><th>Note</th></tr>
+<tr><td>2026-07-19 09:20</td><td><span class='r r-version'>version</span></td><td>v0.3.1</td><td>main</td><td>Fix DocBar : garde backend en ecriture hors Tauri (message utilisateur propre au lieu d'une stack invoke) + reset saveAsOpen au Close/New (invite Save As orpheline). +2 tests vitest. Gate Legolas PASS 8/8. Inclut le protocole de recette Tauri (docs/recette-docbar-persistance.md). Hang pre-existant ForgeShell.test.tsx = ticket separe.</td></tr>
 <tr><td>2026-07-18 17:18</td><td><span class='r r-version'>version</span></td><td>v0.3.0</td><td>main</td><td>Multi-runner Lot B1 : PersonaBinding porte le triplet {runner,model,tools} ; RunnerKind aligne sur les 5 cibles (claude,chatgpt,ollama-local,ollama-distant,litellm) ; host-isation de codex (alias legacy conserve). Self-contained sur main (decouple d'open-frame parke).</td></tr>
 <tr><td>2026-07-18 14:54</td><td><span class='r r-version'>version</span></td><td>v0.2.0</td><td>main</td><td>Multi-runner Lot B2 (source de verite core) : vocab.json split hostKinds{claude,codex,openwebui} &lt;-&gt; runnerKinds{claude,chatgpt,ollama-local,ollama-distant,litellm} + toolKinds{comfyui-local} + alias legacy. Parite miroir avec le CLI iakaframe.</td></tr>
 <tr><td>2026-07-05 22:24</td><td><span class='r r-version'>version</span></td><td>v0.1.0</td><td>main</td><td>onboarding initial</td></tr>

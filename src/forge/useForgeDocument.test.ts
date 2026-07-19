@@ -6,7 +6,7 @@ import {
   type MethodMd,
 } from "@iakaframe/core";
 import { useForgeDocument, type DocConfig } from "./useForgeDocument";
-import type { Backend } from "../api/backend";
+import { BACKEND_UNAVAILABLE_MSG, call, type Backend } from "../api/backend";
 
 /** Backend bibliothèque en mémoire (une Map par `<collection>/<id>`). */
 function fakeBackend(seed: Record<string, string> = {}): {
@@ -289,5 +289,50 @@ describe("useForgeDocument — modèle de document unifié (Q-1)", () => {
     expect(outcome.ok).toBe(false);
     expect(writes).toHaveLength(0);
     expect(result.current.lastError).toMatch(/existe déjà/);
+  });
+
+  // --- #1 : écriture hors backend → message utilisateur propre (garde `call()`, relayée par le hook) ---
+  it("écriture hors backend : lastError = message court propre (pas de stack invoke)", async () => {
+    // Non-circulaire : on route `libraryWrite` du fake vers le VRAI `call()`. En jsdom (aucun
+    // `__TAURI_INTERNALS__`), la garde de `call()` lève réellement BACKEND_UNAVAILABLE_MSG — on
+    // vérifie donc que la garde produit le message propre ET que le hook le relaie (pas une stack).
+    const { api } = fakeBackend();
+    (api as unknown as { libraryWrite: Backend["libraryWrite"] }).libraryWrite = (c, id, text) =>
+      call<void>("library_write", { collection: c, id, text });
+    const { result } = renderHook(() => useForgeDocument(methodConfig(api)));
+    act(() => result.current.requestNew());
+    act(() => result.current.edit({ ...blankMethod(), principleIds: ["qualite"] }));
+
+    let outcome!: Awaited<ReturnType<typeof result.current.saveAs>>;
+    await act(async () => {
+      outcome = await result.current.saveAs("demo", "Démo");
+    });
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toBe(BACKEND_UNAVAILABLE_MSG);
+    expect(result.current.lastError).toBe(BACKEND_UNAVAILABLE_MSG);
+    // Anti-stack : aucun fragment technique remonté à l'utilisateur.
+    expect(result.current.lastError).not.toContain("invoke");
+    expect(result.current.lastError).not.toContain("Cannot read properties");
+  });
+
+  // --- #2 : l'invite Save As orpheline se referme au Close ET au New (reset d'état document) ---
+  it("reset saveAsOpen : Close et New referment l'invite Save As orpheline", () => {
+    // Close : New → openSaveAs (invite ouverte) → Close ⇒ invite refermée + document vidé.
+    const { api } = fakeBackend();
+    const closed = renderHook(() => useForgeDocument(methodConfig(api)));
+    act(() => closed.result.current.requestNew());
+    act(() => closed.result.current.openSaveAs());
+    expect(closed.result.current.saveAsOpen).toBe(true);
+    act(() => closed.result.current.requestClose()); // document non dirty : Close direct
+    expect(closed.result.current.saveAsOpen).toBe(false);
+    expect(closed.result.current.artifact).toBeNull();
+
+    // Variante New : openSaveAs (invite ouverte) → New ⇒ invite non orpheline sur le nouveau vierge.
+    const renewed = renderHook(() => useForgeDocument(methodConfig(api)));
+    act(() => renewed.result.current.requestNew());
+    act(() => renewed.result.current.openSaveAs());
+    expect(renewed.result.current.saveAsOpen).toBe(true);
+    act(() => renewed.result.current.requestNew());
+    expect(renewed.result.current.saveAsOpen).toBe(false);
   });
 });

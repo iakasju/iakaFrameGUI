@@ -28,5 +28,15 @@
     "dirty": false,
     "files": 14915,
     "note": "Multi-runner Lot B1 : PersonaBinding porte le triplet {runner,model,tools} ; RunnerKind aligne sur les 5 cibles (claude,chatgpt,ollama-local,ollama-distant,litellm) ; host-isation de codex (alias legacy conserve). Self-contained sur main (decouple d'open-frame parke)."
+  },
+  {
+    "date": "2026-07-19 09:20",
+    "reason": "version",
+    "version": "v0.3.1",
+    "branch": "main",
+    "commit": "f6cd81c chore(iakaframe): update etat des lieux + commit global (version v0.3.0)",
+    "dirty": true,
+    "files": 15029,
+    "note": "Fix DocBar : garde backend en ecriture hors Tauri (message utilisateur propre au lieu d'une stack invoke) + reset saveAsOpen au Close/New (invite Save As orpheline). +2 tests vitest. Gate Legolas PASS 8/8. Inclut le protocole de recette Tauri (docs/recette-docbar-persistance.md). Hang pre-existant ForgeShell.test.tsx = ticket separe."
   }
 ]

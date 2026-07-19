@@ -17,11 +17,23 @@ import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Command } from "@tauri-apps/plugin-shell";
 
+/**
+ * Message utilisateur affiché quand une commande backend est tentée hors de l'app packagée
+ * (navigateur de dév / tests, sans runtime Tauri). Constante unique et exportée : la garde de
+ * `call()` la lève, les tests l'assertent sur la constante (jamais un littéral recopié).
+ */
+export const BACKEND_UNAVAILABLE_MSG =
+  "Enregistrement indisponible hors de l'app packagée (mode dév navigateur).";
+
 /** Wrapper typé minimal autour de `invoke`. SEUL endroit autorisé à l'appeler. */
 export async function call<T>(
   command: string,
   args?: Record<string, unknown>,
 ): Promise<T> {
+  if (!isTauri()) {
+    // Hors runtime Tauri, `invoke` n'existe pas : on lève un message clair (pas une stack).
+    throw new Error(BACKEND_UNAVAILABLE_MSG);
+  }
   return invoke<T>(command, args);
 }
 
