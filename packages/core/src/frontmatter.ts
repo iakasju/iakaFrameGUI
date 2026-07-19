@@ -315,20 +315,118 @@ function renderScalar(v: Scalar): string {
   return needsScalarQuote(v) ? `"${v}"` : v;
 }
 
-/** Rend une liste flow `[a, b, c]` (items quotés au besoin). */
-function renderFlowList(items: readonly Scalar[]): string {
-  const inner = items
-    .map((it) =>
-      typeof it === "string" && needsListQuote(it) ? `"${it}"` : String(it),
-    )
-    .join(", ");
-  return `[${inner}]`;
+/** Rend un item de liste flow (quoté au besoin). */
+function renderListItem(it: Scalar): string {
+  return typeof it === "string" && needsListQuote(it) ? `"${it}"` : String(it);
+}
+
+/**
+ * Rend une liste flow `[a, b, c]` (items quotés au besoin).
+ *
+ * `wrap` = **découpe en lignes physiques** (nombre d'items par ligne), telle que relevée sur le
+ * fichier d'origine par {@link readListLayout}. Absent (ou incohérent avec `items`) → **une seule
+ * ligne**, forme canonique historique, byte-identique au CLI (`renderFlowList`,
+ * `cli/src/lib/frontmatter.js`). Les lignes de continuation sont indentées de 2 espaces, comme
+ * dans les fichiers réels de la bibliothèque.
+ */
+function renderFlowList(items: readonly Scalar[], wrap?: readonly number[]): string {
+  const rendered = items.map(renderListItem);
+  const total = wrap?.reduce((a, b) => a + b, 0) ?? 0;
+  // Garde : un `wrap` qui ne recouvre pas exactement la liste courante (liste éditée depuis la
+  // lecture) est IGNORÉ — on retombe sur la forme canonique plutôt que de produire un rendu faux.
+  if (!wrap || wrap.length < 2 || total !== rendered.length) {
+    return `[${rendered.join(", ")}]`;
+  }
+  const rows: string[] = [];
+  let at = 0;
+  for (const n of wrap) {
+    rows.push(rendered.slice(at, at + n).join(", "));
+    at += n;
+  }
+  return `[${rows.join(",\n  ")}]`;
 }
 
 /** Une paire de frontmatter à écrire : scalaire (`kind:"scalar"`) ou liste flow (`kind:"list"`). */
 type Field =
   | { key: string; kind: "scalar"; value: Scalar }
-  | { key: string; kind: "list"; value: readonly Scalar[] };
+  | { key: string; kind: "list"; value: readonly Scalar[]; wrap?: readonly number[] };
+
+/**
+ * Découpe en lignes physiques d'une liste flow, par clé de frontmatter : `{ principleIds: [5,5,5,1] }`.
+ * Produit par {@link readListLayout}, consommé par les sérialiseurs pour **préserver le wrapping**
+ * d'un fichier relu.
+ */
+export type ListLayout = Record<string, number[]>;
+
+/**
+ * Relève, sur un `.md` **d'origine**, la façon dont ses listes flow sont **réparties sur les lignes**
+ * — afin qu'une réécriture puisse la restituer à l'identique (zéro diff git parasite). Seules les
+ * listes réellement wrappées (≥ 2 lignes) sont retenues ; les listes sur une ligne n'ont rien à
+ * préserver. Jamais d'exception : un document illisible rend `{}`.
+ *
+ * Exemple : `methods/iakaframe.md` porte un `principleIds` de 16 ids wrappé sur 4 lignes → `{
+ * principleIds: [5, 5, 5, 1] }`.
+ */
+export function readListLayout(text: string | undefined | null): ListLayout {
+  const layout: ListLayout = {};
+  if (text == null) return layout;
+  const { raw } = splitDocument(String(text));
+  if (!raw) return layout;
+  const lines = raw.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(KEY_RE);
+    if (!m) continue;
+    const rest = m[3];
+    if (!rest.trim().startsWith("[") || balance(rest) <= 0) continue;
+    // Liste flow multi-ligne : on compte les items ligne par ligne, en respectant les quotes.
+    const counts: number[] = [];
+    let quote: string | null = null;
+    let depth = 0;
+    let seen = false; // un item est-il en cours sur la ligne courante ?
+    let onLine = 0;
+    let j = i;
+    for (; j < lines.length; j++) {
+      const chunk = j === i ? rest : lines[j];
+      for (const ch of chunk) {
+        if (quote) {
+          if (ch === quote) quote = null;
+          continue;
+        }
+        if (ch === '"' || ch === "'") {
+          quote = ch;
+          seen = true;
+          continue;
+        }
+        if (ch === "[") {
+          depth++;
+          continue;
+        }
+        if (ch === "]") {
+          depth--;
+          if (depth === 0) break;
+          continue;
+        }
+        if (ch === "," && depth === 1) {
+          if (seen) onLine++;
+          seen = false;
+          continue;
+        }
+        if (!/\s/.test(ch)) seen = true;
+      }
+      // Fin de ligne physique : on clôt le compte de cette ligne.
+      if (depth === 0) {
+        if (seen) onLine++;
+        counts.push(onLine);
+        break;
+      }
+      counts.push(onLine);
+      onLine = 0;
+    }
+    if (counts.length >= 2) layout[m[2]] = counts;
+    i = j;
+  }
+  return layout;
+}
 
 /**
  * Assemble un document `.md` : `---\n<frontmatter>\n---\n<body>`. Les `undefined` de `fields`
@@ -339,7 +437,7 @@ function buildDocument(fields: (Field | undefined)[], body = ""): string {
     .filter((f): f is Field => f !== undefined)
     .map((f) =>
       f.kind === "list"
-        ? `${f.key}: ${renderFlowList(f.value)}`
+        ? `${f.key}: ${renderFlowList(f.value, f.wrap)}`
         : `${f.key}: ${renderScalar(f.value)}`,
     );
   return `---\n${lines.join("\n")}\n---\n${body}`;
@@ -475,22 +573,40 @@ export function parseTeamMd(text: string | undefined | null): TeamMd | null {
 
 // --- method ------------------------------------------------------------------
 
-/** Sérialise un `MethodMd` (ordre des champs = fichier réel `methods/iakaframe.md`). */
-export function serializeMethodMd(m: MethodMd, body = ""): string {
+/**
+ * Sérialise un `MethodMd` (ordre des champs = fichier réel `methods/iakaframe.md`).
+ *
+ * `layout` (optionnel) = découpe en lignes relevée sur le fichier d'origine par
+ * {@link readListLayout} : passée, elle **restitue le wrapping** des listes flow (le vrai
+ * `methods/iakaframe.md` wrappe `principleIds` sur 4 lignes) au lieu de les reflower sur une seule
+ * — donc **zéro diff git parasite** à la réécriture. Omise, la forme reste la **canonique
+ * mono-ligne**, byte-identique au CLI (`buildDocument`, `cli/src/lib/frontmatter.js`).
+ */
+export function serializeMethodMd(
+  m: MethodMd,
+  body = "",
+  layout: ListLayout = {},
+): string {
   const workflow =
     m.workflowId && m.workflowId.trim().length > 0
       ? ({ key: "workflowId", kind: "scalar", value: m.workflowId } as Field)
       : undefined;
+  const list = (key: string, value: string[]): Field => ({
+    key,
+    kind: "list",
+    value,
+    wrap: layout[key],
+  });
   return buildDocument(
     [
       { key: "id", kind: "scalar", value: m.id },
       { key: "name", kind: "scalar", value: m.name },
       workflow,
-      { key: "principleIds", kind: "list", value: m.principleIds },
-      { key: "ritualIds", kind: "list", value: m.ritualIds },
-      { key: "guardrailIds", kind: "list", value: m.guardrailIds },
-      { key: "roleKeys", kind: "list", value: m.roleKeys },
-      { key: "scaffoldIds", kind: "list", value: m.scaffoldIds },
+      list("principleIds", m.principleIds),
+      list("ritualIds", m.ritualIds),
+      list("guardrailIds", m.guardrailIds),
+      list("roleKeys", m.roleKeys),
+      list("scaffoldIds", m.scaffoldIds),
     ],
     body,
   );
