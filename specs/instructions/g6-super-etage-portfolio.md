@@ -279,8 +279,8 @@ intégrité) est inchangé.
   `FramePortfolioFacet`, `buildFrame`, `parseFrame`, `checkFrameRefs`, `FrameIntegrityReport`,
   `FrameMissingRef`, `FRAME_TYPES` (vérifié par import + `index.ts`).
 - **AC-2 — Inventaire des 11 (critère A).** `buildFrame(fixtureSF2).counts` a **11 clés** =
-  `FRAME_TYPES`, aux comptes SF2 (personas 8, roles 8, principles 14, rituals 5, guardrails 3,
-  scaffolds 2, workflows 1, skills 16, teams 1, methods 1, bindings 1). `workflows` compté **une
+  `FRAME_TYPES`, aux comptes SF2 (personas 8, roles 8, principles 16, rituals 5, guardrails 3,
+  scaffolds 2, workflows 1, skills 17, teams 1, methods 1, bindings 1). `workflows` compté **une
   fois** (G5).
 - **AC-3 — Facette portefeuille.** `buildFrame(fixtureSF2).portfolio` =
   `{ scaffoldId: <scaffold level:portfolio>, personaId: <persona roleKey:portefeuille>,

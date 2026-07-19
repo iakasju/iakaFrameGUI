@@ -68,5 +68,15 @@
     "dirty": true,
     "files": 15149,
     "note": "Open frame LOT 2 (G6 super-etage) : entite Frame de 1er ordre promue dans packages/core (root+counts+poolIds+assembly method/team/binding+facette portefeuille+integrite). Facette derivee par ROLE portefeuille (robuste au renommage persona) et scaffold level=portfolio, zero I/O backend neuf. parseFrame defensif. UI OpenFramePanel facette read-only + assemblage resolu. Gate Legolas PASS (AC-1..9 + AC-F ; 428 front + 63 Rust verts). Reste : recette IPC Tauri end-to-end."
+  },
+  {
+    "date": "2026-07-19 12:18",
+    "reason": "version",
+    "version": "v0.3.5",
+    "branch": "main",
+    "commit": "940db15 chore(iakaframe): update etat des lieux + commit global (version v0.3.4)",
+    "dirty": true,
+    "files": 15149,
+    "note": "Dette doc : comptes SF2 rafraichis dans g6-super-etage-portfolio.md AC-2 (principes 14->16, skills 16->17). Doc uniquement."
   }
 ]
