@@ -6,15 +6,17 @@
  * référentielle** de l'ensemble chargé (G4). Réutilise le plumbing racine existant (le sélecteur
  * natif + l'override persisté de `SettingsRoot`) — aucun manifeste de frame requis.
  *
- * LOT 1 (socle mécanique) : inventaire simple, PAS d'entité Portfolio de 1er ordre (G6/LOT 2).
- * Read-only : on charge/affiche, on n'édite pas. Backend injectable (tests).
+ * LOT 2 (G6) : le frame chargé est désormais un **conteneur `Frame` de 1er ordre** (`@iakaframe/core`)
+ * — sous les comptes + l'intégrité, on affiche la **facette portefeuille** (l'étage Odin : scaffold
+ * `portfolio`, persona du rôle `portefeuille`, backlog transverse) + l'**assemblage résolu**
+ * (méthode · team · binding). Read-only : on charge/affiche, on n'édite pas. Backend injectable (tests).
  */
 import { useCallback, useState } from "react";
 import { backend, type Backend } from "../api/backend";
 import {
   FRAME_TYPES,
   loadFrame,
-  type FrameInventory,
+  type Frame,
   type FrameType,
 } from "../forge/frame";
 
@@ -34,7 +36,7 @@ const TYPE_LABELS: Record<FrameType, string> = {
 };
 
 export function OpenFramePanel({ api = backend }: { api?: Backend }) {
-  const [inventory, setInventory] = useState<FrameInventory | null>(null);
+  const [frame, setFrame] = useState<Frame | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
     setBusy(true);
     setError(null);
     try {
-      setInventory(await loadFrame(api));
+      setFrame(await loadFrame(api));
     } catch {
       setError("Chargement du frame impossible (racine introuvable ?).");
     } finally {
@@ -51,7 +53,7 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
     }
   }, [api]);
 
-  /** « Open frame » : choisir un dossier → le fixer comme racine → charger l'inventaire. */
+  /** « Open frame » : choisir un dossier → le fixer comme racine → charger le frame. */
   const openFrame = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -59,7 +61,7 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
       const dir = await api.pickDirectory();
       if (!dir) return; // annulation utilisateur : on ne change rien.
       await api.setIakaframeHome(dir);
-      setInventory(await loadFrame(api));
+      setFrame(await loadFrame(api));
     } catch {
       setError("Ouverture du frame impossible.");
     } finally {
@@ -67,7 +69,7 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
     }
   }, [api]);
 
-  const integrity = inventory?.integrity;
+  const integrity = frame?.integrity;
 
   return (
     <section className="open-frame" aria-label="Ouvrir un frame iakaframe">
@@ -97,11 +99,11 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
         </p>
       )}
 
-      {inventory && (
+      {frame && (
         <>
-          {inventory.root && (
+          {frame.root && (
             <p className="settings-line">
-              Racine : <code className="home-path">{inventory.root}</code>
+              Racine : <code className="home-path">{frame.root}</code>
             </p>
           )}
           <table className="frame-counts">
@@ -115,8 +117,8 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
               {FRAME_TYPES.map((type) => (
                 <tr key={type}>
                   <td>{TYPE_LABELS[type]}</td>
-                  <td className="count" aria-label={`${TYPE_LABELS[type]} : ${inventory.counts[type]}`}>
-                    {inventory.counts[type]}
+                  <td className="count" aria-label={`${TYPE_LABELS[type]} : ${frame.counts[type]}`}>
+                    {frame.counts[type]}
                   </td>
                 </tr>
               ))}
@@ -140,6 +142,27 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
               )}
             </p>
           )}
+
+          {/* Facette portefeuille (l'étage Odin) — read-only, dérivée, aucun I/O neuf (G6). */}
+          <div className="frame-portfolio" aria-label="Portefeuille (étage Odin)">
+            <h4>Portefeuille (étage Odin)</h4>
+            <p className="settings-line">
+              Scaffold portefeuille : <code>{frame.portfolio.scaffoldId ?? "—"}</code>
+            </p>
+            <p className="settings-line">
+              Persona portefeuille (Odin) : <code>{frame.portfolio.personaId ?? "—"}</code>
+            </p>
+            <p className="settings-line">
+              Backlog transverse : <code>{frame.portfolio.backlog ?? "—"}</code>
+            </p>
+          </div>
+
+          {/* Assemblage résolu : méthode · team · binding (repli « — »). */}
+          <p className="settings-line frame-assembly">
+            Assemblage résolu : Méthode <code>{frame.assembly.method?.id ?? "—"}</code> · Team{" "}
+            <code>{frame.assembly.team?.id ?? "—"}</code> · Binding{" "}
+            <code>{frame.assembly.binding?.id ?? "—"}</code>
+          </p>
         </>
       )}
     </section>

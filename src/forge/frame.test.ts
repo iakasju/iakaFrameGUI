@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildFrameInventory,
+  buildFrame,
   loadFrame,
   FRAME_TYPES,
   POOL_FRAME_TYPES,
@@ -84,9 +84,9 @@ function coherentRaw(): FrameRaw {
   };
 }
 
-describe("buildFrameInventory — comptage des 11 types (G3/G5)", () => {
+describe("buildFrame — comptage des 11 types (G3/G5)", () => {
   it("compte chaque type et expose les 11 clés", () => {
-    const inv = buildFrameInventory(coherentRaw());
+    const inv = buildFrame(coherentRaw());
     expect(Object.keys(inv.counts).sort()).toEqual([...FRAME_TYPES].sort());
     expect(inv.counts.personas).toBe(2);
     expect(inv.counts.roles).toBe(2);
@@ -103,7 +103,7 @@ describe("buildFrameInventory — comptage des 11 types (G3/G5)", () => {
   });
 
   it("scanne les ids par pool (roles via `key`)", () => {
-    const inv = buildFrameInventory(coherentRaw());
+    const inv = buildFrame(coherentRaw());
     expect(inv.poolIds.personas.sort()).toEqual(["aragorn", "odin"]);
     expect(inv.poolIds.roles.sort()).toEqual(["cadrage", "coordination"]);
     expect(inv.poolIds.workflows).toEqual(["iakaframe-3phases"]);
@@ -112,7 +112,7 @@ describe("buildFrameInventory — comptage des 11 types (G3/G5)", () => {
 
 describe("checkFrameRefs — intégrité référentielle (G4, critère B)", () => {
   it("0 référence cassée sur un frame cohérent", () => {
-    const inv = buildFrameInventory(coherentRaw());
+    const inv = buildFrame(coherentRaw());
     expect(inv.integrity.ok).toBe(true);
     expect(inv.integrity.missing).toEqual([]);
   });
@@ -120,7 +120,7 @@ describe("checkFrameRefs — intégrité référentielle (G4, critère B)", () =
   it("détecte une référence method cassée (principe absent du pool)", () => {
     const raw = coherentRaw();
     raw.pools.principles = []; // le pool ne contient plus `qualite`
-    const inv = buildFrameInventory(raw);
+    const inv = buildFrame(raw);
     expect(inv.integrity.ok).toBe(false);
     expect(inv.integrity.missing).toContainEqual({
       source: "method:iakaframe",
@@ -132,7 +132,7 @@ describe("checkFrameRefs — intégrité référentielle (G4, critère B)", () =
   it("détecte un coordinator team et un personaId binding hors personas", () => {
     const raw = coherentRaw();
     raw.pools.personas = [persona("odin")]; // aragorn n'existe plus
-    const inv = buildFrameInventory(raw);
+    const inv = buildFrame(raw);
     expect(inv.integrity.ok).toBe(false);
     expect(inv.integrity.missing).toContainEqual({
       source: "team:iakaframe-8",

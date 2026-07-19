@@ -32,4 +32,5 @@ export * from "./roster";
 export * from "./runner";
 export * from "./node";
 export * from "./binding";
+export * from "./frame";
 export * from "./adapters";

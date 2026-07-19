@@ -24,17 +24,18 @@ code{font-family:'SF Mono',Consolas,monospace;background:rgba(200,164,78,.1);col
 footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#555;font-size:.78rem;}
 </style></head><body>
 <h1>Etat des lieux - <span class="accent">iakaFrameGUI</span></h1>
-<div class="sub">Genere le 2026-07-19 11:15 - motif : version - a regenerer a chaque version et a chaque pause/reprise.</div>
+<div class="sub">Genere le 2026-07-19 12:10 - motif : version - a regenerer a chaque version et a chaque pause/reprise.</div>
 <h2>Etat courant</h2>
 <div class="kv">
-  <div class="k">Version</div><div>v0.3.3</div>
+  <div class="k">Version</div><div>v0.3.4</div>
   <div class="k">Branche</div><div>main</div>
-  <div class="k">Dernier commit</div><div><code>3925419 chore(iakaframe): update etat des lieux + commit global (version v0.3.2)</code></div>
+  <div class="k">Dernier commit</div><div><code>d037450 chore(iakaframe): update etat des lieux + commit global (version v0.3.3)</code></div>
   <div class="k">Arbre</div><div><span class='bad'>modifications non commitees</span></div>
-  <div class="k">Fichiers</div><div>15145 (hors .git / node_modules)</div>
-  <div class='k'>Note</div><div>Open frame LOT 1 (socle G1-G5) : backend pool_read_all/pool_read (contenu des atomes) + bindings chargeable (COLLECTIONS 4-&gt;5) ; loader frame.ts (11 types + integrite checkFrameRefs + workflow compte 1x) ; action UI OpenFramePanel + bouton 'Ouvrir un frame'. Charge SF2 : 8/8/16/5/3/2/1/17/1/1/1, 0 dangling. Gate Legolas PASS (412 front + 63 Rust verts). G6 (entite Portfolio) = LOT 2 a venir. Cablage IPC Tauri + test OpenFramePanel a recetter.</div>
+  <div class="k">Fichiers</div><div>15149 (hors .git / node_modules)</div>
+  <div class='k'>Note</div><div>Open frame LOT 2 (G6 super-etage) : entite Frame de 1er ordre promue dans packages/core (root+counts+poolIds+assembly method/team/binding+facette portefeuille+integrite). Facette derivee par ROLE portefeuille (robuste au renommage persona) et scaffold level=portfolio, zero I/O backend neuf. parseFrame defensif. UI OpenFramePanel facette read-only + assemblage resolu. Gate Legolas PASS (AC-1..9 + AC-F ; 428 front + 63 Rust verts). Reste : recette IPC Tauri end-to-end.</div>
 </div>
-<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>3925419</code></td><td>2026-07-19</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.3.2)</td></tr>
+<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>d037450</code></td><td>2026-07-19</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.3.3)</td></tr>
+<tr><td><code>3925419</code></td><td>2026-07-19</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.3.2)</td></tr>
 <tr><td><code>5f7ab2c</code></td><td>2026-07-19</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.3.1)</td></tr>
 <tr><td><code>f6cd81c</code></td><td>2026-07-18</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.3.0)</td></tr>
 <tr><td><code>a65a9c7</code></td><td>2026-07-18</td><td>merge(binding): Lot B1 — triplet persona {runner,model,tools} + 5 runners + host-isation codex (decouple d'open-frame)</td></tr>
@@ -43,10 +44,10 @@ footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#55
 <tr><td><code>bc4a1db</code></td><td>2026-07-18</td><td>chore(iakaframe): update etat des lieux + commit global (version v0.2.0)</td></tr>
 <tr><td><code>ed96639</code></td><td>2026-07-18</td><td>merge(vocab): Lot B2 — split host&lt;-&gt;runner + chatgpt/litellm + toolKinds (source de verite core)</td></tr>
 <tr><td><code>8801c09</code></td><td>2026-07-18</td><td>test(binding): repercute le renommage runner sur les alias (ps-&gt;claude, ollama-&gt;ollama-local)</td></tr>
-<tr><td><code>95bc9d3</code></td><td>2026-07-18</td><td>test(runner): aligne l'enum runner sur le modele persona (renommage + alias legacy)</td></tr>
 </table>
 <h2>Journal (versions &amp; pauses)</h2>
 <table><tr><th>Date</th><th>Motif</th><th>Version</th><th>Branche</th><th>Note</th></tr>
+<tr><td>2026-07-19 12:10</td><td><span class='r r-version'>version</span></td><td>v0.3.4</td><td>main</td><td>Open frame LOT 2 (G6 super-etage) : entite Frame de 1er ordre promue dans packages/core (root+counts+poolIds+assembly method/team/binding+facette portefeuille+integrite). Facette derivee par ROLE portefeuille (robuste au renommage persona) et scaffold level=portfolio, zero I/O backend neuf. parseFrame defensif. UI OpenFramePanel facette read-only + assemblage resolu. Gate Legolas PASS (AC-1..9 + AC-F ; 428 front + 63 Rust verts). Reste : recette IPC Tauri end-to-end.</td></tr>
 <tr><td>2026-07-19 11:15</td><td><span class='r r-version'>version</span></td><td>v0.3.3</td><td>main</td><td>Open frame LOT 1 (socle G1-G5) : backend pool_read_all/pool_read (contenu des atomes) + bindings chargeable (COLLECTIONS 4-&gt;5) ; loader frame.ts (11 types + integrite checkFrameRefs + workflow compte 1x) ; action UI OpenFramePanel + bouton 'Ouvrir un frame'. Charge SF2 : 8/8/16/5/3/2/1/17/1/1/1, 0 dangling. Gate Legolas PASS (412 front + 63 Rust verts). G6 (entite Portfolio) = LOT 2 a venir. Cablage IPC Tauri + test OpenFramePanel a recetter.</td></tr>
 <tr><td>2026-07-19 10:42</td><td><span class='r r-version'>version</span></td><td>v0.3.2</td><td>main</td><td>Fix boucle de rendu infinie onglet Methode (config litteral instable -&gt; workflowDoc reboucle a chaque rendu, CPU 100%). Option B : configRef stabilise l'identite du doc dans useForgeDocument ; ForgeShell.tsx intact. +2 gardes anti-boucle. npm test global termine enfin vert (405/405). Corrige aussi la mauvaise attribution 'VM Docker saturee' de l'etat des lieux. Gate Legolas PASS 8/8.</td></tr>
 <tr><td>2026-07-19 09:20</td><td><span class='r r-version'>version</span></td><td>v0.3.1</td><td>main</td><td>Fix DocBar : garde backend en ecriture hors Tauri (message utilisateur propre au lieu d'une stack invoke) + reset saveAsOpen au Close/New (invite Save As orpheline). +2 tests vitest. Gate Legolas PASS 8/8. Inclut le protocole de recette Tauri (docs/recette-docbar-persistance.md). Hang pre-existant ForgeShell.test.tsx = ticket separe.</td></tr>
