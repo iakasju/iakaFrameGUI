@@ -322,28 +322,33 @@ describe("B-4 — binding « tout vide » ≡ kit pur (aucune émission)", () =>
 });
 
 describe("B-3 — avec binding, le modèle apparaît au bon endroit (depuis le Binding)", () => {
-  it("claudeCode : model: dans le frontmatter du subagent ssi model non vide", () => {
+  // Décision (parité CLI, specs/instructions/parite-generateurs-contrat.md §6.1) : le contrat
+  // `.claude/agents/<id>.md` **ne porte PAS `model`** — le modèle vit dans le `binding.json`
+  // (artefact séparé). La facette du binding qui pilote le contrat claude, c'est `tools`.
+  it("claudeCode : le contrat d'agent ne porte JAMAIS model (modèle → binding.json, hors contrat)", () => {
     const team = gabaritTeam();
     const b = bindingWithModel(team, "claude", "claude-sonnet-4-5");
     const tree = generateClaudeCodeKit(team, { binding: b });
     for (const [path, content] of Object.entries(tree.files)) {
       if (path.startsWith(".claude/agents/")) {
-        expect(content).toMatch(/\nmodel: claude-sonnet-4-5\n/);
+        expect(content).not.toMatch(/\nmodel:/);
       }
     }
   });
 
-  it("claudeCode : une persona à model vide n'émet pas de ligne model", () => {
+  it("claudeCode : tools câblés depuis le binding (scalaire virgule), omis si allowlist vide", () => {
     const team = gabaritTeam();
     const b = defaultBindingForNode(team, "claude");
-    // Seule la 1re persona (roleIndex 0) reçoit un modèle.
-    b.bindings[0].model = "opus";
+    // Seule la 1re persona reçoit une allowlist d'outils ; les autres → ligne tools omise.
+    const firstId = b.bindings[0].personaId;
+    b.bindings[0].tools = ["Read", "Grep", "Glob"];
     const tree = generateClaudeCodeKit(team, { binding: b });
-    const withModel = Object.entries(tree.files).filter(
-      ([p, c]) => p.startsWith(".claude/agents/") && /\nmodel:/.test(c),
+    const withTools = Object.entries(tree.files).filter(
+      ([p, c]) => p.startsWith(".claude/agents/") && /\ntools:/.test(c),
     );
-    expect(withModel).toHaveLength(1);
-    expect(withModel[0][1]).toContain("model: opus");
+    expect(withTools).toHaveLength(1);
+    expect(withTools[0][0]).toBe(`.claude/agents/${firstId}.md`);
+    expect(withTools[0][1]).toMatch(/\ntools: Read, Grep, Glob\n/);
   });
 
   it("openwebui : base_model_id = model du binding", () => {
@@ -375,12 +380,18 @@ describe("B-5 (renfort) — le modèle vient du Binding, jamais de la Team", () 
     expect(modelForPersona(b, "persona-inconnue")).toBe("");
   });
 
-  it("le même arbre pur est produit quelle que soit la team (aucun modèle dans la team)", () => {
-    // La team ne porte aucun modèle : c'est bien le binding (option) qui décide de l'émission.
+  it("claude : le contrat ne dépend que de tools ; un modèle seul n'altère pas l'arbre", () => {
+    // Décision parité CLI : le modèle est hors contrat claude (→ binding.json). Un binding qui ne
+    // fixe QUE le modèle produit donc un arbre identique au pur ; c'est `tools` qui le fait varier.
     const team = gabaritTeam();
-    const withModel = bindingWithModel(team, "claude", "opus");
-    const treePure = generateClaudeCodeKit(team);
-    const treeBound = generateClaudeCodeKit(team, { binding: withModel });
-    expect(JSON.stringify(treePure)).not.toBe(JSON.stringify(treeBound));
+    const modelOnly = bindingWithModel(team, "claude", "opus");
+    expect(JSON.stringify(generateClaudeCodeKit(team, { binding: modelOnly }))).toBe(
+      JSON.stringify(generateClaudeCodeKit(team)),
+    );
+    const withTools = defaultBindingForNode(team, "claude");
+    withTools.bindings[0].tools = ["Read"];
+    expect(JSON.stringify(generateClaudeCodeKit(team, { binding: withTools }))).not.toBe(
+      JSON.stringify(generateClaudeCodeKit(team)),
+    );
   });
 });

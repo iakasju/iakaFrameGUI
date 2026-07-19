@@ -345,6 +345,53 @@ function buildDocument(fields: (Field | undefined)[], body = ""): string {
   return `---\n${lines.join("\n")}\n---\n${body}`;
 }
 
+/**
+ * Extrait le corps d'un `.md` en **PRÉSERVANT exactement** ce qui suit le `---` fermant (y compris
+ * la ligne blanche de tête et le `\n` final). Miroir de `verbatimBody` du CLI
+ * (`generate-agents.js`) : contrairement à `parseFrontmatter().body` qui strippe les `\n` de tête,
+ * la byte-parité du **contrat déployé** exige cette ligne blanche de tête.
+ */
+export function verbatimBody(text: string): string {
+  const norm = String(text).replace(/^\uFEFF/, "");
+  const lines = norm.split(/\r?\n/);
+  if (lines[0] !== "---") return norm;
+  let end = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === "---" || lines[i] === "...") {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return norm;
+  return lines.slice(end + 1).join("\n");
+}
+
+/**
+ * Sérialise le **contrat d'agent Claude Code** `.claude/agents/<id>.md` — **format AUTORITÉ**
+ * partagé byte-à-byte avec le CLI (`renderAgentContract`, `generate-agents.js`). Ordre FIXE
+ * `name, description, tools?, guardrails` : `name` = **id** ; `tools` = **scalaire virgule OMIS si
+ * vide** (héritage de tous les outils) ; `guardrails` = **flow-list** ; **PAS de `model`** (le
+ * modèle vit dans le `binding.json`, hors contrat). Corps rendu verbatim.
+ */
+export function serializeAgentContract(
+  fm: { id: string; description: string; tools: string[]; guardrails: string[] },
+  body = "",
+): string {
+  const tools =
+    fm.tools.length > 0
+      ? ({ key: "tools", kind: "scalar", value: fm.tools.join(", ") } as Field)
+      : undefined;
+  return buildDocument(
+    [
+      { key: "name", kind: "scalar", value: fm.id },
+      { key: "description", kind: "scalar", value: fm.description },
+      tools,
+      { key: "guardrails", kind: "list", value: fm.guardrails },
+    ],
+    body,
+  );
+}
+
 /** Coerce une valeur de frontmatter en `string[]` (ids), défensif (ignore non-string/vides). */
 function asStringArray(raw: FrontmatterValue | undefined): string[] {
   if (!Array.isArray(raw)) return [];

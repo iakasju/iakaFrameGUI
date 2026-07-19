@@ -206,6 +206,22 @@ export function modelForPersona(
 }
 
 /**
+ * **Outils effectifs** d'une persona selon un binding (lookup) : `[]` si pas de binding, pas de
+ * liaison pour cette persona, ou allowlist vide. Miroir de `modelForPersona` pour la facette
+ * `tools` (I3 : `tools` est une facette d'exécution, elle vit dans le Binding, jamais dans la
+ * persona). Un `[]` signifie **aucune restriction émise** → ligne `tools:` **omise** dans le
+ * contrat (héritage de tous les outils).
+ */
+export function toolsForPersona(
+  binding: Binding | null | undefined,
+  personaId: string,
+): string[] {
+  if (!binding) return [];
+  const found = binding.bindings.find((b) => b.personaId === personaId);
+  return found ? found.tools : [];
+}
+
+/**
  * Sérialise un Binding pour le déploiement (`binding.json`). Passe par `parseBinding` pour
  * **garantir l'invariant** (aucune clé étrangère/credential ne peut fuiter, même si l'objet en
  * mémoire était pollué). Indenté + `\n` final (lisible sur disque).

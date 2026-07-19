@@ -108,5 +108,15 @@
     "dirty": true,
     "files": 16966,
     "note": "Modele de composition (cœur) : FrameAssignment triplet {runner,model,tools} + parseFrameBinding de-ampute (T4), checkFrameRefs elargi (T1 persona->skills/roleKey/guardrails, T5 workflow->roles, T6 team.guardrails, subskills subset+anti-self-ref), reservoir ReservoirElement 'skill' + composition skill<-skills, projection tools en facette du binding (OpenFramePanel). Gate Legolas PASS (471 front + 75 Rust verts). Miroir de iakaframe v0.17.9."
+  },
+  {
+    "date": "2026-07-19 21:01",
+    "reason": "version",
+    "version": "v0.3.9",
+    "branch": "main",
+    "commit": "03f2589 chore(iakaframe): update etat des lieux + commit global (version v0.3.8)",
+    "dirty": true,
+    "files": 16984,
+    "note": "Parite generateurs (GUI converge sur le CLI) : serializeAgentContract/renderAgentContract format autorite (name=id, description, tools depuis binding via toolsForPersona, guardrails, PAS de model), corps verbatim canon via loader de fixture -> byte-identique aux 8 contrats CLI ; test golden + garde sha256 (cliquet bilateral). model retire du contrat claude (vit dans binding.json) ; openwebui/codex non regresses. Gate Legolas PASS (475 front + 75 Rust verts)."
   }
 ]

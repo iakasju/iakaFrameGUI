@@ -19,7 +19,8 @@
  * Schémas de fichiers conformes à l'étape 0 (`specs/notes/claude-code-schemas-2026-07-06.md`).
  */
 
-import { modelForPersona } from "../binding";
+import { toolsForPersona } from "../binding";
+import { serializeAgentContract } from "../frontmatter";
 import { DEFAULT_METHOD_ID } from "../method";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
@@ -40,29 +41,54 @@ function json(value: unknown): string {
   return JSON.stringify(value, null, 2) + "\n";
 }
 
+/** Entrée du **contrat d'agent** (format autorité, partagé byte-à-byte avec le CLI). */
+export interface AgentContractInput {
+  /** `name:` du contrat = **id** slug (jamais le nom d'affichage). */
+  id: string;
+  /** `description:` — texte canon (fourni par un loader de fixture, ou synthétisé côté forge). */
+  description: string;
+  /** `tools:` — allowlist runner-scoped issue du **binding** (omise si vide). */
+  tools: string[];
+  /** `guardrails:` — flow-list des ids de garde (vocabulaire canon `identity, perimeter`, …). */
+  guardrails: string[];
+  /** Corps du contrat (verbatim canon côté parité, stub côté forge). */
+  body: string;
+}
+
 /**
- * `.claude/agents/<id>.md` — subagent Claude Code. Frontmatter **minimal** : `name`,
- * `description`. `tools` **absent** au MVP (non dérivable des données pures → hérite des outils
- * courants, cf. étape 0). Corps = system prompt du rôle.
- *
- * **`model`** (P7) : émis **uniquement si** `model` non vide (issu du Binding, jamais de la
- * Team). Sans binding (ou modèle vide) → **ligne omise** → frontmatter byte-identique à l'actuel
- * (non-régression B-2 ; binding « tout vide » ≡ kit pur, B-4).
+ * **Rendu du contrat d'agent** `.claude/agents/<id>.md` — format AUTORITÉ **convergé sur le CLI**
+ * (`renderAgentContract`, `generate-agents.js`). Ordre FIXE `name(=id), description, tools?,
+ * guardrails` ; **pas de `model`** (le modèle vit dans le `binding.json`, hors contrat). PUR.
+ * Verrouillé byte-à-byte par le golden de parité (`__tests__/parite-generateurs.test.ts`).
  */
-function renderAgent(team: Team, p: Persona, model: string): string {
+export function renderAgentContract(input: AgentContractInput): string {
+  return serializeAgentContract(
+    {
+      id: input.id,
+      description: input.description,
+      tools: input.tools,
+      guardrails: input.guardrails,
+    },
+    input.body,
+  );
+}
+
+/**
+ * `.claude/agents/<id>.md` **de la forge** (team PURE) : réutilise le format autorité
+ * `renderAgentContract`. `name` = **id** ; `tools` **câblés depuis le binding**
+ * (`toolsForPersona`, omis si vide) ; `guardrails` = ceux de la persona (flow-list) ; **jamais de
+ * `model`**. La `description` et le **corps** sont **synthétisés** ici (la team pure ne porte ni
+ * l'un ni l'autre — la parité byte-à-byte du corps canon passe par un loader de fixture, cf.
+ * `renderAgentContract` + `__tests__/parite-generateurs.test.ts`).
+ */
+function renderAgent(team: Team, p: Persona, tools: string[]): string {
   const role = roleLabel(p.roleKey);
   const badge = personaBadge(p);
   const skills =
     p.skills.length > 0
       ? p.skills.map((s) => `- \`${s}\``).join("\n")
       : "_Aucune skill attachée (déclaration MVP)._";
-  // `model:` conditionnel (P7) : émis SSI le binding fournit un modèle non vide pour la persona.
-  const modelLine = model.length > 0 ? `\nmodel: ${model}` : "";
-  return `---
-name: ${p.name}
-description: Persona incarnant le rôle « ${role} » de la team « ${team.name} ». À solliciter pour les tâches de ${role.toLowerCase()}.${modelLine}
----
-
+  const body = `
 # ${p.name} — rôle ${role}
 
 Pastille d'identité (canal d'identité iakaframe) : \`${badge}\`.
@@ -75,6 +101,13 @@ en cas de doute, remonte à la coordination plutôt que d'improviser.
 ## Skills attachées
 ${skills}
 `;
+  return renderAgentContract({
+    id: p.id,
+    description: `Persona incarnant le rôle « ${role} » de la team « ${team.name} ». À solliciter pour les tâches de ${role.toLowerCase()}.`,
+    tools,
+    guardrails: p.guardrails,
+    body,
+  });
 }
 
 /**
@@ -164,12 +197,12 @@ export function generateClaudeCodeKit(team: Team, opts?: KitGenOptions): KitFile
   const personas = [...team.personas].sort(byRoleThenId);
   const binding = opts?.binding;
 
-  // 1. Un subagent par persona (modèle émis SSI le binding en fournit un — sinon inchangé).
+  // 1. Un subagent par persona (`tools` câblés depuis le binding — omis si vide ; jamais de model).
   for (const p of personas) {
     files[`.claude/agents/${p.id}.md`] = renderAgent(
       team,
       p,
-      modelForPersona(binding, p.id),
+      toolsForPersona(binding, p.id),
     );
   }
 
