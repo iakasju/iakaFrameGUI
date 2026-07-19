@@ -21,10 +21,12 @@ use crate::paths::resolve_iakaframe_home;
 /// Extension des fichiers d'artefact de la bibliothèque.
 const LIBRARY_EXT: &str = "md";
 
-/// Collections gérées par la forge (les 4 onglets, Q-6 + P6b `workflows`). Sous-ensemble du
-/// mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/` (P6b) — à ne pas
-/// confondre avec le pool d'atomes read-only `<home>/library/workflows/` (`POOL_TYPES`, Q-9).
-const COLLECTIONS: [&str; 4] = ["teams", "methods", "kits", "workflows"];
+/// Collections gérées par la forge (les 4 onglets, Q-6 + P6b `workflows`) + `bindings` (G2 :
+/// appariement méthode↔team, à plat sous `<home>/bindings/`, chargeable pour « Open frame »).
+/// Sous-ensemble du mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/`
+/// (P6b) — à ne pas confondre avec le pool d'atomes read-only `<home>/library/workflows/`
+/// (`POOL_TYPES`, Q-9).
+const COLLECTIONS: [&str; 5] = ["teams", "methods", "kits", "workflows", "bindings"];
 
 /// Types d'ATOMES du pool `library/<type>/` (référencés par les assemblages, I1). En lecture
 /// seule : la forge n'édite pas encore les atomes (E2 différé), mais doit les **scanner** pour
@@ -170,6 +172,74 @@ pub fn pool_present_in(home: &Path) -> bool {
     home.join("library").is_dir()
 }
 
+/// Lit le **CONTENU `.md`** de chaque atome du pool `<home>/library/<pool_type>/` (G1 « Open
+/// frame » — pendant en contenu de `pool_list_in` qui ne rend que les ids). Dossier absent → `[]`.
+/// Trié par id (nom de fichier / dossier). Fichiers `.md` → contenu brut ; atomes « skill »
+/// (dossier `<id>/SKILL.md`) → contenu de `SKILL.md`. Ignore `_*` et `README.md` (miroir exact de
+/// `pool_list_in`). Fichiers illisibles ignorés ; le front parse le frontmatter (`@iakaframe/core`).
+pub fn pool_read_all_in(home: &Path, pool_type: &str) -> Result<Vec<String>, String> {
+    validate_pool_type(pool_type)?;
+    let dir = home.join("library").join(pool_type);
+    let entries = match std::fs::read_dir(&dir) {
+        Ok(e) => e,
+        Err(_) => return Ok(Vec::new()),
+    };
+    let mut named: Vec<(String, String)> = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        if name.starts_with('_') || name == "README.md" {
+            continue;
+        }
+        if path.is_dir() {
+            // Atome « skill » : l'id est le nom du dossier, le contenu est celui de `SKILL.md`.
+            let skill = path.join("SKILL.md");
+            if skill.exists() {
+                if let Ok(content) = std::fs::read_to_string(&skill) {
+                    named.push((name, content));
+                }
+            }
+        } else if path.extension().and_then(|e| e.to_str()) == Some(LIBRARY_EXT) {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                named.push((name.trim_end_matches(".md").to_string(), content));
+            }
+        }
+    }
+    named.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(named.into_iter().map(|(_, c)| c).collect())
+}
+
+/// Lit le contenu `.md` d'UN atome de pool par id (`<home>/library/<type>/<id>.md`, ou
+/// `<home>/library/<type>/<id>/SKILL.md` pour un skill). `None` si absent. Pendant unitaire de
+/// `pool_read_all_in` (G1). Garde d'autorité : type de pool + id validés (pas de traversée).
+pub fn pool_read_in(home: &Path, pool_type: &str, id: &str) -> Result<Option<String>, String> {
+    validate_pool_type(pool_type)?;
+    validate_id(id)?;
+    let id = id.trim();
+    let md_rel = Path::new("library")
+        .join(pool_type)
+        .join(format!("{id}.{LIBRARY_EXT}"));
+    let md_path = safe_path(home, &md_rel).map_err(|e| e.to_string())?;
+    if md_path.is_file() {
+        return match std::fs::read_to_string(&md_path) {
+            Ok(content) => Ok(Some(content)),
+            Err(e) => Err(e.to_string()),
+        };
+    }
+    let skill_rel = Path::new("library").join(pool_type).join(id).join("SKILL.md");
+    let skill_path = safe_path(home, &skill_rel).map_err(|e| e.to_string())?;
+    if skill_path.is_file() {
+        return match std::fs::read_to_string(&skill_path) {
+            Ok(content) => Ok(Some(content)),
+            Err(e) => Err(e.to_string()),
+        };
+    }
+    Ok(None)
+}
+
 // --- Commandes Tauri (façade unique côté front : `src/api/backend.ts`) ---
 
 /// Scanne les ids d'atomes du pool `library/<type>/` (I1). Racine introuvable → `[]`.
@@ -178,6 +248,24 @@ pub fn pool_list(pool_type: String) -> Result<Vec<String>, String> {
     match resolve_iakaframe_home() {
         Some(home) => pool_list_in(&home, &pool_type),
         None => Ok(Vec::new()),
+    }
+}
+
+/// Lit le CONTENU `.md` de tous les atomes du pool `library/<type>/` (G1). Racine introuvable → `[]`.
+#[tauri::command]
+pub fn pool_read_all(pool_type: String) -> Result<Vec<String>, String> {
+    match resolve_iakaframe_home() {
+        Some(home) => pool_read_all_in(&home, &pool_type),
+        None => Ok(Vec::new()),
+    }
+}
+
+/// Lit le contenu `.md` d'UN atome de pool par id (`null` si absent ou racine introuvable).
+#[tauri::command]
+pub fn pool_read(pool_type: String, id: String) -> Result<Option<String>, String> {
+    match resolve_iakaframe_home() {
+        Some(home) => pool_read_in(&home, &pool_type, &id),
+        None => Ok(None),
     }
 }
 
@@ -383,6 +471,102 @@ mod tests {
         std::fs::create_dir_all(skills.join("sans-skillmd")).unwrap();
         let ids = pool_list_in(&home, "skills").unwrap();
         assert_eq!(ids, vec!["iakaframe-cadrage".to_string()]);
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    // --- G1 : lecture du CONTENU des atomes de pool (`pool_read_all_in` / `pool_read_in`) ---
+
+    #[test]
+    fn pool_read_all_renvoie_les_contenus_tries_et_filtre() {
+        // N contenus non vides, triés par id, `_TEMPLATE`/`README.md`/non-`.md` exclus (critère E).
+        let home = tmp_dir("poolreadall");
+        let dir = home.join("library").join("personas");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("odin.md"), "---\nid: odin\n---\n# Odin\n").unwrap();
+        std::fs::write(dir.join("aragorn.md"), "---\nid: aragorn\n---\n# Aragorn\n").unwrap();
+        std::fs::write(dir.join("_TEMPLATE.md"), "ignore").unwrap();
+        std::fs::write(dir.join("README.md"), "ignore").unwrap();
+        std::fs::write(dir.join("notes.txt"), "ignore").unwrap();
+        let got = pool_read_all_in(&home, "personas").unwrap();
+        assert_eq!(got.len(), 2);
+        assert!(got[0].contains("id: aragorn")); // tri par id : aragorn avant odin
+        assert!(got[1].contains("id: odin"));
+        assert!(got.iter().all(|c| !c.is_empty()));
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_read_all_lit_les_skills_via_skill_md() {
+        // Un atome « skill » est un DOSSIER : le contenu lu est celui de `<id>/SKILL.md` (critère E).
+        let home = tmp_dir("poolreadskill");
+        let skills = home.join("library").join("skills");
+        std::fs::create_dir_all(skills.join("iakaframe-cadrage")).unwrap();
+        std::fs::write(
+            skills.join("iakaframe-cadrage").join("SKILL.md"),
+            "---\nid: iakaframe-cadrage\n---\n# corps skill\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(skills.join("sans-skillmd")).unwrap(); // dossier sans SKILL.md → ignoré
+        let got = pool_read_all_in(&home, "skills").unwrap();
+        assert_eq!(got.len(), 1);
+        assert!(got[0].contains("id: iakaframe-cadrage"));
+        assert!(got[0].contains("corps skill"));
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_read_all_dossier_absent_renvoie_vide() {
+        let home = tmp_dir("poolreadvoid");
+        assert!(pool_read_all_in(&home, "guardrails").unwrap().is_empty());
+    }
+
+    #[test]
+    fn pool_read_all_type_invalide_est_refuse() {
+        let home = tmp_dir("poolreadbad");
+        assert!(pool_read_all_in(&home, "secrets").is_err());
+        assert!(pool_read_all_in(&home, "..").is_err());
+    }
+
+    #[test]
+    fn pool_read_un_atome_md_ou_skill_ou_absent() {
+        let home = tmp_dir("poolreadone");
+        let personas = home.join("library").join("personas");
+        std::fs::create_dir_all(&personas).unwrap();
+        std::fs::write(personas.join("odin.md"), "---\nid: odin\n---\n").unwrap();
+        let skills = home.join("library").join("skills");
+        std::fs::create_dir_all(skills.join("iakaframe-cadrage")).unwrap();
+        std::fs::write(
+            skills.join("iakaframe-cadrage").join("SKILL.md"),
+            "---\nid: iakaframe-cadrage\n---\n",
+        )
+        .unwrap();
+        assert!(pool_read_in(&home, "personas", "odin")
+            .unwrap()
+            .unwrap()
+            .contains("id: odin"));
+        assert!(pool_read_in(&home, "skills", "iakaframe-cadrage")
+            .unwrap()
+            .unwrap()
+            .contains("id: iakaframe-cadrage"));
+        assert_eq!(pool_read_in(&home, "personas", "inconnu").unwrap(), None);
+        assert!(pool_read_in(&home, "personas", "../evil").is_err());
+        assert!(pool_read_in(&home, "secrets", "x").is_err());
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    // --- G2 : `bindings` est une collection chargeable (`library_list("bindings")`) ---
+
+    #[test]
+    fn bindings_est_une_collection_chargeable() {
+        // Layout SF2 reproduit : un `bindings/<id>.md` à plat → `list_in("bindings")` = 1 (critère C/E).
+        let home = tmp_dir("bindings");
+        let md = "---\nid: iakaframe-claude-default\nmethodId: iakaframe\nteamId: iakaframe-8\nnode: claude\n---\n# binding\n";
+        write_in(&home, "bindings", "iakaframe-claude-default", md).unwrap();
+        let got = list_in(&home, "bindings").unwrap();
+        assert_eq!(got.len(), 1);
+        assert!(got[0].contains("id: iakaframe-claude-default"));
+        // Garde d'autorité inchangée : un type/collection hors périmètre reste refusé.
+        assert!(list_in(&home, "secrets").is_err());
         std::fs::remove_dir_all(&home).ok();
     }
 }

@@ -44,6 +44,7 @@ import {
 } from "./mappers";
 import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
+import { OpenFramePanel } from "../components/OpenFramePanel";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
@@ -78,6 +79,7 @@ export function ForgeShell() {
   const handoff = useForgeHandoff();
   const [tab, setTab] = useState<Tab>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [frameOpen, setFrameOpen] = useState(false);
 
   // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
   const learning = useForgeLearning();
@@ -240,6 +242,15 @@ export function ForgeShell() {
         <button
           type="button"
           className="settings-toggle"
+          aria-pressed={frameOpen}
+          title="Ouvrir un frame — charger et compter les 11 types"
+          onClick={() => setFrameOpen((v) => !v)}
+        >
+          Ouvrir un frame
+        </button>
+        <button
+          type="button"
+          className="settings-toggle"
           aria-pressed={settingsOpen}
           title="Réglages — racine de la bibliothèque"
           onClick={() => setSettingsOpen((v) => !v)}
@@ -270,6 +281,12 @@ export function ForgeShell() {
             disabled={activeDoc.artifact === null}
           />
         </>
+      )}
+
+      {frameOpen && (
+        <div className="settings-panel">
+          <OpenFramePanel />
+        </div>
       )}
 
       {settingsOpen && (

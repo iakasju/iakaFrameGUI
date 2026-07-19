@@ -84,7 +84,12 @@ export function workspacePath(): Promise<string> {
  * **éditable** `<home>/workflows/` (P6b) — **distincte** du pool d'atomes read-only
  * `<home>/library/workflows/` (`PoolType`, cf. Q-9 : même nom, deux espaces séparés au MVP).
  */
-export type LibraryCollection = "teams" | "methods" | "kits" | "workflows";
+export type LibraryCollection =
+  | "teams"
+  | "methods"
+  | "kits"
+  | "workflows"
+  | "bindings";
 
 /**
  * Liste le contenu `.md` brut de chaque artefact de `<home>/<collection>/` (scan, invariant I2).
@@ -137,6 +142,21 @@ export type PoolType =
  */
 export function poolList(poolType: PoolType): Promise<string[]> {
   return call<string[]>("pool_list", { poolType });
+}
+
+/**
+ * Lit le **CONTENU `.md`** de tous les atomes du pool `<home>/library/<type>/` (G1 « Open frame »
+ * — pendant en contenu de `poolList` qui ne rend que les ids). Le front parse chaque entrée via le
+ * parseur `@iakaframe/core` du type (skills : le contenu est celui de `<id>/SKILL.md`). Dossier /
+ * racine absent → `[]` (Rust ne rejette pas).
+ */
+export function poolReadAll(poolType: PoolType): Promise<string[]> {
+  return call<string[]>("pool_read_all", { poolType });
+}
+
+/** Lit le `.md` d'UN atome de pool par id (`null` si absent ou racine non résolue). */
+export function poolRead(poolType: PoolType, id: string): Promise<string | null> {
+  return call<string | null>("pool_read", { poolType, id });
 }
 
 /**
@@ -518,6 +538,8 @@ export const backend = {
   libraryWrite,
   libraryExists,
   poolList,
+  poolReadAll,
+  poolRead,
   poolPresent,
   iakaframeHome,
   setIakaframeHome,
