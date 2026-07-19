@@ -15,25 +15,10 @@ import { useCallback, useState } from "react";
 import { backend, type Backend } from "../api/backend";
 import {
   FRAME_TYPES,
+  FRAME_TYPE_LABELS,
   loadFrame,
   type Frame,
-  type FrameType,
 } from "../forge/frame";
-
-/** Libellés d'affichage des 11 types (ordre `FRAME_TYPES` : 8 pools puis 3 assemblages). */
-const TYPE_LABELS: Record<FrameType, string> = {
-  personas: "Personas",
-  roles: "Rôles",
-  principles: "Principes",
-  rituals: "Rituels",
-  guardrails: "Gardes-fous",
-  scaffolds: "Scaffolds",
-  workflows: "Workflows",
-  skills: "Skills",
-  teams: "Teams",
-  methods: "Méthodes",
-  bindings: "Bindings",
-};
 
 export function OpenFramePanel({ api = backend }: { api?: Backend }) {
   const [frame, setFrame] = useState<Frame | null>(null);
@@ -116,8 +101,11 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
             <tbody>
               {FRAME_TYPES.map((type) => (
                 <tr key={type}>
-                  <td>{TYPE_LABELS[type]}</td>
-                  <td className="count" aria-label={`${TYPE_LABELS[type]} : ${frame.counts[type]}`}>
+                  <td>{FRAME_TYPE_LABELS[type]}</td>
+                  <td
+                    className="count"
+                    aria-label={`${FRAME_TYPE_LABELS[type]} : ${frame.counts[type]}`}
+                  >
                     {frame.counts[type]}
                   </td>
                 </tr>

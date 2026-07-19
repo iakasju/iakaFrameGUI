@@ -17,6 +17,7 @@ import {
   parseFrame,
   parseFrameBinding,
   FRAME_TYPES,
+  FRAME_TYPE_LABELS,
   POOL_FRAME_TYPES,
   COLLECTION_FRAME_TYPES,
   type Frame,
@@ -39,6 +40,7 @@ export {
   parseFrame,
   parseFrameBinding,
   FRAME_TYPES,
+  FRAME_TYPE_LABELS,
   POOL_FRAME_TYPES,
   COLLECTION_FRAME_TYPES,
 };

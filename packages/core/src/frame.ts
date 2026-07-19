@@ -59,6 +59,26 @@ export type PoolFrameType = (typeof POOL_FRAME_TYPES)[number];
 export type CollectionFrameType = (typeof COLLECTION_FRAME_TYPES)[number];
 export type FrameType = (typeof FRAME_TYPES)[number];
 
+/**
+ * Libellés FR des 11 types de frame — **source unique** (à côté de `FRAME_TYPES`), réutilisée par
+ * l'affichage du réservoir (`reservoir.ts`) ET par la GUI (`OpenFramePanel`). Zéro doublon : les
+ * consommateurs importent cette map plutôt que de la redéfinir localement. Clés = exactement les 11
+ * `FRAME_TYPES` (le type `Record<FrameType, string>` garantit qu'aucune clé ne manque ni n'est en trop).
+ */
+export const FRAME_TYPE_LABELS: Record<FrameType, string> = {
+  personas: "Personas",
+  roles: "Rôles",
+  principles: "Principes",
+  rituals: "Rituels",
+  guardrails: "Gardes-fous",
+  scaffolds: "Scaffolds",
+  workflows: "Workflows",
+  skills: "Skills",
+  teams: "Teams",
+  methods: "Méthodes",
+  bindings: "Bindings",
+};
+
 // ---------------------------------------------------------------------------
 // 2. Intégrité référentielle (critère B) — miroir en mémoire de `refs.ts`/`checkRefs`.
 // ---------------------------------------------------------------------------

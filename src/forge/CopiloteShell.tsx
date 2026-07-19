@@ -10,38 +10,70 @@
  * `onApply` (les **mêmes chemins d'insertion** que le `+` du rail). « Rejeter » jette sans rien
  * changer. Le **LLM réel est [différé]** (§8/§11) : ici tout vient du mock déterministe `propose`.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AUTHORING_RUNNERS,
+  NO_AUTHORING_MODEL_HINT,
   propose,
   type AuthoringRunner,
   type CopiloteContext,
   type MaterializeOp,
   type Proposition,
 } from "./mock/copilote";
+import { backend, type Backend } from "../api/backend";
 
 export function CopiloteShell({
   subject,
   context,
   onApply,
   placeholder = "Décrivez une intention…",
+  api = backend,
+  model,
 }: {
   subject: string;
   context: CopiloteContext;
   /** Matérialise les ops via le **chemin d'insertion réel** de l'atelier (Valider). */
   onApply: (ops: MaterializeOp[]) => void;
   placeholder?: string;
+  /** Backend injectable (tests) — sert à lire le **modèle d'authoring** configuré (§ Volet B). */
+  api?: Backend;
+  /** Modèle d'authoring imposé (tests) — sinon lu depuis les Settings (`authoringModel`). */
+  model?: string;
 }) {
   const [prompt, setPrompt] = useState("");
   const [runner, setRunner] = useState<AuthoringRunner>(AUTHORING_RUNNERS[0]);
   const [proposition, setProposition] = useState<Proposition | null>(null);
   const [done, setDone] = useState<null | "validated" | "rejected">(null);
+  // § Volet B : le modèle d'authoring UNIQUE et global, lu depuis les Settings (persisté comme
+  // `iakaframeHome`). **Aucun défaut** : vide tant que rien n'est réglé → l'absence est signalée
+  // (jamais masquée). Défensif hors Tauri : le mock reste actif, il indique juste l'absence de modèle.
+  const [configuredModel, setConfiguredModel] = useState<string>(model ?? "");
+
+  useEffect(() => {
+    if (model !== undefined) {
+      setConfiguredModel(model);
+      return;
+    }
+    let alive = true;
+    void api
+      .authoringModel()
+      .then((m) => {
+        if (alive && m && m.trim().length > 0) setConfiguredModel(m.trim());
+      })
+      .catch(() => {
+        /* hors Tauri / non défini : on garde le défaut (le copilote reste mocké) */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [api, model]);
 
   function handlePropose() {
     const trimmed = prompt.trim();
     if (trimmed.length === 0) return;
     // Runner d'authoring MOCKÉ, déterministe, sans réseau — sortie identique pour la même entrée.
-    setProposition(propose(trimmed, context));
+    // § Volet B : le modèle configuré PARAMÈTRE le mock (injecté dans le contexte) — pas d'appel LLM.
+    setProposition(propose(trimmed, { ...context, model: configuredModel }));
     setDone(null);
   }
 
@@ -78,6 +110,15 @@ export function CopiloteShell({
               </option>
             ))}
           </select>
+          <span className="authoring-model" aria-label="Modèle d'authoring configuré">
+            {configuredModel ? (
+              <>
+                modèle : <code>{configuredModel}</code>
+              </>
+            ) : (
+              <em className="no-model">{NO_AUTHORING_MODEL_HINT}</em>
+            )}
+          </span>
         </span>
       </div>
 
@@ -88,7 +129,17 @@ export function CopiloteShell({
             {proposition.intention}
           </div>
           <div className="amsg">
-            <div className="who">Copilote de forge · proposition · LLM mocké</div>
+            <div className="who">
+              Copilote de forge · proposition ·{" "}
+              {proposition.model ? (
+                <>
+                  modèle <code>{proposition.model}</code>
+                </>
+              ) : (
+                <em className="no-model">{NO_AUTHORING_MODEL_HINT}</em>
+              )}{" "}
+              · LLM mocké
+            </div>
             <p>{proposition.intro}</p>
             {proposition.artefacts.map((a, i) => (
               <div className="arte" key={`arte-${i}`}>

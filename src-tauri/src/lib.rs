@@ -50,6 +50,8 @@ pub fn run() {
             library_store::pool_present,
             settings::iakaframe_home,
             settings::set_iakaframe_home,
+            settings::authoring_model,
+            settings::set_authoring_model,
             kit_deploy::kit_deploy,
             handoff::handoff_deliver,
             handoff::now_millis,

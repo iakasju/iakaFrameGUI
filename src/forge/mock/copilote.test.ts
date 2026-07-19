@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { RUNNER_KINDS } from "@iakaframe/core";
 import {
   AUTHORING_RUNNERS,
+  NO_AUTHORING_MODEL_HINT,
   propose,
   type CopiloteContext,
 } from "./copilote";
@@ -74,6 +75,34 @@ describe("copilote mocké — déterministe & sans réseau (E2c §8)", () => {
     // qualite absent → del(avant) + add(après).
     const fresh = propose("un rapport qualité", methodeCtx);
     expect(fresh.diff.some((d) => d.kind === "add")).toBe(true);
+  });
+});
+
+describe("copilote mocké — consomme le MODÈLE d'authoring configuré (§ Volet B)", () => {
+  it("modèle configuré (context.model) → la proposition le porte + il apparaît dans le hint", () => {
+    const p = propose("un rapport qualité", { ...methodeCtx, model: "ollama:qwen2.5-coder" });
+    expect(p.model).toBe("ollama:qwen2.5-coder");
+    expect(p.hint).toContain("ollama:qwen2.5-coder");
+  });
+
+  it("aucun modèle configuré → modèle VIDE + l'absence est signalée dans le hint (aucun défaut)", () => {
+    const p = propose("un rapport qualité", methodeCtx);
+    expect(p.model).toBe("");
+    expect(p.hint).toContain(NO_AUTHORING_MODEL_HINT);
+  });
+
+  it("modèle vide/espaces → modèle VIDE + absence signalée (défensif, aucun défaut)", () => {
+    const p = propose("un rapport qualité", { ...methodeCtx, model: "   " });
+    expect(p.model).toBe("");
+    expect(p.hint).toContain(NO_AUTHORING_MODEL_HINT);
+  });
+
+  it("le modèle ne change NI les ops NI le diff (paramètre d'exécuteur, pas de contenu)", () => {
+    const base = propose("un rapport qualité", methodeCtx);
+    const withModel = propose("un rapport qualité", { ...methodeCtx, model: "gpt-4o" });
+    expect(withModel.ops).toEqual(base.ops);
+    expect(withModel.diff).toEqual(base.diff);
+    expect(withModel.artefacts).toEqual(base.artefacts);
   });
 });
 

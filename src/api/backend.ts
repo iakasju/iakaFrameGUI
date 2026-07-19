@@ -180,6 +180,21 @@ export function setIakaframeHome(path: string): Promise<void> {
   return call<void>("set_iakaframe_home", { path });
 }
 
+/**
+ * **Modèle d'authoring** unique et global (§ Volet B) : l'identifiant/endpoint de modèle utilisé par
+ * TOUS les prompts d'authoring de la forge (tous les étages, pas par persona). `null` si non défini
+ * (l'UI affiche alors le défaut). Persisté comme `iakaframeHome` dans `<workspace>/settings.json`.
+ * Réglage build-time, DISTINCT du runner d'EXÉCUTION du Binding (frontière authoring ≠ exécution).
+ */
+export function authoringModel(): Promise<string | null> {
+  return call<string | null>("authoring_model");
+}
+
+/** Définit (ou retire, si vide) le modèle d'authoring persisté. Suit le pattern de `setIakaframeHome`. */
+export function setAuthoringModel(model: string): Promise<void> {
+  return call<void>("set_authoring_model", { model });
+}
+
 // --- Déploiement de kit (P3 : écrit une arborescence générée dans un dossier cible) ---
 
 /**
@@ -543,6 +558,8 @@ export const backend = {
   poolPresent,
   iakaframeHome,
   setIakaframeHome,
+  authoringModel,
+  setAuthoringModel,
   kitDeploy,
   handoffDeliver,
   nowMillis,

@@ -35,6 +35,15 @@ export const AUTHORING_RUNNERS = [
 
 export type AuthoringRunner = (typeof AUTHORING_RUNNERS)[number];
 
+/**
+ * **Pas de modèle d'authoring par défaut** (§ Volet B, ajustement décideur) : l'utilisateur DOIT
+ * pointer un modèle dans les Réglages (`authoringModel`). Tant qu'aucun n'est réglé, le modèle est
+ * **vide** — le copilote ne masque **jamais** l'absence par un défaut ; il la **signale** via ce
+ * message clair (affiché dans le hint de la proposition et dans l'en-tête de la console).
+ */
+export const NO_AUTHORING_MODEL_HINT =
+  "aucun modèle d'authoring configuré — pointez-en un dans les Réglages";
+
 // ---------------------------------------------------------------------------
 // Types de la boucle proposition → diff → matérialisation.
 // ---------------------------------------------------------------------------
@@ -87,6 +96,13 @@ export interface DiffLine {
 export interface Proposition {
   /** L'intention reçue, renvoyée telle quelle (bulle utilisateur). */
   intention: string;
+  /**
+   * Le **modèle d'authoring** ciblé (§ Volet B) — lu depuis `CopiloteContext.model` (Settings).
+   * **Aucun défaut** : si aucun modèle n'est configuré, ce champ est la **chaîne vide** et l'absence
+   * est signalée dans `hint` (jamais masquée par un modèle de repli). **L'inférence LLM live réelle
+   * est [différée]** : ici aucun appel réseau — le modèle ne fait que **paramétrer** l'exécuteur mocké.
+   */
+  model: string;
   /** Phrase d'introduction du copilote (bulle assistant). */
   intro: string;
   /** Les artefacts proposés (le copilote peut en proposer plusieurs d'un coup). */
@@ -108,6 +124,13 @@ export interface CopiloteContext {
   present: Partial<Record<MaterializeTarget, string[]>>;
   /** Nom de fichier cible pour l'en-tête du diff (ex. "gimli.md", "methode.md", "kit.json"). */
   diffFile?: string;
+  /**
+   * **Modèle d'authoring** configuré (§ Volet B, Settings `authoringModel`), UNIQUE et global (tous
+   * les étages). Injecté par la console ; le mock le consomme. **Aucun défaut** : absent/vide →
+   * l'absence est signalée (jamais un modèle de repli). NON persisté dans l'élément (build-time) et
+   * sans rapport avec le runner d'EXÉCUTION du Binding.
+   */
+  model?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,13 +246,24 @@ function buildDiff(ops: MaterializeOp[], context: CopiloteContext): DiffLine[] {
 export function propose(intention: string, context: CopiloteContext): Proposition {
   const text = normalize(intention);
   const diffFile = `${context.diffFile ?? "artefact"} · avant → après`;
+  // § Volet B : le modèle d'authoring configuré (Settings) — **aucun défaut**. Absent/vide → chaîne
+  // vide, et l'absence est SIGNALÉE dans le hint (jamais masquée). L'inférence LLM live réelle reste
+  // **différée** (aucun appel réseau ici) ; le modèle ne fait que paramétrer l'exécuteur mocké.
+  const model =
+    typeof context.model === "string" && context.model.trim().length > 0
+      ? context.model.trim()
+      : "";
+  const modelPart = model
+    ? `Modèle d'authoring ciblé : ${model} (mocké · inférence live différée).`
+    : `${NO_AUTHORING_MODEL_HINT} (mock actif · inférence live différée).`;
   const hint =
-    context.surface === "methode"
-      ? "La méthode ne nomme aucun agent : que la discipline. La forge n'écrit rien sans votre validation."
-      : "La forge n'écrit rien sans votre validation.";
+    (context.surface === "methode"
+      ? "La méthode ne nomme aucun agent : que la discipline. "
+      : "") + `${modelPart} La forge n'écrit rien sans votre validation.`;
 
   const build = (intro: string, artefacts: ProposedArtefact[], ops: MaterializeOp[]): Proposition => ({
     intention,
+    model,
     intro,
     artefacts,
     diff: buildDiff(ops, context),

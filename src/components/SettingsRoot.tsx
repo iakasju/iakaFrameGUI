@@ -4,6 +4,10 @@
  * **override manuel** (sélecteur de dossier natif) persisté dans `<workspace>/settings.json`, et
  * rappelle la commande `export IAKAFRAME_HOME=…` pour que le **CLI voie la même racine** (un GUI ne
  * peut pas fixer l'env d'un autre process — arbitrage Q-2). Backend injectable (tests).
+ *
+ * § Volet B : porte aussi le **modèle d'authoring** UNIQUE et global (`authoringModel`) — l'identifiant/
+ * endpoint de modèle utilisé par TOUS les prompts d'authoring de la forge (pas par persona). Persisté
+ * comme `iakaframeHome` (même `<workspace>/settings.json`). Build-time, DISTINCT du runner d'EXÉCUTION.
  */
 import { useCallback, useEffect, useState } from "react";
 import { backend, type Backend } from "../api/backend";
@@ -12,6 +16,10 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
   const [home, setHome] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  // § Volet B : le modèle d'authoring persisté (`null` = non défini → **aucun défaut** : le copilote
+  // signale l'absence). `draft` = la saisie en cours (identifiant/endpoint), enregistrée à la demande.
+  const [model, setModel] = useState<string | null>(null);
+  const [modelDraft, setModelDraft] = useState<string>("");
 
   const refresh = useCallback(async () => {
     let resolved: string | null = null;
@@ -21,12 +29,46 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
       resolved = null;
     }
     setHome(resolved);
+    let resolvedModel: string | null = null;
+    try {
+      resolvedModel = await api.authoringModel();
+    } catch {
+      resolvedModel = null;
+    }
+    setModel(resolvedModel);
+    setModelDraft(resolvedModel ?? "");
     setLoaded(true);
   }, [api]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const saveModel = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setAuthoringModel(modelDraft.trim());
+      await refresh();
+    } catch {
+      /* hors Tauri / erreur : on ne casse pas le rendu */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, modelDraft, refresh]);
+
+  // Efface le modèle : `setAuthoringModel("")` retire la clé `authoringModel` (il n'y a **aucun
+  // défaut** — le champ revient vide et le copilote signale l'absence tant qu'aucun n'est réglé).
+  const clearModel = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setAuthoringModel("");
+      await refresh();
+    } catch {
+      /* no-op */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, refresh]);
 
   const choose = useCallback(async () => {
     setBusy(true);
@@ -82,6 +124,44 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
         <button type="button" className="docbtn" disabled={busy} onClick={() => void reset()}>
           Réinitialiser (auto)
         </button>
+      </div>
+
+      {/* § Volet B : modèle d'authoring UNIQUE et global (tous les étages, pas par persona). */}
+      <div className="settings-authoring" aria-label="Modèle d'authoring iakaFrameGUI">
+        <h3>Modèle d'authoring</h3>
+        <p className="settings-hint">
+          Un seul modèle, global : l'identifiant/endpoint utilisé pour <b>tous</b> les prompts
+          d'authoring (tous les étages). Build-time — <b>distinct</b> du runner d'exécution du
+          Binding. {model ? null : <>Non défini : <b>pointez un modèle</b> — le copilote signale l'absence tant qu'aucun n'est réglé (aucun défaut).</>}
+        </p>
+        <div className="settings-actions">
+          <input
+            type="text"
+            className="model-input"
+            aria-label="Identifiant ou endpoint du modèle d'authoring"
+            placeholder="ex. ollama:qwen2.5-coder"
+            value={modelDraft}
+            disabled={busy}
+            onChange={(e) => setModelDraft(e.target.value)}
+          />
+          <button type="button" className="docbtn" disabled={busy} onClick={() => void saveModel()}>
+            Enregistrer le modèle
+          </button>
+          <button
+            type="button"
+            className="docbtn"
+            disabled={busy}
+            onClick={() => void clearModel()}
+            title="Retire le modèle configuré (le champ revient vide — aucun défaut)"
+          >
+            Effacer
+          </button>
+        </div>
+        {model && (
+          <p className="settings-line">
+            Modèle configuré : <code className="model-value">{model}</code>
+          </p>
+        )}
       </div>
     </section>
   );

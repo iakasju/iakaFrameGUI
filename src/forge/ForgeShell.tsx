@@ -45,6 +45,8 @@ import {
 import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
 import { OpenFramePanel } from "../components/OpenFramePanel";
+import { ReservoirPanel } from "./ReservoirPanel";
+import type { ReservoirElement } from "@iakaframe/core";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
@@ -56,6 +58,17 @@ import { useForgeLearning } from "../hooks/useForgeLearning";
 import { useForgeRetrait } from "../hooks/useForgeRetrait";
 
 type Tab = "team" | "methode" | "kit" | "workflow" | "apprentissage";
+
+/**
+ * Élément dont on montre le réservoir (Volet A) pour l'onglet actif : Team→team, Méthode→method,
+ * Kit→kit ; les onglets sans mapping direct (workflow/apprentissage) retombent sur le frame entier.
+ */
+function reservoirElementForTab(tab: Tab): ReservoirElement {
+  if (tab === "team") return "team";
+  if (tab === "methode") return "method";
+  if (tab === "kit") return "kit";
+  return "frame";
+}
 
 const TABS: { key: Tab; label: string; sub: string }[] = [
   { key: "team", label: "Team", sub: "casting pur" },
@@ -80,6 +93,7 @@ export function ForgeShell() {
   const [tab, setTab] = useState<Tab>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [frameOpen, setFrameOpen] = useState(false);
+  const [reservoirOpen, setReservoirOpen] = useState(false);
 
   // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
   const learning = useForgeLearning();
@@ -251,6 +265,15 @@ export function ForgeShell() {
         <button
           type="button"
           className="settings-toggle"
+          aria-pressed={reservoirOpen}
+          title="Réservoir — le stock des sous-éléments de l'élément courant"
+          onClick={() => setReservoirOpen((v) => !v)}
+        >
+          Réservoir
+        </button>
+        <button
+          type="button"
+          className="settings-toggle"
           aria-pressed={settingsOpen}
           title="Réglages — racine de la bibliothèque"
           onClick={() => setSettingsOpen((v) => !v)}
@@ -286,6 +309,12 @@ export function ForgeShell() {
       {frameOpen && (
         <div className="settings-panel">
           <OpenFramePanel />
+        </div>
+      )}
+
+      {reservoirOpen && (
+        <div className="settings-panel">
+          <ReservoirPanel element={reservoirElementForTab(tab)} />
         </div>
       )}
 

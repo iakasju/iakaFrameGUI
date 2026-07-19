@@ -78,5 +78,15 @@
     "dirty": true,
     "files": 15149,
     "note": "Dette doc : comptes SF2 rafraichis dans g6-super-etage-portfolio.md AC-2 (principes 14->16, skills 16->17). Doc uniquement."
+  },
+  {
+    "date": "2026-07-19 12:52",
+    "reason": "version",
+    "version": "v0.3.6",
+    "branch": "main",
+    "commit": "19d0119 chore(iakaframe): update etat des lieux + commit global (version v0.3.5)",
+    "dirty": true,
+    "files": 15266,
+    "note": "Forge : reservoir de sous-elements (buildReservoir cœur pur adosse a G1/G2 + panneau read-only) + modele d'authoring dans les Settings (persiste comme iakaframeHome, un seul modele global pour tous les etages). Modele VIDE par defaut (config forcee) -> copilote mock signale 'aucun modele configure'. Libelles des 11 types en source unique (core/frame.ts). Frontiere authoring != execution respectee ; inference LLM live differee. Gate Legolas PASS (445 front + 67 Rust verts). Reste : recette IPC Tauri."
   }
 ]

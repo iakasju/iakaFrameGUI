@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { render, fireEvent, within } from "@testing-library/react";
+import { render, fireEvent, within, waitFor } from "@testing-library/react";
 import { MethodeAtelier } from "./ateliers/MethodeAtelier";
 import { useForgeMethod } from "./useForgeMethod";
+import { CopiloteShell } from "./CopiloteShell";
+import type { Backend } from "../api/backend";
+import type { CopiloteContext } from "./mock/copilote";
 
 /**
  * Harnais : le VRAI état d'authoring de méthode (insertion réelle) branché sur l'atelier — la
@@ -80,6 +83,50 @@ describe("CopiloteShell — boucle intention → proposition → diff → valide
     expect(copilote(container).querySelector(".conv")).toBeNull();
     expect(mdpane(container).textContent).not.toContain("log-conversation");
     expect(copilote(container).textContent).toContain("rejetée");
+  });
+
+  it("MODÈLE d'authoring (§ Volet B) : la console lit `authoringModel` des Settings et le consomme", async () => {
+    const api = {
+      authoringModel: async () => "ollama:qwen2.5-coder",
+    } as unknown as Backend;
+    const context: CopiloteContext = { surface: "methode", diffFile: "methode.md", present: {} };
+    const { container } = render(
+      <div className="forge">
+        <CopiloteShell subject="test" context={context} onApply={() => {}} api={api} />
+      </div>,
+    );
+    const c = container.querySelector(".copilote") as HTMLElement;
+    // Le modèle configuré s'affiche dans l'en-tête (asynchrone : lu depuis le backend injecté).
+    await waitFor(() =>
+      expect(within(c).getByLabelText(/Modèle d'authoring configuré/).textContent).toContain(
+        "ollama:qwen2.5-coder",
+      ),
+    );
+    // Et une proposition le PORTE (le mock est paramétré par le modèle, pas par un défaut en dur).
+    const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "un rapport qualité" } });
+    fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
+    expect(c.querySelector(".amsg")?.textContent).toContain("ollama:qwen2.5-coder");
+  });
+
+  it("MODÈLE absent (§ Volet B) : aucun défaut → l'absence est signalée (console + proposition)", () => {
+    const api = { authoringModel: async () => null } as unknown as Backend;
+    const context: CopiloteContext = { surface: "methode", diffFile: "methode.md", present: {} };
+    const { container } = render(
+      <div className="forge">
+        <CopiloteShell subject="test" context={context} onApply={() => {}} api={api} />
+      </div>,
+    );
+    const c = container.querySelector(".copilote") as HTMLElement;
+    // En-tête : pas de modèle par défaut, mais un état clair d'absence.
+    expect(within(c).getByLabelText(/Modèle d'authoring configuré/).textContent).toContain(
+      "aucun modèle d'authoring configuré",
+    );
+    // La proposition signale aussi l'absence (dans le hint) sans inventer de modèle.
+    const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "un rapport qualité" } });
+    fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
+    expect(c.querySelector(".hint")?.textContent).toContain("aucun modèle d'authoring configuré");
   });
 
   it("FRONTIÈRE : le sélecteur de la console est un runner d'AUTHORING mocké (pas d'exécution)", () => {
