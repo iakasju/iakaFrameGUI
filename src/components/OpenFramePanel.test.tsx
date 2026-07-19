@@ -45,7 +45,17 @@ describe("OpenFramePanel — G6 : facette portefeuille + assemblage résolu (AC-
     expect(screen.getByText("BACKLOG.md")).toBeTruthy();
     // Les valeurs résolues de la facette apparaissent (scaffold « portefeuille », persona « odin »).
     expect(screen.getAllByText("portefeuille").length).toBeGreaterThan(0);
-    expect(screen.getByText("odin")).toBeTruthy();
+    // « odin » figure au moins dans la facette portefeuille (et dans la projection tools du binding).
+    expect(screen.getAllByText("odin").length).toBeGreaterThan(0);
+  });
+
+  it("projette le triplet {runner, model, tools} par persona (facette du binding, T2)", async () => {
+    render(<OpenFramePanel api={fakeApi()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Ouvrir un frame/ }));
+
+    await waitFor(() => expect(screen.getByText("Outils par persona (binding)")).toBeTruthy());
+    // Le binding fixture n'a pas de tools → repli « hérite tout » (ligne omise = héritage CC).
+    expect(screen.getByText("(hérite tout)")).toBeTruthy();
   });
 
   it("affiche l'assemblage résolu (méthode · team · binding)", async () => {

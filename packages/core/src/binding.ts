@@ -23,10 +23,9 @@ export type BindingOrigin = "forge-default" | "cockpit-override";
 
 /**
  * Liaison d'UNE persona (triplet du **modèle persona**, § 1.2/5.1) : son harnais (`runner`) +
- * son modèle (`model`, alias ; `""` = défaut runner) + ses outils (`tools`, ids de `toolKinds`,
- * ex. `["comfyui-local"]` ; défaut `[]`). Un id de tool n'est **pas** un credential (invariant
- * secret inchangé). ⚠️ `tools` (par persona) ≠ `connectors` (par team) : deux axes distincts,
- * sans couplage au MVP (§ 6.3).
+ * son modèle (`model`, alias ; `""` = défaut runner) + ses outils (`tools` ; défaut `[]`). Un id
+ * de tool n'est **pas** un credential (invariant secret inchangé). ⚠️ `tools` (par persona) ≠
+ * `connectors` (par team, MCP) : deux axes distincts, sans couplage au MVP (§ 6.3).
  */
 export interface PersonaBinding {
   /** Réf. `Persona.id` de la team. */
@@ -35,7 +34,13 @@ export interface PersonaBinding {
   runner: RunnerKind;
   /** Alias/modèle ; `""` = défaut du runner → **aucune émission de modèle** (kit pur pour cette persona). */
   model: string;
-  /** Outils attachés à ce persona (ids de `toolKinds`) ; défaut `[]` (aucun outil). */
+  /**
+   * **Allowlist d'outils runner-scoped** (défaut `[]` = aucune restriction émise). Les ids sont
+   * dans le **vocabulaire du `runner`** : pour `runner: claude-code`, ce sont les noms d'outils
+   * **built-in Claude Code** (`Read, Grep, Glob, Bash, Write, Edit, WebSearch, WebFetch`), émis
+   * verbatim dans le `tools:` du contrat. **Pas** l'axe MCP externe (`toolKinds` type
+   * `comfyui-local`), porté par `connectors` côté team. Un id d'outil n'est pas un credential.
+   */
   tools: string[];
 }
 

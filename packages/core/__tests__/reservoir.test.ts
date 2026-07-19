@@ -74,6 +74,18 @@ describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
     expect(r.groups.some((g) => g.type === "skills")).toBe(false);
   });
 
+  it("Skill ← skills UNIQUEMENT (miroir exact de team ← personas)", () => {
+    const r = buildReservoir("skill", makeFrame());
+    expect(r.groups.map((g) => g.type)).toEqual(["skills"]);
+    const skills = r.groups[0];
+    expect(skills.ids).toEqual(["iakaframe-cadrage"]);
+    expect(skills.count).toBe(1);
+    expect(skills.label).toBe(FRAME_TYPE_LABELS.skills);
+    expect(r.total).toBe(1);
+    // Une skill n'expose QUE des sous-skills (pas de personas ni autres types).
+    expect(r.groups.every((g) => g.type === "skills")).toBe(true);
+  });
+
   it("Kit ← l'assemblage total (les 11 types de FRAME_TYPES)", () => {
     const r = buildReservoir("kit", makeFrame());
     expect(r.groups.map((g) => g.type)).toEqual([...FRAME_TYPES]);
@@ -107,7 +119,7 @@ describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
       methods: [],
       bindings: [],
     });
-    for (const el of ["team", "method", "kit", "frame"] as ReservoirElement[]) {
+    for (const el of ["team", "method", "skill", "kit", "frame"] as ReservoirElement[]) {
       const r = buildReservoir(el, empty);
       expect(r.total).toBe(0);
       expect(r.groups.every((g) => g.ids.length === 0 && g.count === 0)).toBe(true);

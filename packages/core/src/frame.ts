@@ -23,8 +23,8 @@
 
 import { parseFrontmatter } from "./frontmatter";
 import { parseMethodMd, parseTeamMd, type MethodMd, type TeamMd } from "./frontmatter";
-import { parseBinding } from "./binding";
-import { parsePersona } from "./persona";
+import { parseBinding, parseTools } from "./binding";
+import { parsePersona, type Persona } from "./persona";
 import { parsePrinciple } from "./principle";
 import { parseRitual } from "./ritual";
 import { parseScaffold, PORTFOLIO_SCAFFOLD } from "./scaffold";
@@ -103,12 +103,39 @@ export interface FrameIntegrityReport {
 // 3. Binding SF2 (`assignments`) — DISTINCT du `Binding` E1 du cœur (`bindings[]`).
 // ---------------------------------------------------------------------------
 
+/**
+ * Un **assignment** d'un binding SF2 : le **triplet du modèle persona** `{runner, model, tools}`
+ * conservé au parse (T4 — SF2 n'ampute plus). `runner`/`model` ne sont **pas validés ici** (le
+ * vocab est ré-asserté au host) ; `tools` est une allowlist runner-scoped (via `parseTools`).
+ */
+export interface FrameAssignment {
+  personaId: string;
+  runner: string;
+  model: string;
+  tools: string[];
+}
+
 /** Frontmatter d'un binding SF2 (schéma `assignments`, distinct du `bindings[]` du cœur). */
 export interface FrameBinding {
   id: string;
   methodId: string;
   teamId: string;
+  /** Assignments typés porteurs du triplet `{runner, model, tools}` (T2/T4). */
+  assignments: FrameAssignment[];
+  /** Dérivé (`assignments.map(a => a.personaId)`) — sert l'intégrité `binding→personaId`. */
   personaIds: string[];
+}
+
+/** Références sortantes d'une skill (composition `subskills`) — pour l'intégrité (T3/B). */
+export interface SkillRefs {
+  id: string;
+  subskills: string[];
+}
+
+/** Références sortantes d'un workflow (`agentsRoleKeys` agrégés) — pour l'intégrité (T5). */
+export interface WorkflowRefs {
+  id: string;
+  roleKeys: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -217,13 +244,56 @@ export function parseFrameBinding(md: string): FrameBinding | null {
   if (!id) return null;
   const teamId = core?.teamId ?? str(data.teamId) ?? "";
   const methodId = str(data.methodId) ?? "";
-  const assignments = Array.isArray(data.assignments) ? data.assignments : [];
-  const personaIds = assignments
-    .map((a) =>
-      a && typeof a === "object" ? str((a as Record<string, unknown>).personaId) : null,
-    )
-    .filter((p): p is string => p !== null);
-  return { id, methodId, teamId, personaIds };
+  const rawAssignments = Array.isArray(data.assignments) ? data.assignments : [];
+  const assignments: FrameAssignment[] = rawAssignments
+    .map((a): FrameAssignment | null => {
+      if (!a || typeof a !== "object") return null;
+      const r = a as Record<string, unknown>;
+      const personaId = str(r.personaId);
+      if (!personaId) return null;
+      // Triplet conservé (T4) : runner/model défensifs (non validés ici) ; tools via parseTools.
+      return {
+        personaId,
+        runner: str(r.runner) ?? "",
+        model: str(r.model) ?? "",
+        tools: parseTools(r.tools),
+      };
+    })
+    .filter((a): a is FrameAssignment => a !== null);
+  const personaIds = assignments.map((a) => a.personaId);
+  return { id, methodId, teamId, assignments, personaIds };
+}
+
+/**
+ * Références d'une skill depuis son `SKILL.md` (frontmatter). `subskills` (optionnel, absent =
+ * skill atomique) est coercé en `string[]` défensivement. `null` si pas d'`id` exploitable.
+ */
+export function parseSkillRefs(md: string): SkillRefs | null {
+  const { data } = parseFrontmatter(md);
+  const id = str(data.id);
+  if (!id) return null;
+  return { id, subskills: coerceStringArray(data.subskills) };
+}
+
+/**
+ * Références d'un workflow depuis son `.md` (frontmatter) : agrège les `agentsRoleKeys` de toutes
+ * les `phases` (champ **réel du canon**, distinct du `roleKeys` calibré rendu par `parseWorkflow`).
+ * Dédupliqué, défensif ; `null` si pas d'`id`.
+ */
+export function parseWorkflowRefs(md: string): WorkflowRefs | null {
+  const { data } = parseFrontmatter(md);
+  const id = str(data.id);
+  if (!id) return null;
+  const roleKeys: string[] = [];
+  const phases = Array.isArray(data.phases) ? data.phases : [];
+  for (const ph of phases) {
+    if (ph && typeof ph === "object") {
+      for (const k of coerceStringArray((ph as Record<string, unknown>).agentsRoleKeys)) {
+        if (!roleKeys.includes(k)) roleKeys.push(k);
+      }
+    }
+  }
+  return { id, roleKeys };
 }
 
 /** Ajoute chaque id de `ids` absent de `set` à `missing`, étiqueté `source`/`field`. */
@@ -244,17 +314,25 @@ function needEach(
 // ---------------------------------------------------------------------------
 
 /**
- * Intégrité référentielle en mémoire (critère B), miroir des règles de `refs.ts`/`checkRefs` :
+ * Intégrité référentielle en mémoire (critère B), miroir des règles de `refs.ts`/`checkRefs`.
+ * **Noyau** (toujours) :
  *   - method : principleIds ⊆ principles, ritualIds ⊆ rituals, guardrailIds ⊆ guardrails,
  *     roleKeys ⊆ roles, scaffoldIds ⊆ scaffolds, workflowId résolu (pool ou catalogue du cœur) ;
- *   - team : personas ⊆ personas, coordinator ∈ personas ;
+ *   - team : personas ⊆ personas, coordinator ∈ personas, **guardrails ⊆ guardrails (T6)** ;
  *   - binding : methodId ∈ methods, teamId ∈ teams, personaIds ⊆ personas.
+ * **Trous d'audit comblés** (paramètres optionnels — omis = aucun contrôle, rétro-compat) :
+ *   - persona (T1) : roleKey ∈ roles, skills ⊆ skills, guardrails ⊆ guardrails ;
+ *   - workflow (T5) : agentsRoleKeys ⊆ roles ;
+ *   - skill (T3/B) : subskills ⊆ skills, **anti-self-ref** (id ∉ subskills).
  */
 export function checkFrameRefs(
   poolIds: Record<PoolFrameType, string[]>,
   methods: MethodMd[],
   teams: TeamMd[],
   bindings: FrameBinding[],
+  personaList: Persona[] = [],
+  workflowRefs: WorkflowRefs[] = [],
+  skillRefs: SkillRefs[] = [],
 ): FrameIntegrityReport {
   const missing: FrameMissingRef[] = [];
   const personas = new Set(poolIds.personas);
@@ -264,6 +342,7 @@ export function checkFrameRefs(
   const roles = new Set(poolIds.roles);
   const scaffolds = new Set(poolIds.scaffolds);
   const workflows = new Set(poolIds.workflows);
+  const skills = new Set(poolIds.skills);
   const methodIds = new Set(methods.map((m) => m.id));
   const teamIds = new Set(teams.map((t) => t.id));
 
@@ -286,6 +365,7 @@ export function checkFrameRefs(
       missing.push({ source: src, field: "coordinator", id: t.coordinator });
     }
     needEach(missing, src, "personas", t.personas, personas);
+    needEach(missing, src, "guardrails", t.guardrails, guardrails); // T6
   }
 
   for (const b of bindings) {
@@ -297,6 +377,30 @@ export function checkFrameRefs(
       missing.push({ source: src, field: "teamId", id: b.teamId });
     }
     needEach(missing, src, "personaId", b.personaIds, personas);
+  }
+
+  // T1 — persona → { roleKey ∈ roles, skills ⊆ skills, guardrails ⊆ guardrails }.
+  for (const p of personaList) {
+    const src = `persona:${p.id}`;
+    if (p.roleKey && !roles.has(p.roleKey)) {
+      missing.push({ source: src, field: "roleKey", id: p.roleKey });
+    }
+    needEach(missing, src, "skills", p.skills, skills);
+    needEach(missing, src, "guardrails", p.guardrails, guardrails);
+  }
+
+  // T5 — workflow → agentsRoleKeys ⊆ roles.
+  for (const w of workflowRefs) {
+    needEach(missing, `workflow:${w.id}`, "agentsRoleKeys", w.roleKeys, roles);
+  }
+
+  // T3/B — skill → subskills ⊆ skills, anti-self-ref (id ∉ subskills).
+  for (const s of skillRefs) {
+    const src = `skill:${s.id}`;
+    if (s.subskills.includes(s.id)) {
+      missing.push({ source: src, field: "subskills", id: s.id }); // self-ref signalée
+    }
+    needEach(missing, src, "subskills", s.subskills.filter((x) => x !== s.id), skills);
   }
 
   return { ok: missing.length === 0, missing };
@@ -383,6 +487,17 @@ export function buildFrame(raw: FrameRaw): Frame {
     .map((md) => parseFrameBinding(md))
     .filter((b): b is FrameBinding => b !== null);
 
+  // Références sortantes des atomes de pool à intégrité étendue (T1/T5/T3), depuis les `md` déjà lus.
+  const personaList = (raw.pools.personas ?? [])
+    .map((md) => parsePersona(parseFrontmatter(md).data))
+    .filter((p): p is Persona => p !== null);
+  const workflowRefs = (raw.pools.workflows ?? [])
+    .map((md) => parseWorkflowRefs(md))
+    .filter((w): w is WorkflowRefs => w !== null);
+  const skillRefs = (raw.pools.skills ?? [])
+    .map((md) => parseSkillRefs(md))
+    .filter((s): s is SkillRefs => s !== null);
+
   counts.teams = teams.length;
   counts.methods = methods.length;
   counts.bindings = bindings.length;
@@ -393,7 +508,15 @@ export function buildFrame(raw: FrameRaw): Frame {
     poolIds,
     assembly: resolveAssembly(methods, teams, bindings),
     portfolio: detectPortfolioFacet(raw),
-    integrity: checkFrameRefs(poolIds, methods, teams, bindings),
+    integrity: checkFrameRefs(
+      poolIds,
+      methods,
+      teams,
+      bindings,
+      personaList,
+      workflowRefs,
+      skillRefs,
+    ),
   };
 }
 

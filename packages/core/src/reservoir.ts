@@ -7,6 +7,7 @@
  * Composition (tranchée par le décideur) :
  *   - **Team**    ← personas ;
  *   - **Méthode** ← principes + rituels + gardes-fous + rôles + scaffolds + workflow ;
+ *   - **Skill**   ← skills (le stock de **sous-skills** candidates ; miroir de `team ← personas`) ;
  *   - **Kit**     ← l'assemblage total (les 11 types) ;
  *   - **Frame**   ← les 11 types.
  *
@@ -23,15 +24,18 @@ import {
 } from "./frame";
 
 /** L'élément travaillé dans un étage de la forge, dont on identifie le réservoir. */
-export type ReservoirElement = "team" | "method" | "kit" | "frame";
+export type ReservoirElement = "team" | "method" | "skill" | "kit" | "frame";
 
 /**
  * Composition : pour chaque élément, les **types** de sous-éléments qui peuvent le composer
- * (ordre d'affichage). `kit`/`frame` = l'assemblage total (les 11 types de `FRAME_TYPES`).
+ * (ordre d'affichage). `skill ← skills` est le miroir exact de `team ← personas` (un élément
+ * expose son stock de sous-éléments **de même type**). `kit`/`frame` = l'assemblage total (les
+ * 11 types de `FRAME_TYPES`).
  */
 export const RESERVOIR_COMPOSITION: Record<ReservoirElement, readonly FrameType[]> = {
   team: ["personas"],
   method: ["principles", "rituals", "guardrails", "roles", "scaffolds", "workflows"],
+  skill: ["skills"],
   kit: [...FRAME_TYPES],
   frame: [...FRAME_TYPES],
 };

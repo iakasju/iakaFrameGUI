@@ -151,6 +151,19 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
             <code>{frame.assembly.team?.id ?? "—"}</code> · Binding{" "}
             <code>{frame.assembly.binding?.id ?? "—"}</code>
           </p>
+
+          {/* Projection du triplet {runner, model, tools} par persona — facette du binding (T2). */}
+          {frame.assembly.binding && frame.assembly.binding.assignments.length > 0 && (
+            <div className="frame-binding-tools" aria-label="Outils par persona (binding)">
+              <h4>Outils par persona (binding)</h4>
+              {frame.assembly.binding.assignments.map((a) => (
+                <p className="settings-line" key={a.personaId}>
+                  <code>{a.personaId}</code> · {a.runner || "—"} / {a.model || "—"} · outils :{" "}
+                  <code>{a.tools.length > 0 ? a.tools.join(", ") : "(hérite tout)"}</code>
+                </p>
+              ))}
+            </div>
+          )}
         </>
       )}
     </section>

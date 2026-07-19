@@ -277,3 +277,188 @@ describe("checkFrameRefs / parseFrameBinding — contrats de type (typing)", () 
     expect(b?.personaIds).toHaveLength(8);
   });
 });
+
+// ---------------------------------------------------------------------------
+// T2/T4 — parseFrameBinding conserve le triplet {runner, model, tools} (SF2 dé-amputé).
+// ---------------------------------------------------------------------------
+
+const bindingWithToolsMd = `---
+id: iakaframe-claude-default
+methodId: iakaframe
+teamId: iakaframe-8
+node: claude
+origin: forge-default
+assignments:
+  - { personaId: odin,    runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Bash] }
+  - { personaId: gandalf, runner: claude-code, model: "opus",   tools: [Read, Write, Edit, WebSearch] }
+---
+# Binding
+`;
+
+describe("T2/T4 — le triplet {runner, model, tools} est conservé au parse", () => {
+  it("préserve tools/runner/model par assignment et dérive personaIds", () => {
+    const b = parseFrameBinding(bindingWithToolsMd);
+    expect(b).not.toBeNull();
+    expect(b!.assignments).toHaveLength(2);
+    const odin = b!.assignments.find((a) => a.personaId === "odin")!;
+    expect(odin.runner).toBe("claude-code");
+    expect(odin.model).toBe("opus");
+    expect(odin.tools).toEqual(["Read", "Grep", "Glob", "Bash"]);
+    const gandalf = b!.assignments.find((a) => a.personaId === "gandalf")!;
+    expect(gandalf.tools).toEqual(["Read", "Write", "Edit", "WebSearch"]);
+    // personaIds reste dérivé (ordre préservé) → non-régression de l'intégrité binding→personaId.
+    expect(b!.personaIds).toEqual(["odin", "gandalf"]);
+  });
+
+  it("binding SANS tools → assignments.tools = [] (défensif, non-régression)", () => {
+    const b = parseFrameBinding(bindingMd);
+    expect(b!.assignments).toHaveLength(8);
+    expect(b!.assignments.every((a) => a.tools.length === 0)).toBe(true);
+    expect(b!.assignments.every((a) => a.runner === "claude-code")).toBe(true);
+    expect(b!.personaIds).toHaveLength(8);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Intégrité élargie (T1/T3/T5/T6) — canon sain + détection des fantômes.
+// ---------------------------------------------------------------------------
+
+/** Ids réels du pool skills du canon (17). */
+const CANON_SKILL_IDS = [
+  "iakaframe-odin", "iakastart", "iakaframe-aragorn", "iakaframe-cadrage", "iakaframe-qualite",
+  "iakaframe-deploiement", "iakaframe-naonedge", "iakaframe-nathalie", "iakaframe-appflowy-doc",
+  "iakaframe-init", "iakaframe-update", "iakaframe-forgejo", "iakaframe-docker",
+  "iakaframe-etat-des-lieux", "iakaframe-learning", "iakaframe-log-conversation", "iakaframe-retrait",
+];
+const CANON_SUBSKILLS: Record<string, string[]> = {
+  "iakaframe-init": ["iakaframe-forgejo", "iakaframe-docker", "iakaframe-etat-des-lieux"],
+  "iakaframe-update": ["iakaframe-etat-des-lieux", "iakaframe-forgejo"],
+  "iakaframe-odin": ["iakastart"],
+};
+/** Personas réelles avec leurs skills-rôles (multi-skills pour odin/nathalie). */
+const CANON_PERSONAS: [string, string, string[]][] = [
+  ["odin", "portefeuille", ["iakaframe-odin", "iakastart"]],
+  ["aragorn", "coordination", ["iakaframe-aragorn"]],
+  ["gandalf", "cadrage", ["iakaframe-cadrage"]],
+  ["gimli", "dev", []],
+  ["legolas", "qualite", ["iakaframe-qualite"]],
+  ["helm", "deploiement", ["iakaframe-deploiement"]],
+  ["loki", "design", ["iakaframe-naonedge"]],
+  ["nathalie", "documentation", ["iakaframe-nathalie", "iakaframe-appflowy-doc"]],
+];
+
+const personaFull = (id: string, roleKey: string, skills: string[]): string =>
+  `---\nid: ${id}\nname: ${id}\nroleKey: ${roleKey}\nskills: [${skills.join(", ")}]\nguardrails: [identity, perimeter]\n---\n# ${id}\n`;
+const skillMaybeSub = (id: string): string => {
+  const subs = CANON_SUBSKILLS[id];
+  return subs
+    ? `---\nid: ${id}\nname: ${id}\ndescription: d\nsubskills: [${subs.join(", ")}]\n---\n# ${id}\n`
+    : `---\nid: ${id}\nname: ${id}\ndescription: d\n---\n# ${id}\n`;
+};
+const canonWorkflow = `---\nid: iakaframe-3phases\nname: wf\nphases:\n  - { id: p1, agentsRoleKeys: [cadrage] }\n  - { id: p2, agentsRoleKeys: [dev, qualite] }\n  - { id: prod, agentsRoleKeys: [deploiement] }\n---\n# wf\n`;
+
+/** Miroir fidèle du canon réel (personas multi-skills + subskills + workflow agentsRoleKeys). */
+function canonRaw(): FrameRaw {
+  return {
+    root: "/canon",
+    pools: {
+      personas: CANON_PERSONAS.map(([id, rk, sk]) => personaFull(id, rk, sk)),
+      roles: ROLE_KEYS.map(role),
+      principles: PRINCIPLE_IDS.map(principle),
+      rituals: RITUAL_IDS.map(ritual),
+      guardrails: GUARDRAIL_IDS.map(guardrail),
+      scaffolds: [scaffold("portefeuille", "portfolio"), scaffold("projet", "project")],
+      workflows: [canonWorkflow],
+      skills: CANON_SKILL_IDS.map(skillMaybeSub),
+    },
+    teams: [teamMd],
+    methods: [methodMd],
+    bindings: [bindingMd],
+  };
+}
+
+describe("intégrité élargie (T1/T3/T5/T6) — canon sain + fantômes détectés", () => {
+  it("le canon réel (personas multi-skills + subskills + workflow + binding) passe : integrity.ok", () => {
+    const f = buildFrame(canonRaw());
+    expect(f.integrity.ok).toBe(true);
+    expect(f.integrity.missing).toEqual([]);
+  });
+
+  it("T1 — persona → skill fantôme détectée (skills:[...] ne résout pas)", () => {
+    const raw = canonRaw();
+    raw.pools.personas = [
+      ...raw.pools.personas,
+      personaFull("ghost", "dev", ["skill-fantome"]),
+    ];
+    const f = buildFrame(raw);
+    expect(f.integrity.ok).toBe(false);
+    expect(f.integrity.missing).toContainEqual({
+      source: "persona:ghost",
+      field: "skills",
+      id: "skill-fantome",
+    });
+  });
+
+  it("T1 — persona → roleKey + guardrail fantômes détectés", () => {
+    const raw = canonRaw();
+    raw.pools.personas = [
+      ...raw.pools.personas,
+      `---\nid: ghost\nname: ghost\nroleKey: role-fantome\nskills: []\nguardrails: [garde-fantome]\n---\n# ghost\n`,
+    ];
+    const f = buildFrame(raw);
+    expect(f.integrity.missing).toContainEqual({
+      source: "persona:ghost",
+      field: "roleKey",
+      id: "role-fantome",
+    });
+    expect(f.integrity.missing).toContainEqual({
+      source: "persona:ghost",
+      field: "guardrails",
+      id: "garde-fantome",
+    });
+  });
+
+  it("T3 — subskill fantôme détecté + anti-self-ref (id ∉ subskills)", () => {
+    const raw = canonRaw();
+    raw.pools.skills = [
+      ...raw.pools.skills,
+      `---\nid: iakaframe-orch\nname: x\ndescription: d\nsubskills: [skill-fantome, iakaframe-orch]\n---\n# x\n`,
+    ];
+    const f = buildFrame(raw);
+    expect(f.integrity.missing).toContainEqual({
+      source: "skill:iakaframe-orch",
+      field: "subskills",
+      id: "skill-fantome",
+    });
+    expect(f.integrity.missing).toContainEqual({
+      source: "skill:iakaframe-orch",
+      field: "subskills",
+      id: "iakaframe-orch",
+    });
+  });
+
+  it("T5 — workflow → agentsRoleKeys fantôme détecté", () => {
+    const raw = canonRaw();
+    raw.pools.workflows = [
+      ...raw.pools.workflows,
+      `---\nid: wf-x\nname: x\nphases:\n  - { id: p1, agentsRoleKeys: [role-fantome] }\n---\n# x\n`,
+    ];
+    const f = buildFrame(raw);
+    expect(f.integrity.missing).toContainEqual({
+      source: "workflow:wf-x",
+      field: "agentsRoleKeys",
+      id: "role-fantome",
+    });
+  });
+
+  it("T6 — team.guardrails fantôme détecté", () => {
+    const raw = canonRaw();
+    raw.teams = [teamMd.replace("guardrails: []", "guardrails: [garde-fantome]")];
+    const f = buildFrame(raw);
+    expect(f.integrity.missing).toContainEqual({
+      source: "team:iakaframe-8",
+      field: "guardrails",
+      id: "garde-fantome",
+    });
+  });
+});

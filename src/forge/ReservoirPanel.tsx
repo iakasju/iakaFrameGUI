@@ -18,6 +18,7 @@ import { RailSection } from "./Rail";
 const ELEMENT_LABELS: Record<ReservoirElement, string> = {
   team: "Team",
   method: "Méthode",
+  skill: "Skill",
   kit: "Kit",
   frame: "Frame",
 };
