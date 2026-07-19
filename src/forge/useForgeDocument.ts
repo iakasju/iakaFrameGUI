@@ -152,12 +152,19 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
   artifactRef.current = artifact;
   const idRef = useRef<string | null>(id);
   idRef.current = id;
+  // Réf miroir du `config` : l'appelant recrée l'objet `config` (arrow-functions littérales) à
+  // chaque rendu ; le lire via ref permet de retirer `config` des deps des callbacks, qui
+  // redeviennent alors **stables** (identité doc constante hors changement d'état) — évite la
+  // boucle de rendu infinie côté consommateurs (effet onglet Méthode). Configs statiques par
+  // instance : aucune réactivité perdue en les lisant via ref.
+  const configRef = useRef<DocConfig<T>>(config);
+  configRef.current = config;
 
   const name = artifact ? config.nameOf(artifact) : "sans-titre";
   const canRename = config.withName != null && artifact !== null;
 
   const loadBlank = useCallback((): void => {
-    setArtifact(config.blank());
+    setArtifact(configRef.current.blank());
     setId(null);
     setSource("new");
     setDirty(false);
@@ -165,7 +172,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
     setLastWarning(null);
     setSavedPath(null);
     setSaveAsOpen(false); // repart d'un vierge : referme une invite Save As orpheline.
-  }, [config]);
+  }, []);
 
   const edit = useCallback((next: T): void => {
     setArtifact(next);
@@ -173,25 +180,24 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
   }, []);
 
   // --- Renommage en ligne (DocTitle éditable) : pose le `name`, marque dirty, garde id/source ---
-  const setName = useCallback(
-    (newName: string): void => {
-      const current = artifactRef.current;
-      if (!current || !config.withName) return; // no-op : on ne renomme pas le vide.
-      setArtifact(config.withName(current, newName)); // réutilise le chemin d'`edit`.
-      setDirty(true);
-    },
-    [config],
-  );
+  const setName = useCallback((newName: string): void => {
+    const current = artifactRef.current;
+    const cfg = configRef.current;
+    if (!current || !cfg.withName) return; // no-op : on ne renomme pas le vide.
+    setArtifact(cfg.withName(current, newName)); // réutilise le chemin d'`edit`.
+    setDirty(true);
+  }, []);
 
   // --- Écriture bas niveau (partagée Save / Save As), avec I1 (§8) ---
   const writeArtifact = useCallback(
     async (target: T, targetId: string): Promise<SaveOutcome> => {
+      const cfg = configRef.current;
       setLastError(null);
       setLastWarning(null);
-      if (config.validateRefs) {
+      if (cfg.validateRefs) {
         let report: RefsReport;
         try {
-          report = await config.validateRefs(target);
+          report = await cfg.validateRefs(target);
         } catch {
           report = { ok: true, missing: [] };
         }
@@ -205,15 +211,15 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         }
         if (report.warning) setLastWarning(report.warning);
       }
-      const text = config.serialize(target);
+      const text = cfg.serialize(target);
       try {
-        await api.libraryWrite(config.collection, targetId, text);
+        await api.libraryWrite(cfg.collection, targetId, text);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setLastError(msg);
         return { ok: false, error: msg };
       }
-      const path = `${config.collection}/${targetId}.md`;
+      const path = `${cfg.collection}/${targetId}.md`;
       setArtifact(target);
       setId(targetId);
       setSource("library");
@@ -221,7 +227,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
       setSavedPath(path);
       return { ok: true, path, warning: lastWarning ?? undefined };
     },
-    [api, config, lastWarning],
+    [api, lastWarning],
   );
 
   const save = useCallback(async (): Promise<SaveOutcome> => {
@@ -238,6 +244,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
 
   const saveAs = useCallback(
     async (rawId: string, displayName: string): Promise<SaveOutcome> => {
+      const cfg = configRef.current;
       const current = artifactRef.current;
       if (!current) return { ok: false, error: "aucun document ouvert" };
       const targetId = slugifyId(rawId);
@@ -248,7 +255,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
       // Non-destructif : refuse d'écraser un id existant (garde §4.4).
       let exists = false;
       try {
-        exists = await api.libraryExists(config.collection, targetId);
+        exists = await api.libraryExists(cfg.collection, targetId);
       } catch {
         exists = false;
       }
@@ -258,12 +265,12 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         return { ok: false, error: msg };
       }
       // Rebaptise l'artefact (id + nom) avant écriture — best-effort selon le type.
-      const renamed = renameArtifact(current, targetId, displayName, config);
+      const renamed = renameArtifact(current, targetId, displayName, cfg);
       const outcome = await writeArtifact(renamed, targetId);
       if (outcome.ok) setSaveAsOpen(false);
       return outcome;
     },
-    [api, config, writeArtifact],
+    [api, writeArtifact],
   );
 
   // --- New / Open / Close derrière la garde « modifs non sauvées » (§4.6) ---
@@ -273,11 +280,12 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
 
   const performOpen = useCallback(
     async (openId: string): Promise<void> => {
+      const cfg = configRef.current;
       setLastError(null);
       setLastWarning(null);
       let text: string | null = null;
       try {
-        text = await api.libraryRead(config.collection, openId);
+        text = await api.libraryRead(cfg.collection, openId);
       } catch (e) {
         setLastError(e instanceof Error ? e.message : String(e));
         return;
@@ -286,18 +294,18 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         setLastError(`introuvable : ${openId}`);
         return;
       }
-      const parsed = config.parse(text);
+      const parsed = cfg.parse(text);
       if (!parsed) {
         setLastError(`illisible : ${openId}`);
         return;
       }
       setArtifact(parsed);
-      setId(config.idOf(parsed) || openId);
+      setId(cfg.idOf(parsed) || openId);
       setSource("library");
       setDirty(false);
       setSavedPath(null);
     },
-    [api, config],
+    [api],
   );
 
   const performClose = useCallback((): void => {
@@ -356,18 +364,19 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
   }, []);
 
   const listEntries = useCallback(async (): Promise<LibraryEntry[]> => {
+    const cfg = configRef.current;
     let raw: string[] = [];
     try {
-      raw = await api.libraryList(config.collection);
+      raw = await api.libraryList(cfg.collection);
     } catch {
       raw = [];
     }
     return raw
-      .map((text) => config.parse(text))
+      .map((text) => cfg.parse(text))
       .filter((a): a is T => a !== null)
-      .map((a) => ({ id: config.idOf(a), name: config.nameOf(a) }))
+      .map((a) => ({ id: cfg.idOf(a), name: cfg.nameOf(a) }))
       .sort((x, y) => x.id.localeCompare(y.id));
-  }, [api, config]);
+  }, [api]);
 
   const openSaveAs = useCallback(() => setSaveAsOpen(true), []);
   const closeSaveAs = useCallback(() => setSaveAsOpen(false), []);

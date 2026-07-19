@@ -38,5 +38,15 @@
     "dirty": true,
     "files": 15029,
     "note": "Fix DocBar : garde backend en ecriture hors Tauri (message utilisateur propre au lieu d'une stack invoke) + reset saveAsOpen au Close/New (invite Save As orpheline). +2 tests vitest. Gate Legolas PASS 8/8. Inclut le protocole de recette Tauri (docs/recette-docbar-persistance.md). Hang pre-existant ForgeShell.test.tsx = ticket separe."
+  },
+  {
+    "date": "2026-07-19 10:42",
+    "reason": "version",
+    "version": "v0.3.2",
+    "branch": "main",
+    "commit": "5f7ab2c chore(iakaframe): update etat des lieux + commit global (version v0.3.1)",
+    "dirty": true,
+    "files": 15030,
+    "note": "Fix boucle de rendu infinie onglet Methode (config litteral instable -> workflowDoc reboucle a chaque rendu, CPU 100%). Option B : configRef stabilise l'identite du doc dans useForgeDocument ; ForgeShell.tsx intact. +2 gardes anti-boucle. npm test global termine enfin vert (405/405). Corrige aussi la mauvaise attribution 'VM Docker saturee' de l'etat des lieux. Gate Legolas PASS 8/8."
   }
 ]

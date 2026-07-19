@@ -315,6 +315,24 @@ describe("useForgeDocument — modèle de document unifié (Q-1)", () => {
     expect(result.current.lastError).not.toContain("Cannot read properties");
   });
 
+  // --- Anti-boucle (Option B) : identité du doc stable entre deux rendus sans changement d'état ---
+  it("anti-boucle : l'objet doc garde son identité entre deux rendus, même quand `config` est recréé à chaque rendu", () => {
+    // Reproduit la réalité de ForgeShell : `config` est un LITTÉRAL recréé à CHAQUE rendu
+    // (arrow-functions neuves via `methodConfig(api)`). Avant le correctif, `config` figurait dans
+    // les deps de `listEntries`/`performOpen`/… → l'objet retourné par le hook changeait d'identité
+    // à chaque rendu → l'effet consommateur (onglet Méthode) rebouclait à l'infini (setState en
+    // microtâche, 100 % CPU). Ce test ÉCHOUE si `config` réintègre les deps (identités instables) ;
+    // il passe une fois les callbacks lus via `configRef`. NON tautologique : sur l'ancien code,
+    // `result.current` (et `listEntries`) seraient de NOUVELLES références après `rerender()`.
+    const { api } = fakeBackend();
+    const { result, rerender } = renderHook(() => useForgeDocument(methodConfig(api)));
+    const firstDoc = result.current;
+    const firstListEntries = result.current.listEntries;
+    rerender(); // re-rendu forcé, AUCUN changement d'état → l'identité doit être préservée.
+    expect(result.current).toBe(firstDoc);
+    expect(result.current.listEntries).toBe(firstListEntries);
+  });
+
   // --- #2 : l'invite Save As orpheline se referme au Close ET au New (reset d'état document) ---
   it("reset saveAsOpen : Close et New referment l'invite Save As orpheline", () => {
     // Close : New → openSaveAs (invite ouverte) → Close ⇒ invite refermée + document vidé.
