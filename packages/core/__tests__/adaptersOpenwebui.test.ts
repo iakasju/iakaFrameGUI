@@ -5,6 +5,7 @@
  * Tous purs : ils tournent **sans Open WebUI** (O-8) — inspection d'arbre + `JSON.parse`.
  */
 import { describe, it, expect } from "vitest";
+import { CANONICAL_ROLES } from "../src/roles";
 import {
   buildTeamFromRoster,
   emptyTeam,
@@ -18,7 +19,7 @@ import {
   type Team,
 } from "../src/index";
 
-/** Team gabarit (7 personas, un par rôle canonique). */
+/** Team gabarit (une persona par rôle canonique). */
 function gabaritTeam(): Team {
   return buildTeamFromRoster("Gabarit", "gabarit");
 }
@@ -74,9 +75,9 @@ describe("O-3 — génération : N Models JSON valides (un par persona)", () => 
   const team = gabaritTeam();
   const tree = generateOpenWebUIKit(team);
 
-  it("produit un models/<personaId>.json par persona (7), aucun autre fichier", () => {
+  it("produit un models/<personaId>.json par persona, aucun autre fichier", () => {
     const paths = Object.keys(tree.files);
-    expect(paths).toHaveLength(7);
+    expect(paths).toHaveLength(CANONICAL_ROLES.length);
     for (const p of paths) expect(p).toMatch(/^models\/[^/]+\.json$/);
     const expected = team.personas
       .map((p) => `models/${p.id}.json`)

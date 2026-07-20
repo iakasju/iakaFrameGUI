@@ -5,6 +5,7 @@
  * Tous purs : ils tournent **sans codex ni ollama installés** (G-8) — inspection d'arbre.
  */
 import { describe, it, expect } from "vitest";
+import { CANONICAL_ROLES } from "../src/roles";
 import {
   buildTeamFromRoster,
   emptyTeam,
@@ -21,7 +22,7 @@ import {
   type Team,
 } from "../src/index";
 
-/** Team gabarit (7 personas, un par rôle canonique). */
+/** Team gabarit (une persona par rôle canonique). */
 function gabaritTeam(): Team {
   return buildTeamFromRoster("Gabarit", "gabarit");
 }
@@ -65,12 +66,12 @@ describe("G-2 — codex → AGENTS.md conforme", () => {
     expect(tree.files["CLAUDE.md"]).toBeUndefined();
   });
 
-  it("contient les 7 personas par rôle", () => {
+  it("contient une persona par rôle", () => {
     const md = tree.files["AGENTS.md"];
     for (const label of ROLE_LABELS) expect(md).toContain(label);
-    // 7 lignes de roster (une pastille [ROYAUME][Nom] par persona).
+    // Une ligne de roster par persona (pastille [ROYAUME][Nom]).
     const badgeRows = md.match(/\| `\[[^\]]+\]\[[^\]]+\]` \|/g) ?? [];
-    expect(badgeRows).toHaveLength(7);
+    expect(badgeRows).toHaveLength(CANONICAL_ROLES.length);
   });
 
   it("contient les 3 phases + gates", () => {

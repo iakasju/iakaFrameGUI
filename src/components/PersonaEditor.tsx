@@ -1,7 +1,7 @@
 /**
  * PersonaEditor — créer / nommer librement / éditer une persona (présentationnel).
  *
- * Champs (§ 7.2 instruction) : **nom** (libre — AR-5), **rôle** (`<select>` des 7 rôles
+ * Champs (§ 7.2 instruction) : **nom** (libre — AR-5), **rôle** (`<select>` des rôles
  * canoniques par label), **royaume** (texte, MAJUSCULE), **roleIndex** (dérivé du rôle,
  * éditable), **skills** (catalogue + saisie libre tolérée), **gardes** (catalogue d'ids
  * d'intention ; MVP = déclaration). **AUCUN champ runner/modèle** (AR-1). Ne persiste rien

@@ -4,8 +4,16 @@
  * fonctions). Déterministe, borné : sert les pastilles `[ROYAUME][Nom]` et vignettes de rail.
  */
 
-/** Palette de dégradés par index de casting (0..6), repli sur le premier. */
-const CASTING_GRADIENTS: readonly [string, string][] = [
+/**
+ * Palette de dégradés par index de casting (0..7), repli sur le premier.
+ *
+ * **Exportée** pour être confrontée à `CANONICAL_ROLES` par la garde de non-régression :
+ * le `% length` de `vignetteGradient` fait qu'un rôle surnuméraire **collisionne
+ * silencieusement** au lieu d'échouer. Le test `CASTING_GRADIENTS.length >=
+ * CANONICAL_ROLES.length` transforme ce silence en rouge dès qu'un rôle est ajouté sans sa
+ * teinte.
+ */
+export const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#b8862b", "#8a5e12"], // 0 portefeuille — or
   ["#2f7d43", "#1f5c30"], // 1 coordination — vert
   ["#2b5f9e", "#1d4372"], // 2 architecture — bleu
@@ -13,6 +21,10 @@ const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#1f7a6b", "#124a40"], // 4 tests — cyan
   ["#7a3b86", "#52285f"], // 5 graphisme — violet
   ["#9a5b17", "#6b3d0f"], // 6 doc — orange
+  // index 7 — deploiement : teinte provisoire, arbitrage de charte Loki en attente.
+  // Contraintes tenues : cohérent avec la pastille 🟣 de Helm, distinct du violet graphisme
+  // (#7a3b86, index 5) et de l'or portefeuille (#b8862b, index 0), initiales blanches lisibles.
+  ["#5b5f8a", "#3a3d5c"], // 7 deploiement — violet/ardoise
 ];
 
 /** Couple de couleurs du dégradé pour un index de casting (déterministe, borné). */

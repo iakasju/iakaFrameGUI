@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { buildTeamFromRoster } from "@iakaframe/core";
+import { buildTeamFromRoster, CANONICAL_ROLES } from "@iakaframe/core";
 import { useForgeTeams } from "./useForgeTeams";
 import type { Backend } from "../api/backend";
 
@@ -54,7 +54,10 @@ describe("useForgeTeams", () => {
     const { result: r2 } = renderHook(() => useForgeTeams({ api: backend.api }));
     await waitFor(() => expect(r2.current.loaded).toBe(true));
     expect(r2.current.teams).toHaveLength(1);
-    expect(r2.current.teamById("ma-team")?.personas).toHaveLength(7);
+    // Compte DERIVE du roster canonique (une persona par rôle) : robuste à un rôle ajouté.
+    expect(r2.current.teamById("ma-team")?.personas).toHaveLength(
+      CANONICAL_ROLES.length,
+    );
   });
 
   it("INVARIANT AR-1 (C-6) — le JSON persisté ne contient ni runner ni model", async () => {

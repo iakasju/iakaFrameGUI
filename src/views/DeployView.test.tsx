@@ -147,7 +147,7 @@ describe("DeployView (P4 — Générer & Déployer)", () => {
     fireEvent.click(screen.getByLabelText("Lier ce kit"));
     const liaisons = screen.getByLabelText("Liaisons par persona");
     expect(liaisons).toBeTruthy();
-    // Une ligne runner + modèle par persona (7 personas du roster).
+    // Une ligne runner + modèle par persona (une par rôle du roster canonique).
     const coord = team.personas[0];
     expect(screen.getByLabelText(`Runner de ${coord.name}`)).toBeTruthy();
     expect(screen.getByLabelText(`Modèle de ${coord.name}`)).toBeTruthy();

@@ -1,8 +1,8 @@
 /**
  * roster.ts — le **roster canonique** = gabarit de départ (AR-5) — cœur 🟦.
  *
- * Dérivé de `IakaCockpit/src/mock/demoTeam.ts:40-64` (7 agents, un par rôle). Ici il
- * devient `CANONICAL_ROSTER` : 7 personas **pures** (sans runner/model), une par rôle
+ * Dérivé de `IakaCockpit/src/mock/demoTeam.ts:40-64` (un agent par rôle). Ici il
+ * devient `CANONICAL_ROSTER` : 8 personas **pures** (sans runner/model), une par rôle
  * canonique, avec des **noms par défaut** (donnée éditable — AR-5, JAMAIS une désignation
  * de doc). `buildTeamFromRoster` produit une team de départ éditable ; `emptyTeam` une team
  * vide. Coordinateur par défaut = la persona du rôle `coordination`.
@@ -21,6 +21,7 @@ const DEFAULT_NAMES: Readonly<Record<string, string>> = {
   tests: "Legolas",
   graphisme: "Loki",
   doc: "Nathalie",
+  deploiement: "Helm",
 };
 
 /** Skills proposées par défaut par rôle (gabarit — reclassé par rôle, pas par nom). */
@@ -32,10 +33,11 @@ const DEFAULT_SKILLS: Readonly<Record<string, string[]>> = {
   tests: ["iakaframe-qualite"],
   graphisme: ["iakaframe-naonedge"],
   doc: ["iakaframe-nathalie"],
+  deploiement: ["iakaframe-deploiement"],
 };
 
 /**
- * Le roster canonique : 7 personas pures (une par rôle canonique, ordre `roleIndex`).
+ * Le roster canonique : 8 personas pures (une par rôle canonique, ordre `roleIndex`).
  * Le `name` est un **défaut proposé** (éditable) ; `royaume` = clé de rôle MAJUSCULE.
  */
 export const CANONICAL_ROSTER: readonly Persona[] = CANONICAL_ROLES.map((role) => {
@@ -62,7 +64,7 @@ export function cloneCanonicalRoster(): Persona[] {
 
 /**
  * Construit une **team de départ éditable** à partir du gabarit canonique (AR-5) :
- * 7 personas, coordinateur = persona du rôle `coordination` (repli `personas[0]`).
+ * 8 personas, coordinateur = persona du rôle `coordination` (repli `personas[0]`).
  */
 export function buildTeamFromRoster(name: string, id?: string): Team {
   const teamName = name.trim().length > 0 ? name.trim() : "Nouvelle team";
