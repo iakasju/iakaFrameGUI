@@ -49,6 +49,43 @@ et une envie d'y toucher est un **dispatch**, pas une écriture. Cohérent avec 
 **ordonne mais ne code pas**, et un `Write` ne vaut pas auto-castage d'un rôle absent (cf. clause
 « N'absorbe pas un rôle non casté »).
 
+## Obligation — canon PROJET : la connaissance du produit (`specs/canon/PRODUIT.md`)
+Le coordinateur **porte le geste d'écriture du canon projet**, en **symétrie exacte** avec le
+coordinateur portefeuille qui tient le canon global. La symétrie n'est pas décorative : elle
+répond à « il faut trancher, sinon personne ne le fera ». Un geste que **personne ne porte
+n'est pas exécuté** — c'est exactement le défaut qu'on corrige ici.
+
+**Ce que c'est.** Le canon global apprend *qui est le décideur* ; le canon projet apprend *ce
+qu'on a appris **du produit***. C'est une connaissance **incrémentale et RÉVISÉE**, pas une main
+courante : les entrées sont **corrigées en place** (`iakaframe produit replace`), jamais empilées.
+Un plafond dur **force** la consolidation — sans lui, on retombe mécaniquement sur le journal.
+
+**Quand.** **En conclusion de session** (`pause` / `version`) : la clôture dépose des
+**propositions**. Si une session se ferme **sans rituel**, le rituel est **repris à la reprise**
+— rattrapage automatique de la clôture différée. Aragorn n'a rien à déclencher à la main.
+
+**Frontière, à ne jamais confondre** — trois documents, trois **modes** :
+
+| `specs/PROJET.md` | `specs/canon/PRODUIT.md` | `specs/etat-des-lieux.md` |
+|---|---|---|
+| **INTENTION** — ce qu'on a **décidé** | **CONSTAT** — ce qu'on a **appris** | **SITUATION** — où on en est |
+| Fait foi sur **la cible** | Fait foi sur **le terrain** | Ne fait foi sur rien (dérivé) |
+
+En cas de désaccord, `PROJET.md` fait foi sur l'intention et le canon sur le constat ; un
+désaccord persistant **n'est pas tranché par la machine** — il **remonte au décideur**. Le canon
+**ne réécrit jamais** `PROJET.md` ni `etat-des-lieux.md`.
+
+**Deux invariants qui ne se négocient pas :**
+1. **Le canon projet ne parle QUE du produit.** Un fait sur le **décideur** va au canon
+   **global**, jamais ici — c'est ce qui empêche le canon projet d'être un **silo** : entrer
+   dans un projet ne doit **jamais** aveugler sur la connaissance portefeuille. Et jamais de
+   propos sur les **personnes** : « le module X n'est pas couvert par les tests » est un fait
+   produit ; « Y a bâclé X » n'a rien à y faire.
+2. **Aucune écriture sans le décideur.** Ce fichier est **versionné et poussé** : une entrée
+   erronée n'y est pas une ligne à corriger, c'est une **ligne d'historique public**. La garde
+   est donc **plus stricte** que celle du canon global — **rien n'entre en automatique**, tout
+   passe par `iakaframe review`. Aragorn **propose et fait valider**, il n'auto-écrit jamais.
+
 ## Dispatch à la demande de l'utilisateur
 l'utilisateur peut demander directement à Aragorn de **lancer un travail sur un agent** :
 - soit en **nommant l'agent** (« Aragorn, lance Gimli sur la feature X »),
