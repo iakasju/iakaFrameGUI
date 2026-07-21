@@ -54,7 +54,15 @@ Le défaut de charte dépend du **type de travail**. Loki **résout dynamiquemen
 |---|---|---|---|
 | Projet de **dev logiciel** (iakaFrameGUI, iakaframe, apps) | **Studio clair** | `design-studio-clair/` | tranché |
 | **Travaux NaonEdge** (supports de l'entité NaonEdge) | **NaonEdge** (dark premium · or) | `design-naonedge/` | tranché |
-| **Conseil / pro** | **Cinabre** | `design-cinabre/` | **à confirmer** (point ouvert) |
+| **Conseil / pro** | *cf. règle `charte-defaut-conseil-pro`* | *(idem)* | tranché |
+
+> **Règle `charte-defaut-conseil-pro`** — la charte par défaut du contexte **conseil / pro** est
+> **NaonEdge dark**, dossier **`design-naonedge/`**. Tranché par le décideur (2026-07-19) : ce
+> n'est plus un point ouvert.
+>
+> La valeur est écrite **ici et nulle part ailleurs dans cette charte** — la ligne du tableau y
+> renvoie au lieu de la répéter. Quand la charte par défaut deviendra un **paramètre du frame**,
+> la reprise sera un **remplacement localisé** de cette règle, pas une chasse en tableau.
 
 Une **demande explicite** (« en style X ») **prime** toujours sur le défaut contextuel.
 
@@ -85,6 +93,19 @@ Outillage graphiste (installer si besoin ; sinon `qlmanage`/`sips`, déjà prés
 Règle d'or : **un visuel non rendu = non livré.** Pour comparer des options, monter une **planche**
 (plusieurs tailles côte à côte, dark + light) et l'ouvrir dans le navigateur (`open`) — car une image
 lue via `Read` n'est vue que par l'agent, pas par l'utilisateur.
+
+> Cette boucle est la **déclinaison graphique** d'un principe transverse à toute l'équipe :
+> **`preuve-avant-declaration`** (`library/principles/preuve-avant-declaration.md`) — on ne déclare
+> **fait** que ce qu'on a **constaté** sur l'artefact. Loki en applique la forme la plus exigeante
+> (rendre, puis **regarder**) parce que le défaut y est invisible autrement. Le principe est le
+> canon ; ce qui précède en est l'application au visuel.
+
+## Gate — Loki n'en a pas, et c'est un choix
+Loki **ne pose aucun jalon**. L'absence est **délibérée, pas un oubli** : un jalon marque une
+**transition entre phases** de la méthode, or Loki n'en opère aucune — il livre un visuel, que
+l'humain valide. Sa boucle **VOIR puis juger** ci-dessus est une **discipline de production**,
+pas une transition. Y plaquer un jalon **dévaluerait le geste** en le rendant routinier là où il
+doit rester rare et signifiant.
 
 ## Entrées → Sorties
 - **Reçoit** : un contenu + une charte cible (ou le **défaut contextuel**, cf. Catalogue), sur

@@ -46,16 +46,16 @@ describe("methodMd — (dé)sérialisation frontmatter (§3.10)", () => {
 });
 
 // La fixture `method.iakaframe-wrapped.md` est la copie CONFORME du fichier réel
-// `iakaframe/methods/iakaframe.md` : son `principleIds` (16 ids) est wrappé sur 4 lignes. La
+// `iakaframe/methods/iakaframe.md` : son `principleIds` (18 ids) est wrappé sur 4 lignes. La
 // golden canonique, elle, est mono-ligne — elle ne couvrait donc PAS ce cas.
 describe("methodMd — listes flow wrappées (fichier réel de la bibliothèque)", () => {
   it("relève la découpe en lignes des seules listes wrappées", () => {
-    expect(readListLayout(wrappedMethod)).toEqual({ principleIds: [5, 5, 5, 1] });
+    expect(readListLayout(wrappedMethod)).toEqual({ principleIds: [5, 5, 5, 3] });
   });
 
-  it("parse : les 16 ids sont lus malgré le wrapping (aucune perte sémantique)", () => {
+  it("parse : les 18 ids sont lus malgré le wrapping (aucune perte sémantique)", () => {
     const parsed = parseMethodMd(wrappedMethod)!;
-    expect(parsed.principleIds).toHaveLength(16);
+    expect(parsed.principleIds).toHaveLength(18);
     expect(parsed.principleIds[0]).toBe("qualite");
     expect(parsed.principleIds[4]).toBe("isolation-docker");
     expect(parsed.principleIds[5]).toBe("self-hosted-first");

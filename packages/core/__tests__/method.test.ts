@@ -257,15 +257,15 @@ describe("unresolvedRefsForMethod — visibilité de la perte (D-7)", () => {
 // ---------------------------------------------------------------------------
 // A-5 — cas de référence sur la fixture VENDORÉE existante (aucune fixture ajoutée).
 //
-// ⚠️ MESURE, PAS AJUSTEMENT. Le cadrage D-7 attendait 16 entrées (dont 4 `principleIds`). La
-// mesure du 2026-07-20 sur la fixture en donne 14 (dont 2 `principleIds`). L'écart a été
-// diagnostiqué AVANT d'écrire l'attendu, et il n'est PAS dans cette fonction :
-//   - `iakaframe/methods/iakaframe.md` (source) déclare 18 principleIds ;
-//   - `fixtures/method.iakaframe-wrapped.md` (copie vendorée) n'en déclare que 16 ;
-//   - manquent à la fixture : `canon-avant-citation`, `preuve-avant-declaration`.
-// C'est un DRIFT DE VENDORAGE préexistant, déjà signalé par `iakaframe vendor-check` sur `main`
-// avant ce lot (« method.iakaframe-wrapped.md — frontmatter-different : principleIds »).
-// Le chiffre 16 du cadrage reste exact sur le fichier SOURCE : il est vérifié ci-dessous en ligne.
+// ⚠️ MESURE, PAS AJUSTEMENT. Le drift de vendorage décrit ici jusqu'au lot D-8 est RÉSORBÉ :
+// D-9 a re-vendoré le canon, et `fixtures/method.iakaframe-wrapped.md` porte désormais les
+// 18 `principleIds` du fichier source `iakaframe/methods/iakaframe.md`. Les 14 entrées non
+// résolues d'alors deviennent donc 16, dont 4 `principleIds` au lieu de 2 :
+// `canon-avant-citation` et `preuve-avant-declaration` existent dans `library/principles/`
+// mais restent absents de `CATALOG_PRINCIPLES` (14 entrées).
+// Ce déplacement est pré-annoncé au § 4.3 de `specs/instructions/d9-re-vendorage-canon-iakaframe.md`.
+// Ces 16 références non résolues ne sont PAS résorbées par D-9 : le catalogue du cœur n'est
+// pas élargi (dette D7-f, distincte). Ce test les rend exactes, il ne les corrige pas.
 // ---------------------------------------------------------------------------
 
 describe("A-5 — références non résolues du cas réel (fixture vendorée)", () => {
@@ -273,8 +273,8 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
   const refs = unresolvedRefsForMethod(parsed);
   const byField = (f: string) => refs.filter((r) => r.field === f).map((r) => r.id);
 
-  it("14 entrées sur la fixture telle qu'elle est vendorée aujourd'hui", () => {
-    expect(refs).toHaveLength(14);
+  it("16 entrées sur la fixture telle qu'elle est vendorée aujourd'hui", () => {
+    expect(refs).toHaveLength(16);
   });
 
   it("décomposition par champ, id par id", () => {
@@ -282,6 +282,8 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
     expect(byField("principleIds")).toEqual([
       "interruption-minimale-odin",
       "merge-versionnement",
+      "canon-avant-citation",
+      "preuve-avant-declaration",
     ]);
     expect(byField("scaffoldIds")).toEqual(["portefeuille", "projet"]);
     expect(byField("guardrailIds")).toEqual(["identity", "perimeter", "delegation"]);
@@ -301,19 +303,17 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
     expect(byField("guardrailIds")).toHaveLength(parsed.guardrailIds.length);
   });
 
-  it("le fichier SOURCE (18 principes) donne bien les 16 du cadrage §1.2", () => {
-    // Reconstitution EN LIGNE du frontmatter réel (aucune fixture ajoutée — cf. vendor-check).
-    const source = parseMethod({
-      ...parsed,
-      principleIds: [
-        ...parsed.principleIds,
-        "canon-avant-citation",
-        "preuve-avant-declaration",
-      ],
-    })!;
-    const srcRefs = unresolvedRefsForMethod(source);
-    expect(srcRefs).toHaveLength(16);
-    expect(srcRefs.filter((r) => r.field === "principleIds").map((r) => r.id)).toEqual([
+  // Ancrage anti-drift (D-9, § 4.4). Le test qu'il remplace reconstituait EN LIGNE les 2 ids
+  // manquants pour compenser le drift de vendorage ; ce drift étant résorbé, il les
+  // dupliquerait désormais (20 principes, 6 non résolus) et échouerait.
+  //
+  // ⚠️ Si ce test casse un jour, c'est que la fixture a re-divergé du canon. Il se répare en
+  // rejouant `node packages/core/scripts/gen-fixtures.mjs` — JAMAIS en éditant le chiffre 18
+  // ni la liste ci-dessous. Ajuster l'attendu sur l'observé masquerait précisément le drift
+  // que cet ancrage existe pour détecter.
+  it("ancrage : la fixture wrapped porte exactement les 18 principleIds du canon", () => {
+    expect(parsed.principleIds).toHaveLength(18);
+    expect(parsed.principleIds.slice(14)).toEqual([
       "interruption-minimale-odin",
       "merge-versionnement",
       "canon-avant-citation",
