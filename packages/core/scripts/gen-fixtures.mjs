@@ -78,7 +78,7 @@ function resolveCanon(explicit) {
 // Corps VERBATIM d'un document a frontmatter : tout ce qui suit le `---` fermant, sans rien
 // stripper (la ligne blanche de tete et le \n final font partie du fichier).
 function verbatimBody(text) {
-  const norm = String(text).replace(/^﻿/, '');
+  const norm = String(text).replace(/^\uFEFF/, '');
   if (!norm.startsWith('---\n')) return norm;
   const end = norm.indexOf('\n---\n', 3);
   return end < 0 ? '' : norm.slice(end + 5);

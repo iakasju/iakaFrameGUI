@@ -17,25 +17,66 @@
 
 ## Ce qu'est ce projet
 
-<!-- 2-4 lignes : à quoi sert le projet, pour qui, le résultat produit. -->
+**iakaFrameGUI — la forge de la méthode iakaframe** : authoring de teams *pures*
+(teams, méthodes, bindings, workflows, kits), dans une coquille de bureau. Elle
+**crée et livre** ; le cockpit réceptionne et exécute.
 
-Stack : <!-- ex: React + TypeScript + Tauri/Rust + SQLite -->
+Stack : React 18.3 + TypeScript 5.5 + Vite 6 + Tauri 2 (Rust 2.11) + Vitest 4,
+monorepo **npm workspaces** (`packages/*`, dont `@iakaframe/core`).
 
 ---
 
 ## Commandes à utiliser
 
+> **Invariant** : cette liste ne contient **que des scripts réellement exposés** par
+> `package.json`. Une commande documentée mais inexistante est pire qu'absente — elle
+> transforme un `Missing script` en faux vert pour qui ne lit pas la sortie. Toute
+> commande ajoutée ici doit l'être **en même temps** que le script correspondant.
+
 ```bash
-# ex:
-# npm run dev          # démarrer en dev
-# npm run build        # build de prod
-# npm run test:all     # tous les tests
-# npm run lint:all     # typecheck + lint
-# bash scripts/quality-report.sh   # rapport qualité consolidé
+npm run dev            # démarrer le front en dev (Vite)
+npm run tauri dev      # démarrer l'app de bureau complète (front + Rust)
+npm run build          # build de prod (tsc && vite build)
+npm run preview        # servir le build de prod
+
+npm run typecheck      # tsc --noEmit
+npm run lint           # eslint .
+npm run lint:all       # typecheck + lint   <- mesure de gate
+
+npm run test           # vitest run
+npm run test:all       # tous les tests     <- mesure de gate
+npm run test:coverage  # vitest run --coverage
 ```
 
-<!-- Si un Makefile/scripts existent, exiger de passer par eux plutôt que les
-     commandes brutes (docker compose, cargo, etc.). -->
+Côté Rust, dans `src-tauri/` : `cargo test`. **Volontairement hors de `test:all`** :
+en dépendre rendrait la mesure faillible sur toute machine sans toolchain Rust.
+
+---
+
+## Rendre un verdict de gate
+
+**Un verdict de gate qui ne cite pas ses commandes et leurs sorties n'est pas un
+verdict : c'est une opinion. Il ne franchit rien.**
+
+Un « gate PASS » non sourcé est **inopposable** : la charge de la preuve pèse sur
+l'émetteur, et un merge qui l'affirme sans mesure attachée est, par construction, un
+merge **non gaté** — même s'il se trouve que le code était vert. Motif : le merge
+`8ae5748` portait « gate Legolas PASS » alors que le lint était rouge
+(cf. `specs/notes/rectifications.md`).
+
+Tout verdict se rend donc dans ce **format contraint** — un tableau, jamais de la prose :
+
+| Commande | Code de sortie | Résumé cité |
+|---|---|---|
+| `npm run lint:all` | `0` | `(aucune sortie)` |
+| `npm run test:all` | `0` | `Test Files 53 passed (53) / Tests 496 passed (496)` |
+
+Règles d'usage, appliquées **sans examen du fond** :
+
+- une case **vide**, un **« OK » sans chiffre**, ou un résumé **reformulé** ⇒ **FAIL** ;
+- un critère **non mesuré** se déclare *non mesuré*, **jamais** *PASS* ;
+- une mesure **reprise du rapport d'un autre agent** n'est pas une mesure : on
+  **re-mesure**. C'est ce geste — et lui seul — qui a révélé l'incident `8ae5748`.
 
 ---
 

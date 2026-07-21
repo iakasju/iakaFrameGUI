@@ -13,7 +13,9 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:all": "npm run typecheck && npm run lint",
     "test": "vitest run",
+    "test:all": "npm run test",
     "test:coverage": "vitest run --coverage",
     "tauri": "tauri"
   },
