@@ -150,7 +150,7 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (8 personas)", () =>
     expect(toolsForPersona(binding, "gimli")).toEqual([
       "Read", "Edit", "Write", "Bash", "Grep", "Glob",
     ]);
-    expect(toolsForPersona(binding, "odin")).toEqual(["Read", "Grep", "Glob", "Bash"]);
+    expect(toolsForPersona(binding, "odin")).toEqual(["Read", "Grep", "Glob", "Bash", "Task"]);
     expect(renderAgentContract(loadCanon("gimli", binding))).toMatch(
       /^tools: Read, Edit, Write, Bash, Grep, Glob$/m,
     );
