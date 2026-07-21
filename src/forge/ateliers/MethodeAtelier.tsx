@@ -16,6 +16,7 @@ import {
   principlesForMethod,
   resolveWorkflow,
   roleLabel,
+  unresolvedRefsForMethod,
   type Gate,
   type Method,
   type Phase,
@@ -103,13 +104,29 @@ export function MethodeAtelier({
     },
   };
 
-  /** Valider une proposition → matérialisation RÉELLE via le même `insert` que le `+` du rail. */
+  /**
+   * Valider une proposition → matérialisation RÉELLE via le même `insert` que le `+` du rail.
+   *
+   * L'insertion est **idempotente**. Elle n'est en revanche PAS une garantie de résolution : un id
+   * que le catalogue du cœur ne connaît pas est inséré dans la méthode puis **silencieusement
+   * écarté par les résolveurs** — il n'apparaîtra nulle part dans le MD. Cette perte n'est pas une
+   * propriété rassurante : c'est le défaut D-7, désormais **rendu visible** par le bandeau de
+   * références non résolues en tête de rail (`unresolvedRefsForMethod`).
+   */
   function applyProposition(ops: MaterializeOp[]): void {
     for (const op of ops) {
       const ref = TARGET_TO_REF[op.target];
-      if (ref) insert(ref, op.id); // idempotent, défensif (id inconnu filtré aux résolveurs)
+      if (ref) insert(ref, op.id);
     }
   }
+
+  /**
+   * D-7 — références déclarées par la méthode que **le catalogue du cœur** ne résout pas. Elles
+   * sont perdues à l'affichage depuis toujours ; la seule chose qui change est qu'on le sait.
+   * Liste vide → **aucun nœud rendu** (pas de bandeau « tout va bien » : un bandeau permanent
+   * cesse d'être lu, et c'est un bandeau non lu qui a produit ce défaut).
+   */
+  const unresolvedRefs = unresolvedRefsForMethod(method);
 
   const principleNodes: FoldNode[] = principlesForMethod(method).map((pr, i) => ({
     kind: "principe",
@@ -123,6 +140,33 @@ export function MethodeAtelier({
     <>
       <aside className="rail">
         <div className="railhead">Stock — atelier Méthode · la discipline</div>
+
+        {unresolvedRefs.length > 0 && (
+          <RailNote>
+            <div
+              className="unresolved"
+              role="status"
+              aria-label="Références non résolues par le catalogue du cœur"
+            >
+              <b>
+                {unresolvedRefs.length} référence{unresolvedRefs.length > 1 ? "s" : ""} non
+                résolue{unresolvedRefs.length > 1 ? "s" : ""} par le catalogue du cœur
+              </b>
+              <span className="sd">
+                Ces références sont <b>légitimes</b> : c'est la forge qui ne sait pas encore les
+                résoudre. Elles n'apparaissent pas dans le MD ci-contre. Rien n'est bloqué —
+                l'édition et l'enregistrement restent possibles.
+              </span>
+              <ul>
+                {unresolvedRefs.map((r, i) => (
+                  <li key={`${r.field}-${r.id}-${i}`}>
+                    <code>{r.field}</code> · <code>{r.id}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </RailNote>
+        )}
 
         <RailSection title="Workflow" count="phases + gates" defaultOpen>
           <div className="sub wfref">

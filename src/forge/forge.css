@@ -304,6 +304,28 @@
   color: var(--accent-ink);
 }
 
+/* D-7 — bandeau des références non résolues par le catalogue du cœur.
+   Signalement NON bloquant : il informe, il n'interdit rien (aucun contrôle désactivé). */
+.forge .railnote .unresolved {
+  border-left: 2px solid var(--orange, #c07a1e);
+  padding: 4px 0 4px 7px;
+}
+.forge .railnote .unresolved > b {
+  display: block;
+  color: var(--orange, #c07a1e);
+}
+.forge .railnote .unresolved .sd {
+  display: block;
+  margin-top: 2px;
+}
+.forge .railnote .unresolved ul {
+  margin: 4px 0 0;
+  padding-left: 14px;
+}
+.forge .railnote .unresolved li {
+  margin: 1px 0;
+}
+
 /* ---------- Zone d'édition ---------- */
 .forge .edit {
   display: flex;
