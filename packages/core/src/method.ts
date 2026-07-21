@@ -18,6 +18,7 @@ import { CATALOG_PRINCIPLE_IDS, principleById, type Principle } from "./principl
 import { CATALOG_RITUAL_IDS, ritualById, type Ritual } from "./ritual";
 import { CATALOG_SCAFFOLD_IDS, scaffoldById, type Scaffold } from "./scaffold";
 import { CATALOG_GUARDRAIL_IDS } from "./guardrail";
+import type { FrameMissingRef } from "./frame";
 import {
   IAKAFRAME_CANONICAL_WORKFLOW,
   workflowById,
@@ -116,6 +117,72 @@ export function scaffoldsForMethod(method: Method): Scaffold[] {
   return method.scaffoldIds
     .map((id) => scaffoldById(id))
     .filter((s): s is Scaffold => s !== undefined);
+}
+
+// ---------------------------------------------------------------------------
+// Visibilité de la perte à la résolution (D-7). Les résolveurs ci-dessus filtrent en SILENCE ;
+// la fonction ci-dessous DIT ce qui a été perdu, sans rien changer à leur comportement.
+// ---------------------------------------------------------------------------
+
+/**
+ * Une **référence non résolue** d'une méthode : id déclaré que les catalogues du cœur ne
+ * connaissent pas. Forme **identique** à `FrameMissingRef` (`{ source, field, id }`) — c'est le
+ * même geste un étage plus bas, on ne crée pas une troisième forme (D7-a).
+ *
+ * ⚠️ Ce n'est **pas** une faute de l'auteur de la méthode : la référence peut être parfaitement
+ * légitime (elle existe dans le pool sur disque) et n'être **pas encore couverte** par le
+ * catalogue codé en dur du cœur. La limite désignée est **le cœur**, pas la méthode.
+ */
+export type MethodUnresolvedRef = FrameMissingRef;
+
+/** Lit un champ tableau d'une `Method` sans jamais lever (objet partiel/dégénéré toléré). */
+function refsOf(method: Method, field: keyof Method): string[] {
+  const raw = method[field];
+  return Array.isArray(raw) ? raw.filter((s) => typeof s === "string") : [];
+}
+
+/**
+ * **Références non résolues d'une méthode** (D-7) — fonction **pure**, additive, non bloquante :
+ * elle ne modifie ni la sortie ni la signature des résolveurs, elle les **double d'un rapport**.
+ *
+ * Couvre les **6 constituants + `workflowId`** (D7-b) — y compris `guardrailIds`/`roleKeys` qui
+ * n'ont pas de résolveur et sont justement les plus perdus. Un rapport partiel se lirait comme
+ * complet : il serait pire qu'aucun rapport.
+ *
+ * Ordre **déterministe** (le rapport sert d'instrument de suivi, il doit être comparable d'une
+ * exécution à l'autre) : ordre des champs ci-dessous, puis ordre de déclaration des ids.
+ * Défensive : jamais d'exception, y compris sur une `Method` aux tableaux vides ou absents.
+ * Les ids vides/blancs sont ignorés (`parseMethod` n'en produit jamais).
+ */
+export function unresolvedRefsForMethod(method: Method): MethodUnresolvedRef[] {
+  if (typeof method !== "object" || method === null) return [];
+  const source = `method:${typeof method.id === "string" ? method.id : ""}`;
+  const out: MethodUnresolvedRef[] = [];
+
+  /** Empile les ids d'un champ que `resolves` ne sait pas résoudre. */
+  const scan = (field: keyof Method, resolves: (id: string) => boolean): void => {
+    for (const id of refsOf(method, field)) {
+      if (id.trim().length === 0) continue;
+      if (!resolves(id)) out.push({ source, field, id });
+    }
+  };
+
+  scan("principleIds", (id) => principleById(id) !== undefined);
+  scan("ritualIds", (id) => ritualById(id) !== undefined);
+  scan("scaffoldIds", (id) => scaffoldById(id) !== undefined);
+  scan("guardrailIds", (id) => CATALOG_GUARDRAIL_IDS.includes(id));
+  scan("roleKeys", (id) => CANONICAL_ROLE_KEYS.includes(id));
+
+  // `workflowId` : scalaire optionnel. Le repli sur le canonique (`resolveWorkflow`) est CONSERVÉ,
+  // il devient seulement visible — c'est le repli qui fabrique un résultat plausible (§1.1).
+  const workflowId = method.workflowId;
+  if (typeof workflowId === "string" && workflowId.trim().length > 0) {
+    if (workflowById(workflowId) === undefined) {
+      out.push({ source, field: "workflowId", id: workflowId });
+    }
+  }
+
+  return out;
 }
 
 // ---------------------------------------------------------------------------

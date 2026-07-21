@@ -12,8 +12,16 @@ import {
   principlesForMethod,
   ritualsForMethod,
   scaffoldsForMethod,
+  unresolvedRefsForMethod,
   type Method,
 } from "../src/method";
+// A-9 : la fonction et son type doivent sortir par la façade publique du paquet.
+import {
+  unresolvedRefsForMethod as publicUnresolvedRefsForMethod,
+  type MethodUnresolvedRef as PublicUnresolvedRef,
+} from "../src/index";
+import { parseMethodMd } from "../src/frontmatter";
+import wrappedMethod from "./fixtures/method.iakaframe-wrapped.md?raw";
 import { IAKAFRAME_CANONICAL_WORKFLOW } from "../src/workflow";
 import { CATALOG_PRINCIPLE_IDS } from "../src/principle";
 import { CATALOG_RITUAL_IDS } from "../src/ritual";
@@ -126,5 +134,190 @@ describe("parseMethod / parseMethods / round-trip (défensif)", () => {
     const methods: Method[] = parseMethods(arr);
     expect(methods).toHaveLength(1);
     expect(methods[0].id).toBe(DEFAULT_METHOD_ID);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D-7 — la perte à la résolution devient VISIBLE (rapport séparé, additif).
+// Les résolveurs ci-dessus ne changent pas d'un octet : A-8 est un test de NON-régression.
+// ---------------------------------------------------------------------------
+
+describe("unresolvedRefsForMethod — visibilité de la perte (D-7)", () => {
+  it("A-1 : le canonique ne perd rien → [] (garde-fou anti-faux-positif)", () => {
+    expect(unresolvedRefsForMethod(IAKAFRAME_CANONICAL_METHOD)).toEqual([]);
+  });
+
+  it("A-2 : id inconnu signalé, id résolu absent du rapport", () => {
+    const m = parseMethod({
+      id: "x",
+      principleIds: ["qualite", "inconnu-42"],
+      ritualIds: ["fantome"],
+    })!;
+    const refs = unresolvedRefsForMethod(m);
+    expect(refs).toHaveLength(2);
+    expect(refs).toEqual([
+      { source: "method:x", field: "principleIds", id: "inconnu-42" },
+      { source: "method:x", field: "ritualIds", id: "fantome" },
+    ]);
+    expect(refs.some((r) => r.id === "qualite")).toBe(false);
+  });
+
+  it("A-3 : les 6 constituants + workflowId sont couverts (7 champs, 7 entrées)", () => {
+    const m = parseMethod({
+      id: "y",
+      principleIds: ["p-inconnu"],
+      ritualIds: ["r-inconnu"],
+      scaffoldIds: ["s-inconnu"],
+      guardrailIds: ["g-inconnu"],
+      roleKeys: ["k-inconnu"],
+      workflowId: "w-inconnu",
+    })!;
+    const refs = unresolvedRefsForMethod(m);
+    // NB : A-3 annonce « 7 champs » mais n'en énumère que 6 — `workflowId` EST l'un des six
+    // constituants du modèle (a)-(f), pas un septième. Les 6 champs listés sont tous couverts ;
+    // l'attendu est donc 6. Écart de comptage du cadrage, signalé plutôt qu'absorbé.
+    expect(refs).toHaveLength(6);
+    expect(refs.map((r) => r.field)).toEqual([
+      "principleIds",
+      "ritualIds",
+      "scaffoldIds",
+      "guardrailIds",
+      "roleKeys",
+      "workflowId",
+    ]);
+  });
+
+  it("A-4 : workflowId inconnu → 1 entrée, ET resolveWorkflow se replie toujours", () => {
+    const m = parseMethod({ id: "z", workflowId: "n-existe-pas" })!;
+    const refs = unresolvedRefsForMethod(m);
+    expect(refs).toEqual([
+      { source: "method:z", field: "workflowId", id: "n-existe-pas" },
+    ]);
+    expect(resolveWorkflow(m)).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
+  });
+
+  it("A-6 : entrées dégénérées → jamais d'exception", () => {
+    const vide = parseMethod({ id: "vide" })!;
+    expect(unresolvedRefsForMethod(vide)).toEqual([]);
+    const blancs = { ...vide, principleIds: ["", "   "], roleKeys: [""] };
+    expect(() => unresolvedRefsForMethod(blancs)).not.toThrow();
+    expect(unresolvedRefsForMethod(blancs)).toEqual([]);
+    // Objet partiel (champs absents) : toléré, pas de plantage.
+    expect(() =>
+      unresolvedRefsForMethod({ id: "partiel" } as unknown as Method),
+    ).not.toThrow();
+  });
+
+  it("A-7 : ordre de sortie déterministe (deux appels strictement égaux)", () => {
+    const m = parseMethod({
+      id: "det",
+      principleIds: ["a", "qualite", "b"],
+      roleKeys: ["zzz", "portefeuille", "aaa"],
+      guardrailIds: ["g1", "g2"],
+    })!;
+    expect(unresolvedRefsForMethod(m)).toEqual(unresolvedRefsForMethod(m));
+    // Ordre = ordre des champs, puis ordre de DÉCLARATION des ids (pas alphabétique).
+    expect(unresolvedRefsForMethod(m).map((r) => r.id)).toEqual([
+      "a",
+      "b",
+      "g1",
+      "g2",
+      "zzz",
+      "aaa",
+    ]);
+  });
+
+  it("A-8 : non-régression — les résolveurs et resolveWorkflow sont inchangés", () => {
+    const m = parseMethod({
+      id: "nr",
+      principleIds: ["qualite", "inconnu-42"],
+      ritualIds: ["fantome"],
+      scaffoldIds: ["portfolio", "inconnu"],
+      workflowId: "n-existe-pas",
+    })!;
+    expect(principlesForMethod(m)).toHaveLength(1);
+    expect(ritualsForMethod(m)).toHaveLength(0);
+    expect(scaffoldsForMethod(m)).toHaveLength(1);
+    expect(resolveWorkflow(m)).toBe(IAKAFRAME_CANONICAL_WORKFLOW);
+    // Le rapport est un AJOUT : il n'a rien retiré aux sorties ci-dessus.
+    expect(unresolvedRefsForMethod(m)).toHaveLength(4);
+  });
+
+  it("A-9 : la fonction et son type sont exportés depuis @iakaframe/core", () => {
+    const ref: PublicUnresolvedRef = {
+      source: "method:x",
+      field: "principleIds",
+      id: "inconnu",
+    };
+    expect(publicUnresolvedRefsForMethod).toBe(unresolvedRefsForMethod);
+    expect(ref.field).toBe("principleIds");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A-5 — cas de référence sur la fixture VENDORÉE existante (aucune fixture ajoutée).
+//
+// ⚠️ MESURE, PAS AJUSTEMENT. Le cadrage D-7 attendait 16 entrées (dont 4 `principleIds`). La
+// mesure du 2026-07-20 sur la fixture en donne 14 (dont 2 `principleIds`). L'écart a été
+// diagnostiqué AVANT d'écrire l'attendu, et il n'est PAS dans cette fonction :
+//   - `iakaframe/methods/iakaframe.md` (source) déclare 18 principleIds ;
+//   - `fixtures/method.iakaframe-wrapped.md` (copie vendorée) n'en déclare que 16 ;
+//   - manquent à la fixture : `canon-avant-citation`, `preuve-avant-declaration`.
+// C'est un DRIFT DE VENDORAGE préexistant, déjà signalé par `iakaframe vendor-check` sur `main`
+// avant ce lot (« method.iakaframe-wrapped.md — frontmatter-different : principleIds »).
+// Le chiffre 16 du cadrage reste exact sur le fichier SOURCE : il est vérifié ci-dessous en ligne.
+// ---------------------------------------------------------------------------
+
+describe("A-5 — références non résolues du cas réel (fixture vendorée)", () => {
+  const parsed = parseMethodMd(wrappedMethod)! as unknown as Method;
+  const refs = unresolvedRefsForMethod(parsed);
+  const byField = (f: string) => refs.filter((r) => r.field === f).map((r) => r.id);
+
+  it("14 entrées sur la fixture telle qu'elle est vendorée aujourd'hui", () => {
+    expect(refs).toHaveLength(14);
+  });
+
+  it("décomposition par champ, id par id", () => {
+    expect(byField("ritualIds")).toEqual([]);
+    expect(byField("principleIds")).toEqual([
+      "interruption-minimale-odin",
+      "merge-versionnement",
+    ]);
+    expect(byField("scaffoldIds")).toEqual(["portefeuille", "projet"]);
+    expect(byField("guardrailIds")).toEqual(["identity", "perimeter", "delegation"]);
+    expect(byField("roleKeys")).toEqual([
+      "cadrage",
+      "dev",
+      "qualite",
+      "deploiement",
+      "design",
+      "documentation",
+    ]);
+    expect(byField("workflowId")).toEqual(["iakaframe-3phases"]);
+  });
+
+  it("scaffolds et gardes-fous sont perdus à 100 % (les deux sans résolveur)", () => {
+    expect(byField("scaffoldIds")).toHaveLength(parsed.scaffoldIds.length);
+    expect(byField("guardrailIds")).toHaveLength(parsed.guardrailIds.length);
+  });
+
+  it("le fichier SOURCE (18 principes) donne bien les 16 du cadrage §1.2", () => {
+    // Reconstitution EN LIGNE du frontmatter réel (aucune fixture ajoutée — cf. vendor-check).
+    const source = parseMethod({
+      ...parsed,
+      principleIds: [
+        ...parsed.principleIds,
+        "canon-avant-citation",
+        "preuve-avant-declaration",
+      ],
+    })!;
+    const srcRefs = unresolvedRefsForMethod(source);
+    expect(srcRefs).toHaveLength(16);
+    expect(srcRefs.filter((r) => r.field === "principleIds").map((r) => r.id)).toEqual([
+      "interruption-minimale-odin",
+      "merge-versionnement",
+      "canon-avant-citation",
+      "preuve-avant-declaration",
+    ]);
   });
 });
