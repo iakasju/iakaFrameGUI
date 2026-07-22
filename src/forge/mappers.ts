@@ -106,6 +106,7 @@ export function kitToMd(kit: Kit): KitMd {
   if (kit.runnerBindingId && kit.runnerBindingId.trim().length > 0) {
     md.bindingId = kit.runnerBindingId;
   }
+  if (kit.emits !== undefined) md.emits = kit.emits;
   return md;
 }
 
@@ -116,5 +117,6 @@ export function mdToKit(md: KitMd): Kit {
     : DEFAULT_KIT_NODE;
   const kit: Kit = { id: md.id, methodId: md.methodId, teamId: md.teamId, node };
   if (md.bindingId && md.bindingId.trim().length > 0) kit.runnerBindingId = md.bindingId;
+  if (md.emits !== undefined) kit.emits = md.emits;
   return kit;
 }

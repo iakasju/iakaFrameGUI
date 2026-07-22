@@ -88,6 +88,18 @@ const kitBody = (k: Kit): string =>
 const workflowBody = (w: Workflow): string =>
   `# ${w.name}\n\nWorkflow (phases + gates) — artefact autonome de \`workflows/\`. Forgé par iakaFrameGUI.\n`;
 
+/**
+ * Extrait la **prose seule** d'un corps workflow capturé à l'Open : tronque au marqueur du bloc de
+ * données (`<!-- iakaframe:workflow …`) pour ne **pas** dupliquer le bloc JSON que `serializeWorkflowMd`
+ * régénère. `null` en entrée (document neuf) → `null` (repli boilerplate). Prose vide → `""` (le
+ * sérialiseur n'écrit alors que le bloc de données).
+ */
+const workflowProse = (body: string | null): string | null => {
+  if (body == null) return null;
+  const marker = body.indexOf("<!-- iakaframe:workflow");
+  return (marker >= 0 ? body.slice(0, marker) : body).trim();
+};
+
 export function ForgeShell() {
   const handoff = useForgeHandoff();
   const [tab, setTab] = useState<Tab>("team");
@@ -108,7 +120,7 @@ export function ForgeShell() {
   const teamDoc = useForgeDocument<Team>({
     collection: "teams",
     blank: () => buildTeamFromRoster("Team iakaframe", "iakaframe"),
-    serialize: (t) => serializeTeamMd(teamToMd(t), teamBody(t)),
+    serialize: (t, o) => serializeTeamMd(teamToMd(t), o.body ?? teamBody(t)),
     parse: (txt) => {
       const md = parseTeamMd(txt);
       return md ? mdToTeam(md) : null;
@@ -122,7 +134,8 @@ export function ForgeShell() {
   const methodDoc = useForgeDocument<Method>({
     collection: "methods",
     blank: () => ({ ...IAKAFRAME_STARTER_METHOD }),
-    serialize: (m) => serializeMethodMd(methodToMd(m), methodBody(m)),
+    serialize: (m, o) =>
+      serializeMethodMd(methodToMd(m), o.body ?? methodBody(m), o.layout ?? undefined),
     parse: (txt) => {
       const md = parseMethodMd(txt);
       return md ? mdToMethod(md) : null;
@@ -141,7 +154,7 @@ export function ForgeShell() {
       teamId: "iakaframe",
       node: DEFAULT_KIT_NODE,
     }),
-    serialize: (k) => serializeKitMd(kitToMd(k), kitBody(k)),
+    serialize: (k, o) => serializeKitMd(kitToMd(k), o.body ?? kitBody(k)),
     parse: (txt) => {
       const md = parseKitMd(txt);
       return md ? mdToKit(md) : null;
@@ -155,7 +168,7 @@ export function ForgeShell() {
   const workflowDoc = useForgeDocument<Workflow>({
     collection: "workflows",
     blank: () => cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW),
-    serialize: (w) => serializeWorkflowMd(w, workflowBody(w)),
+    serialize: (w, o) => serializeWorkflowMd(w, workflowProse(o.body) ?? workflowBody(w)),
     parse: (txt) => parseWorkflowMd(txt),
     idOf: (w) => w.id,
     nameOf: (w) => w.name,
