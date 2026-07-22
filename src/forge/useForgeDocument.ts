@@ -17,19 +17,26 @@ import { readListLayout, verbatimBody, type ListLayout } from "@iakaframe/core";
 import { backend, type Backend, type LibraryCollection } from "../api/backend";
 
 /**
- * Capture d'origine d'un document **ouvert** (défaut 2+3) : le corps markdown réel (`verbatimBody`,
- * byte-parité — PAS `parseFrontmatter().body` qui strippe la ligne blanche de tête) et la découpe
- * en lignes des listes flow wrappées (`readListLayout`). Rethreadés au Save pour que Open→Save sans
- * édition produise un **diff vide**. Un document **neuf** n'a pas d'origine → `{ body:null, layout:null }`
- * (repli boilerplate, comportement historique préservé).
+ * Capture d'origine d'un document **ouvert** (défaut 2+3, étendue 3bis) : le corps markdown réel
+ * (`verbatimBody`, byte-parité — PAS `parseFrontmatter().body` qui strippe la ligne blanche de tête),
+ * la découpe en lignes des listes flow wrappées (`readListLayout`), plus — pour la byte-parité du
+ * **frontmatter** lui-même (workflow : alignement manuel `auto,␣␣criteria` non reproductible
+ * génériquement) — le **texte source complet** (`source`) et l'**artefact parsé à l'Open**
+ * (`artifact`). Au Save, un sérialiseur peut ré-émettre `source` **verbatim** si l'artefact est resté
+ * deep-equal à `artifact` (Open→Save non édité = diff vide). Un document **neuf** n'a pas d'origine
+ * → tout `null` (repli boilerplate, comportement historique préservé).
  */
 export interface OriginCapture {
   body: string | null;
   layout: ListLayout | null;
+  /** Texte `.md` complet à l'Open (option 3a) — ré-émis verbatim si l'artefact est resté identique. */
+  source: string | null;
+  /** Artefact parsé à l'Open — comparé (deep-equal) à l'artefact courant au Save. */
+  artifact: unknown | null;
 }
 
 /** Capture vide (document neuf / fermé) : le Save retombe sur le boilerplate. */
-const EMPTY_ORIGIN: OriginCapture = { body: null, layout: null };
+const EMPTY_ORIGIN: OriginCapture = { body: null, layout: null, source: null, artifact: null };
 
 /** Un id manquant au pool (rapport I1, miroir de `checkRefs`). */
 export interface MissingRef {
@@ -325,8 +332,14 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         setLastError(`illisible : ${openId}`);
         return;
       }
-      // Capture d'origine (défaut 2+3) : corps réel VERBATIM (byte-parité) + wrapping des listes flow.
-      setOrigin({ body: verbatimBody(text), layout: readListLayout(text) });
+      // Capture d'origine (défaut 2+3, étendue 3bis) : corps réel VERBATIM (byte-parité) + wrapping
+      // des listes flow + texte source complet et artefact parsé (byte-parité du frontmatter, 3a).
+      setOrigin({
+        body: verbatimBody(text),
+        layout: readListLayout(text),
+        source: text,
+        artifact: parsed,
+      });
       setArtifact(parsed);
       setId(cfg.idOf(parsed) || openId);
       setSource("library");

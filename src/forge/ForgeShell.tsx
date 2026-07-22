@@ -16,7 +16,6 @@ import {
   serializeTeamMd,
   serializeMethodMd,
   serializeKitMd,
-  serializeWorkflowMd,
   parseTeamMd,
   parseMethodMd,
   parseKitMd,
@@ -30,6 +29,7 @@ import {
 } from "@iakaframe/core";
 import { useForgeHandoff } from "../hooks/useForgeHandoff";
 import { useForgeDocument, type LibraryEntry } from "./useForgeDocument";
+import { serializeWorkflowDoc } from "./workflowSerialize";
 import { IAKAFRAME_STARTER_METHOD } from "./useForgeMethod";
 import { insertMethodRef, type MethodRef } from "./methodEdit";
 import { makeTeamValidateRefs, makeMethodValidateRefs } from "./refs";
@@ -85,20 +85,6 @@ const methodBody = (m: Method): string =>
   `# ${m.name}\n\nAssemblage de discipline (ids vers \`library/*\`). Forgé par iakaFrameGUI.\n`;
 const kitBody = (k: Kit): string =>
   `# Kit ${k.id || "sans-titre"}\n\nManifeste d'assemblage (méthode + team + binding). Forgé par iakaFrameGUI.\n`;
-const workflowBody = (w: Workflow): string =>
-  `# ${w.name}\n\nWorkflow (phases + gates) — artefact autonome de \`workflows/\`. Forgé par iakaFrameGUI.\n`;
-
-/**
- * Extrait la **prose seule** d'un corps workflow capturé à l'Open : tronque au marqueur du bloc de
- * données (`<!-- iakaframe:workflow …`) pour ne **pas** dupliquer le bloc JSON que `serializeWorkflowMd`
- * régénère. `null` en entrée (document neuf) → `null` (repli boilerplate). Prose vide → `""` (le
- * sérialiseur n'écrit alors que le bloc de données).
- */
-const workflowProse = (body: string | null): string | null => {
-  if (body == null) return null;
-  const marker = body.indexOf("<!-- iakaframe:workflow");
-  return (marker >= 0 ? body.slice(0, marker) : body).trim();
-};
 
 export function ForgeShell() {
   const handoff = useForgeHandoff();
@@ -168,7 +154,7 @@ export function ForgeShell() {
   const workflowDoc = useForgeDocument<Workflow>({
     collection: "workflows",
     blank: () => cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW),
-    serialize: (w, o) => serializeWorkflowMd(w, workflowProse(o.body) ?? workflowBody(w)),
+    serialize: (w, o) => serializeWorkflowDoc(w, o),
     parse: (txt) => parseWorkflowMd(txt),
     idOf: (w) => w.id,
     nameOf: (w) => w.name,
