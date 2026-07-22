@@ -35,6 +35,18 @@ describe("parseKit (E2 §5 — manifeste par références)", () => {
     expect(withoutBinding).not.toHaveProperty("runnerBindingId");
   });
 
+  it("emits optionnel : lu défensivement (chaînes non vides), round-trip JSON conservé", () => {
+    const withEmits = parseKit({
+      ...validKit,
+      emits: [".claude/agents/*", "CLAUDE.md", "", 42],
+    })!;
+    // Défensif : non-string / vides filtrés.
+    expect(withEmits.emits).toEqual([".claude/agents/*", "CLAUDE.md"]);
+    expect(parseKitText(serializeKit(withEmits))).toEqual(withEmits);
+    // Absent → non posé.
+    expect(parseKit(validKit)).not.toHaveProperty("emits");
+  });
+
   it("ne pose ni runner ni model (manifeste de références seulement)", () => {
     const json = serializeKit(validKit);
     expect(json).not.toMatch(/\bmodel\b/i);

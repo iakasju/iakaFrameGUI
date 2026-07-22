@@ -31,6 +31,12 @@ export interface Kit {
   runnerBindingId?: string;
   /** Nœud cible de génération (claude au MVP). */
   node: NodeKind;
+  /**
+   * Empreintes générées par le kit (`.claude/agents/*`, `CLAUDE.md`, …) — champ réel du frame
+   * (`kits/iakaframe-claude.md`). Porté ici pour survivre au round-trip Open→Save (byte-parité) ;
+   * absent → omis. Additif, non lié au binding.
+   */
+  emits?: string[];
 }
 
 /**
@@ -62,6 +68,11 @@ export function parseKit(raw: unknown): Kit | null {
       ? r.runnerBindingId.trim()
       : undefined;
   if (runnerBindingId) kit.runnerBindingId = runnerBindingId;
+  if (Array.isArray(r.emits)) {
+    kit.emits = (r.emits as unknown[]).filter(
+      (s): s is string => typeof s === "string" && s.length > 0,
+    );
+  }
   return kit;
 }
 
