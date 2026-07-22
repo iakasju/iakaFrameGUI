@@ -24,7 +24,7 @@
  * Défensif : jamais d'exception ; champ inconnu ignoré ; artefact sans `id` → `null`.
  */
 
-import type { Workflow } from "./workflow";
+import type { GateKind, Phase, Workflow } from "./workflow";
 import { parseWorkflow } from "./workflow";
 
 // ---------------------------------------------------------------------------
@@ -539,6 +539,46 @@ export interface KitMd {
   emits?: string[];
 }
 
+/**
+ * Une **phase** au schéma-fichier du frame (`workflows/<id>.md`, frontmatter `phases:`). Miroir
+ * **exact** de la map inline `- { id, label, side?, agentsRoleKeys[], input, output }` — champs
+ * `input`/`output`/`side`/`label` que le type riche `Phase` (fusionne en `description`/`offChain`)
+ * ne porte pas. `side` présent uniquement hors chaîne (frame : `prod`).
+ */
+export interface WorkflowMdPhase {
+  id: string;
+  label: string;
+  side?: string;
+  agentsRoleKeys: string[];
+  input: string;
+  output: string;
+}
+
+/**
+ * Une **gate** au schéma-fichier du frame (frontmatter `gates:`, **tableau séparé** appariée par
+ * `afterPhase`). Miroir de `- { afterPhase, kind, criteria }`.
+ */
+export interface WorkflowMdGate {
+  afterPhase: string;
+  kind: GateKind;
+  criteria: string;
+}
+
+/**
+ * `workflows/<id>.md` (frame) — enregistrement **lean, miroir exact** du schéma-fichier autoritaire
+ * (frontmatter `phases`/`gates`). Distinct du type riche `Workflow` : il **héberge sans perte** les
+ * champs de fichier (`label`/`input`/`output`/`side`/`criteria` séparés) — même pattern que
+ * `TeamMd`/`MethodMd`/`KitMd`. `methodId` **optionnel** : le frame ne le porte pas et on ne le
+ * force pas (byte-parité : pas de ligne `methodId:` parasite).
+ */
+export interface WorkflowMd {
+  id: string;
+  name: string;
+  methodId?: string;
+  phases: WorkflowMdPhase[];
+  gates: WorkflowMdGate[];
+}
+
 // --- team --------------------------------------------------------------------
 
 /** Sérialise un `TeamMd` en `.md`-frontmatter (ordre des champs = fichiers réels). */
@@ -675,61 +715,241 @@ export function parseKitMd(text: string | undefined | null): KitMd | null {
   return kit;
 }
 
-// --- workflow (P6b) ----------------------------------------------------------
+// --- workflow (étape 3bis : réconciliation GUI ← frame) ----------------------
 
 /**
- * Encodage `.md` du **workflow** (P6b, Q-8) : frontmatter **plat** (`id`/`name`/`methodId`, lisible
- * par le CLI/`iakaframe show` **sans** étendre `buildDocument` — protège le golden) + les
- * **phases/gates** sérialisées **dans le corps** en bloc JSON structuré round-trippé. Ce bloc reste
- * **contenu dans le fichier workflow** (les autres schémas — team/method/kit — ne le voient jamais).
- * Le parseur est **défensif** (bloc absent/illisible → `null` → repli canonique côté forge).
+ * Encodage `.md` du **workflow** — **format frame autoritaire** (doctrine `GUI ← frame`) : les
+ * `phases`/`gates` vivent dans le **frontmatter** (séquences de maps inline `- { … }`), `gates` en
+ * **tableau séparé** appariée par `afterPhase`. Le lean `WorkflowMd` en est le miroir byte-fidèle ;
+ * un **mapper** `mdToWorkflow`/`workflowToMd` le projette sur le type riche `Workflow` (diagramme).
+ *
+ * L'ancien encodage GUI (frontmatter plat + phases en **bloc `` ```json ``** dans le corps) est
+ * **retiré des écritures** ; il reste lu en **repli legacy** (non-régression des workflows créés
+ * dans le GUI avant cette étape). Le parseur est défensif (jamais d'exception → `null`).
  */
 
-/** Marqueur du bloc de phases (données) dans le corps — informatif, non porteur de sens au parse. */
-const WORKFLOW_PHASES_MARKER =
-  "<!-- iakaframe:workflow — phases/gates (données, ne pas éditer à la main) -->";
-
-/** Extrait le contenu du **premier** bloc ```json du corps (`null` si absent). */
+/** Extrait le contenu du **premier** bloc ```json du corps (`null` si absent). Repli legacy. */
 function extractJsonBlock(body: string): string | null {
   const m = body.match(/```json\s*\n([\s\S]*?)\n?```/);
   return m ? m[1] : null;
 }
 
+// -- quoting inline-map-aware (piège byte-parité : `,` `:` `{` `}` `[` `]` nus cassent le parse) --
+
 /**
- * Sérialise un `Workflow` en `.md` (Q-8). Frontmatter plat `id`/`name`/`methodId` via
- * `buildDocument` (champs scalaires — **aucune** extension du frontmatter partagé) ; les phases +
- * le calage de section (`sectionTitle`/`sectionNote`) vivent dans le **corps** en bloc JSON. `body`
- * = prose humaine optionnelle (insérée avant le bloc de données).
+ * Une valeur scalaire **dans une map inline** `{ … }` doit-elle être quotée ? On étend
+ * {@link needsScalarQuote} (vide, espace de bord, mot-clé, entier, tête ambiguë) aux caractères qui
+ * **casseraient le parse de la map inline** s'ils restaient nus : `,` (sépare les paires), `:`
+ * (sépare clé/valeur), `{` `}` `[` `]` (bornent maps/listes). Les valeurs simples (`besoin`,
+ * `human`, `p1`, `Déploiement prod`) restent **nues** — byte-parité avec le fichier réel du frame.
  */
-export function serializeWorkflowMd(wf: Workflow, body = ""): string {
-  const payload: Record<string, unknown> = { phases: wf.phases };
-  if (wf.sectionTitle !== undefined) payload.sectionTitle = wf.sectionTitle;
-  if (wf.sectionNote !== undefined) payload.sectionNote = wf.sectionNote;
-  const dataBlock = `${WORKFLOW_PHASES_MARKER}\n\n\`\`\`json\n${JSON.stringify(
-    payload,
-    null,
-    2,
-  )}\n\`\`\`\n`;
-  const fullBody = body.trim().length > 0 ? `${body.trim()}\n\n${dataBlock}` : dataBlock;
-  return buildDocument(
-    [
-      { key: "id", kind: "scalar", value: wf.id },
-      { key: "name", kind: "scalar", value: wf.name },
-      { key: "methodId", kind: "scalar", value: wf.methodId },
-    ],
-    fullBody,
-  );
+function needsInlineMapQuote(s: string): boolean {
+  return needsScalarQuote(s) || /[,:{}[\]]/.test(s);
+}
+
+/** Rend une valeur scalaire de map inline (quotée au besoin, quoting inline-map-aware). */
+function renderInlineScalar(v: string): string {
+  return needsInlineMapQuote(v) ? `"${v}"` : v;
+}
+
+/** Rend une map inline `{ k: v, … }` à partir de paires déjà rendues. */
+function renderInlineMap(pairs: string[]): string {
+  return `{ ${pairs.join(", ")} }`;
 }
 
 /**
- * Parse un `.md` workflow → `Workflow` (défensif ; `null` sans `id`, sans bloc de données lisible,
- * ou sans phase valide). Fusionne le frontmatter plat (`id`/`name`/`methodId`) et le bloc JSON du
- * corps (phases + calage), puis délègue à `parseWorkflow` (mêmes garanties défensives que le cœur).
+ * Sérialise un `WorkflowMd` en `.md` **frame-format canonique** (byte-parité **structurelle**, pas
+ * l'alignement manuel — celui-ci passe par la capture verbatim côté hôte, cf. `serializeWorkflowDoc`).
+ * `phases`/`gates` en **frontmatter**, maps inline indentées de 2 espaces, ordre de champ
+ * `id, label, side?, agentsRoleKeys, input, output` (`side` omis si absent), `gates` en tableau
+ * séparé `{ afterPhase, kind, criteria }`, **`methodId` omis si absent**. `body` = prose (préservée).
+ * **Aucun** bloc `` ```json `` n'est écrit.
+ */
+export function serializeWorkflowFrontmatterMd(md: WorkflowMd, body = ""): string {
+  const lines: string[] = [
+    `id: ${renderScalar(md.id)}`,
+    `name: ${renderScalar(md.name)}`,
+  ];
+  if (md.methodId && md.methodId.trim().length > 0) {
+    lines.push(`methodId: ${renderScalar(md.methodId)}`);
+  }
+  lines.push("phases:");
+  for (const p of md.phases) {
+    const pairs = [`id: ${renderInlineScalar(p.id)}`, `label: ${renderInlineScalar(p.label)}`];
+    if (p.side !== undefined && p.side.length > 0) {
+      pairs.push(`side: ${renderInlineScalar(p.side)}`);
+    }
+    pairs.push(`agentsRoleKeys: ${renderFlowList(p.agentsRoleKeys)}`);
+    pairs.push(`input: ${renderInlineScalar(p.input)}`);
+    pairs.push(`output: ${renderInlineScalar(p.output)}`);
+    lines.push(`  - ${renderInlineMap(pairs)}`);
+  }
+  lines.push("gates:");
+  for (const g of md.gates) {
+    lines.push(
+      `  - ${renderInlineMap([
+        `afterPhase: ${renderInlineScalar(g.afterPhase)}`,
+        `kind: ${renderInlineScalar(g.kind)}`,
+        `criteria: ${renderInlineScalar(g.criteria)}`,
+      ])}`,
+    );
+  }
+  return `---\n${lines.join("\n")}\n---\n${body}`;
+}
+
+/** Construit un `WorkflowMd` (lean) depuis un frontmatter déjà parsé (frame-format). Défensif. */
+function coerceWorkflowMd(id: string, data: FrontmatterData): WorkflowMd | null {
+  if (!Array.isArray(data.phases)) return null;
+  const phases: WorkflowMdPhase[] = [];
+  for (const raw of data.phases) {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) continue;
+    const r = raw as Record<string, FrontmatterValue>;
+    const pid = asString(r.id).trim();
+    if (!pid) continue;
+    const phase: WorkflowMdPhase = {
+      id: pid,
+      label: asString(r.label) || pid,
+      agentsRoleKeys: asStringArray(r.agentsRoleKeys),
+      input: asString(r.input),
+      output: asString(r.output),
+    };
+    const side = asString(r.side).trim();
+    if (side) phase.side = side;
+    phases.push(phase);
+  }
+  if (phases.length === 0) return null;
+  const gates: WorkflowMdGate[] = [];
+  if (Array.isArray(data.gates)) {
+    for (const raw of data.gates) {
+      if (typeof raw !== "object" || raw === null || Array.isArray(raw)) continue;
+      const r = raw as Record<string, FrontmatterValue>;
+      const afterPhase = asString(r.afterPhase).trim();
+      if (!afterPhase) continue;
+      gates.push({
+        afterPhase,
+        kind: asString(r.kind).trim() === "auto" ? "auto" : "human",
+        criteria: asString(r.criteria),
+      });
+    }
+  }
+  const md: WorkflowMd = { id, name: asString(data.name) || id, phases, gates };
+  const methodId = asString(data.methodId).trim();
+  if (methodId) md.methodId = methodId;
+  return md;
+}
+
+/** Parse un `.md` frame-format → `WorkflowMd` (lean, byte-fidèle ; `null` si pas frame-format). */
+export function parseWorkflowFrontmatterMd(text: string | undefined | null): WorkflowMd | null {
+  const { data } = parseFrontmatter(text);
+  const id = asString(data.id).trim();
+  if (!id) return null;
+  return coerceWorkflowMd(id, data);
+}
+
+// -- mapper WorkflowMd <-> Workflow (riche) : le fichier lean héberge input/output/side séparés ;
+//    le riche fusionne (`description = input → output`, `offChain = side === "prod"`). Les champs
+//    de calage riches (badge/roleDisplay/gate.display/section*) n'ont pas de home dans le frame :
+//    ils restent in-memory (repli du diagramme), jamais écrits.
+
+/** Séparateur « entrée → sortie » du champ riche `description` (miroir du littéral canonique). */
+const WORKFLOW_IO_ARROW = " → ";
+/** Méthode par défaut : `methodId` absent du fichier ⇒ riche défaulté ; réciproquement omis. */
+const WORKFLOW_DEFAULT_METHOD_ID = "iakaframe";
+
+/**
+ * Projette un `WorkflowMd` (fichier) sur le type riche `Workflow` (diagramme/atelier). `label`→`name`,
+ * `agentsRoleKeys`→`roleKeys`, `input`/`output`→`description` (« input → output »), `side: prod`→
+ * `offChain`, gate appariée par `afterPhase` (`criteria`→`condition`). `order` = index de position.
+ * `methodId` absent → défaulté (in-memory ; réciproquement omis à l'écriture).
+ */
+export function mdToWorkflow(md: WorkflowMd): Workflow {
+  const gateByPhase = new Map<string, WorkflowMdGate>();
+  for (const g of md.gates) if (!gateByPhase.has(g.afterPhase)) gateByPhase.set(g.afterPhase, g);
+  const phases: Phase[] = md.phases.map((p, index) => {
+    const g = gateByPhase.get(p.id);
+    const description =
+      p.output && p.output.length > 0 ? `${p.input}${WORKFLOW_IO_ARROW}${p.output}` : p.input;
+    const phase: Phase = {
+      id: p.id,
+      order: index,
+      name: p.label,
+      description,
+      roleKeys: [...p.agentsRoleKeys],
+      gate: g ? { kind: g.kind, condition: g.criteria } : { kind: "human", condition: "" },
+    };
+    if (p.side === "prod") phase.offChain = true;
+    return phase;
+  });
+  return {
+    id: md.id,
+    name: md.name,
+    methodId:
+      md.methodId && md.methodId.length > 0 ? md.methodId : WORKFLOW_DEFAULT_METHOD_ID,
+    phases,
+  };
+}
+
+/**
+ * Reprojette un `Workflow` riche sur son `WorkflowMd` (fichier). `name`→`label`, `roleKeys`→
+ * `agentsRoleKeys`, `description` **re-scindée** sur `WORKFLOW_IO_ARROW` en `input`/`output`,
+ * `offChain`→`side: prod`, gate→`gates[]` séparé. `methodId` **omis** s'il est absent ou égal au
+ * défaut (byte-parité : pas de ligne `methodId:` parasite sur le workflow du frame). Les champs de
+ * calage riches ne sont **pas** portés (pas de home fichier).
+ */
+export function workflowToMd(wf: Workflow): WorkflowMd {
+  const ordered = [...wf.phases].sort((a, b) => a.order - b.order);
+  const phases: WorkflowMdPhase[] = ordered.map((p) => {
+    const at = p.description.indexOf(WORKFLOW_IO_ARROW);
+    const input = at >= 0 ? p.description.slice(0, at) : p.description;
+    const output = at >= 0 ? p.description.slice(at + WORKFLOW_IO_ARROW.length) : "";
+    const phase: WorkflowMdPhase = {
+      id: p.id,
+      label: p.name,
+      agentsRoleKeys: [...p.roleKeys],
+      input,
+      output,
+    };
+    if (p.offChain === true) phase.side = "prod";
+    return phase;
+  });
+  const gates: WorkflowMdGate[] = ordered.map((p) => ({
+    afterPhase: p.id,
+    kind: p.gate.kind,
+    criteria: p.gate.condition,
+  }));
+  const md: WorkflowMd = { id: wf.id, name: wf.name, phases, gates };
+  if (wf.methodId && wf.methodId.length > 0 && wf.methodId !== WORKFLOW_DEFAULT_METHOD_ID) {
+    md.methodId = wf.methodId;
+  }
+  return md;
+}
+
+/**
+ * Sérialise un `Workflow` riche en `.md` **frame-format** (via `workflowToMd`). `body` = prose
+ * optionnelle. **Aucun** bloc `` ```json ``. Pour le round-trip **byte-exact** d'un fichier ouvert
+ * non édité (alignement manuel du frontmatter), l'hôte ré-émet le **source capturé verbatim** —
+ * cette sérialisation est la forme **canonique** (édition / document neuf).
+ */
+export function serializeWorkflowMd(wf: Workflow, body = ""): string {
+  return serializeWorkflowFrontmatterMd(workflowToMd(wf), body);
+}
+
+/**
+ * Parse un `.md` workflow → `Workflow` riche (défensif ; `null` sans `id` ou sans donnée lisible).
+ * **Frame-format autoritaire prioritaire** : `phases` en frontmatter → `coerceWorkflowMd` +
+ * `mdToWorkflow`. **Legacy en repli** : pas de `phases` frontmatter mais un bloc `` ```json `` dans
+ * le corps → ancien parcours (non-régression des workflows GUI-format). Sinon → `null`.
  */
 export function parseWorkflowMd(text: string | undefined | null): Workflow | null {
   const { data, body } = parseFrontmatter(text);
   const id = asString(data.id).trim();
   if (!id) return null;
+  // Frame-format autoritaire : phases en frontmatter.
+  if (Array.isArray(data.phases)) {
+    const md = coerceWorkflowMd(id, data);
+    return md ? mdToWorkflow(md) : null;
+  }
+  // Legacy JSON-in-body (repli, lecture seule).
   const raw = extractJsonBlock(body);
   if (raw === null) return null;
   let payload: unknown;
