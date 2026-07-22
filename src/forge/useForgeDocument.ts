@@ -13,7 +13,23 @@
  * est indisponible (garde `call()`, cf. `backend.ts`). Jamais d'échec de rendu.
  */
 import { useCallback, useMemo, useRef, useState } from "react";
+import { readListLayout, verbatimBody, type ListLayout } from "@iakaframe/core";
 import { backend, type Backend, type LibraryCollection } from "../api/backend";
+
+/**
+ * Capture d'origine d'un document **ouvert** (défaut 2+3) : le corps markdown réel (`verbatimBody`,
+ * byte-parité — PAS `parseFrontmatter().body` qui strippe la ligne blanche de tête) et la découpe
+ * en lignes des listes flow wrappées (`readListLayout`). Rethreadés au Save pour que Open→Save sans
+ * édition produise un **diff vide**. Un document **neuf** n'a pas d'origine → `{ body:null, layout:null }`
+ * (repli boilerplate, comportement historique préservé).
+ */
+export interface OriginCapture {
+  body: string | null;
+  layout: ListLayout | null;
+}
+
+/** Capture vide (document neuf / fermé) : le Save retombe sur le boilerplate. */
+const EMPTY_ORIGIN: OriginCapture = { body: null, layout: null };
 
 /** Un id manquant au pool (rapport I1, miroir de `checkRefs`). */
 export interface MissingRef {
@@ -41,8 +57,12 @@ export interface DocConfig<T> {
   collection: LibraryCollection;
   /** Gabarit vierge (New). */
   blank: () => T;
-  /** Sérialise l'artefact en `.md`-frontmatter. */
-  serialize: (artifact: T) => string;
+  /**
+   * Sérialise l'artefact en `.md`-frontmatter. `origin` = capture d'Open (corps + wrapping réels) :
+   * un document ouvert **rethreade** son corps/layout d'origine (byte-parité) ; un document neuf
+   * (`origin.body == null`) retombe sur le boilerplate. **Règle d'or** : `body = origin.body ?? boilerplate`.
+   */
+  serialize: (artifact: T, origin: OriginCapture) => string;
   /** Parse un `.md`-frontmatter en artefact (`null` si illisible — défensif). */
   parse: (text: string) => T | null;
   /** Id stable de l'artefact (`""` autorisé pour un document neuf non nommé). */
@@ -138,6 +158,8 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
   const api = config.api ?? backend;
 
   const [artifact, setArtifact] = useState<T | null>(null);
+  // Capture d'origine (défaut 2+3) : corps + wrapping réels d'un document ouvert, rethreadés au Save.
+  const [origin, setOrigin] = useState<OriginCapture>(EMPTY_ORIGIN);
   const [id, setId] = useState<string | null>(null);
   const [source, setSource] = useState<DocSource>("new");
   const [dirty, setDirty] = useState<boolean>(false);
@@ -152,6 +174,9 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
   artifactRef.current = artifact;
   const idRef = useRef<string | null>(id);
   idRef.current = id;
+  // Réf miroir de la capture d'origine : lue au Save sans figurer dans les deps de `writeArtifact`.
+  const originRef = useRef<OriginCapture>(origin);
+  originRef.current = origin;
   // Réf miroir du `config` : l'appelant recrée l'objet `config` (arrow-functions littérales) à
   // chaque rendu ; le lire via ref permet de retirer `config` des deps des callbacks, qui
   // redeviennent alors **stables** (identité doc constante hors changement d'état) — évite la
@@ -165,6 +190,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
 
   const loadBlank = useCallback((): void => {
     setArtifact(configRef.current.blank());
+    setOrigin(EMPTY_ORIGIN); // document neuf : aucun corps d'origine → boilerplate au Save.
     setId(null);
     setSource("new");
     setDirty(false);
@@ -211,7 +237,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         }
         if (report.warning) setLastWarning(report.warning);
       }
-      const text = cfg.serialize(target);
+      const text = cfg.serialize(target, originRef.current);
       try {
         await api.libraryWrite(cfg.collection, targetId, text);
       } catch (e) {
@@ -299,6 +325,8 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         setLastError(`illisible : ${openId}`);
         return;
       }
+      // Capture d'origine (défaut 2+3) : corps réel VERBATIM (byte-parité) + wrapping des listes flow.
+      setOrigin({ body: verbatimBody(text), layout: readListLayout(text) });
       setArtifact(parsed);
       setId(cfg.idOf(parsed) || openId);
       setSource("library");
@@ -310,6 +338,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
 
   const performClose = useCallback((): void => {
     setArtifact(null);
+    setOrigin(EMPTY_ORIGIN); // plus de document ouvert : la capture d'origine s'efface.
     setId(null);
     setSource("new");
     setDirty(false);
