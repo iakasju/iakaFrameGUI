@@ -46,11 +46,12 @@ export const IAKAFRAME_STARTER_METHOD: Method = {
   roleKeys: [
     "portefeuille",
     "coordination",
-    "architecture",
-    "fabrication",
-    "tests",
-    "graphisme",
-    "doc",
+    "cadrage",
+    "dev",
+    "qualite",
+    "deploiement",
+    "design",
+    "documentation",
   ],
 };
 

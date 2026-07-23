@@ -29,12 +29,12 @@ function gabaritTeam(): Team {
 const ROLE_LABELS = [
   "Portefeuille",
   "Coordination",
-  "Architecture",
-  "Fabrication",
-  "Tests",
-  "Graphisme",
-  "Doc",
+  "Cadrage",
+  "Développement",
+  "Qualité",
   "Déploiement",
+  "Design",
+  "Documentation",
 ];
 
 describe("G-1 — registre : 4 nœuds implémentés, interface stable", () => {

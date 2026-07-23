@@ -84,14 +84,14 @@ function roleMission(roleKey: string): string {
       "Vue d'ensemble du portefeuille : arbitrages, priorités, bascule de projet.",
     coordination:
       "Coordination (chef de projet) : répartir le travail, tenir le fil, ne pas coder à la place des rôles.",
-    architecture:
+    cadrage:
       "Cadrer un besoin en instruction fermée et vérifiable (`specs/instructions/<feature>.md`) — avant tout code.",
-    fabrication:
+    dev:
       "Implémenter l'instruction validée, builder, commiter atomiquement, jusqu'au staging.",
-    tests:
+    qualite:
       "Gate qualité indépendant : typecheck, lint, tests — verdict pass/fail, jamais d'auto-validation.",
-    graphisme: "Design on-brand, cohérence visuelle.",
-    doc: "Guides et documentation, en français.",
+    design: "Design on-brand, cohérence visuelle.",
+    documentation: "Guides et documentation, en français.",
   };
   return missions[roleKey] ?? `Rôle ${roleLabel(roleKey)}.`;
 }
@@ -145,8 +145,8 @@ export function buildOpenWebUIModel(
     meta: {
       description,
       capabilities: {
-        // Neutre par défaut ; vision seulement pour le rôle graphisme (§ 2 instruction).
-        vision: persona.roleKey === "graphisme",
+        // Neutre par défaut ; vision seulement pour le rôle design (§ 2 instruction).
+        vision: persona.roleKey === "design",
         usage: false,
         citations: false,
       },

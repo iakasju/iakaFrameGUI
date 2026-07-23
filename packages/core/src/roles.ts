@@ -8,9 +8,9 @@
  * (agnosticisme AR-9) : une autre méthode déclarerait ses propres rôles ; au MVP seule la
  * liste iakaframe est peuplée.
  *
- * NB (VOLET B1) : `deploiement` (persona helm) est ajouté en 8ᵉ position pour compléter le
- * roster à 8 — c'est le rôle canon de `library/personas/helm.md`. L'alignement des 5 autres
- * clés GUI (`architecture→cadrage`, etc.) sur le canon relève de B2 (lot distinct), non traité ici.
+ * NB (VOLET B2) : les 8 clés sont alignées sur le canon `methods/iakaframe.md:11`
+ * (`[portefeuille, coordination, cadrage, dev, qualite, deploiement, design, documentation]`).
+ * `deploiement` (persona helm) est en 6ᵉ position (index 5) conformément au casting canon.
  *
  * En documentation, un intervenant se désigne par son **rôle** (libellé ci-dessous),
  * JAMAIS par un nom de code (le `name` d'une persona est une donnée éditable).
@@ -30,12 +30,12 @@ export interface Role {
 export const CANONICAL_ROLES: readonly Role[] = [
   { key: "portefeuille", label: "Portefeuille", roleIndex: 0 },
   { key: "coordination", label: "Coordination", roleIndex: 1 },
-  { key: "architecture", label: "Architecture", roleIndex: 2 },
-  { key: "fabrication", label: "Fabrication", roleIndex: 3 },
-  { key: "tests", label: "Tests", roleIndex: 4 },
-  { key: "graphisme", label: "Graphisme", roleIndex: 5 },
-  { key: "doc", label: "Doc", roleIndex: 6 },
-  { key: "deploiement", label: "Déploiement", roleIndex: 7 },
+  { key: "cadrage", label: "Cadrage", roleIndex: 2 },
+  { key: "dev", label: "Développement", roleIndex: 3 },
+  { key: "qualite", label: "Qualité", roleIndex: 4 },
+  { key: "deploiement", label: "Déploiement", roleIndex: 5 },
+  { key: "design", label: "Design", roleIndex: 6 },
+  { key: "documentation", label: "Documentation", roleIndex: 7 },
 ] as const;
 
 /** Clés des 8 rôles canoniques (ordre `roleIndex`). */

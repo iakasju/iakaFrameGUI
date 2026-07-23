@@ -137,12 +137,12 @@ describe("O-4 — zéro modèle fixé (AR-1)", () => {
     }
   });
 
-  it("capabilities neutres : vision seulement pour le rôle graphisme", () => {
+  it("capabilities neutres : vision seulement pour le rôle design", () => {
     const team = gabaritTeam();
     const files = generateOpenWebUIKit(team).files;
     for (const p of team.personas) {
       const m = JSON.parse(files[`models/${p.id}.json`]);
-      expect(m.meta.capabilities.vision).toBe(p.roleKey === "graphisme");
+      expect(m.meta.capabilities.vision).toBe(p.roleKey === "design");
       expect(m.meta.capabilities.usage).toBe(false);
       expect(m.meta.capabilities.citations).toBe(false);
     }
@@ -190,7 +190,7 @@ describe("O-5 — rituel d'identité en prose fidèle (mêmes règles que le hoo
   it("le system prompt cite le rôle et la pastille concrète de la persona", () => {
     const team = gabaritTeam();
     const files = generateOpenWebUIKit(team).files;
-    const gimli = team.personas.find((p) => p.roleKey === "fabrication")!;
+    const gimli = team.personas.find((p) => p.roleKey === "dev")!;
     const s = JSON.parse(files[`models/${gimli.id}.json`]).params.system;
     expect(s).toContain(gimli.name);
     expect(s).toContain(`[${gimli.royaume.toUpperCase()}][${gimli.name}]`);
