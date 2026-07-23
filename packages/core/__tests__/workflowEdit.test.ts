@@ -109,14 +109,14 @@ describe("EW-9/EW-10 — add / remove / move : validité + order normalisé", ()
 
 describe("EW-12 — édition des champs + nettoyage de calage (Q-3)", () => {
   it("éditer roleKeys nettoie roleDisplay (l'override ne masque plus l'édition)", () => {
-    // cadrage porte roleDisplay:"architecture" (override de calage).
+    // cadrage porte roleDisplay:"cadrage" (override de calage).
     const seed = cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW);
-    const wf = updatePhaseFields(seed, "cadrage", { roleKeys: ["fabrication", "tests"] });
+    const wf = updatePhaseFields(seed, "cadrage", { roleKeys: ["dev", "qualite"] });
     const cadrage = wf.phases.find((p) => p.id === "cadrage")!;
     expect(cadrage.roleDisplay).toBeUndefined();
-    expect(cadrage.roleKeys).toEqual(["fabrication", "tests"]);
+    expect(cadrage.roleKeys).toEqual(["dev", "qualite"]);
     // Le rendu reflète les nouveaux rôles (par LIBELLÉ, EW-14) — plus l'override.
-    expect(renderWorkflowMarkdown(wf)).toContain("Fabrication + Tests");
+    expect(renderWorkflowMarkdown(wf)).toContain("Développement + Qualité");
   });
 
   it("éditer name/description NE touche PAS roleKeys ni le badge", () => {

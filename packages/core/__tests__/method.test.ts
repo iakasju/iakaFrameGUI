@@ -267,10 +267,12 @@ describe("unresolvedRefsForMethod — visibilité de la perte (D-7)", () => {
 // Ces références non résolues ne sont PAS résorbées par D-9 : le catalogue du cœur n'est
 // pas élargi (dette D7-f, distincte). Ce test les rend exactes, il ne les corrige pas.
 //
-// VOLET B1 (roster 8) : `deploiement` est désormais un rôle canonique GUI (CANONICAL_ROLES) →
-// ce roleKey RÉSOUT, faisant tomber le total de 16 à 15 (une entrée `roleKeys` en moins). Les 5
-// roleKeys restants (`cadrage`, `dev`, `qualite`, `design`, `documentation`) restent non résolus :
-// c'est exactement le périmètre de B2 (alignement des 5 clés GUI périmées sur le canon), hors de ce lot.
+// VOLET B1 (roster 8) : `deploiement` est devenu un rôle canonique GUI (CANONICAL_ROLES) →
+// ce roleKey RÉSOUT, faisant tomber le total de 16 à 15 (une entrée `roleKeys` en moins).
+// VOLET B2 (alignement des 5 clés GUI sur le canon) : `cadrage`, `dev`, `qualite`, `design`,
+// `documentation` sont désormais canoniques dans `CANONICAL_ROLES` → ils RÉSOLVENT tous. Les 5
+// entrées `roleKeys` non résolues disparaissent, faisant tomber le total de 15 à 10 (roleKeys → []).
+// La fixture vendorée est INCHANGÉE (canon) ; seul le catalogue GUI s'est aligné (GUI ← frame).
 // ---------------------------------------------------------------------------
 
 describe("A-5 — références non résolues du cas réel (fixture vendorée)", () => {
@@ -278,8 +280,8 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
   const refs = unresolvedRefsForMethod(parsed);
   const byField = (f: string) => refs.filter((r) => r.field === f).map((r) => r.id);
 
-  it("15 entrées sur la fixture telle qu'elle est vendorée aujourd'hui (deploiement résolu par B1)", () => {
-    expect(refs).toHaveLength(15);
+  it("10 entrées sur la fixture telle qu'elle est vendorée aujourd'hui (roleKeys canon résolus par B2)", () => {
+    expect(refs).toHaveLength(10);
   });
 
   it("décomposition par champ, id par id", () => {
@@ -292,14 +294,8 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
     ]);
     expect(byField("scaffoldIds")).toEqual(["portefeuille", "projet"]);
     expect(byField("guardrailIds")).toEqual(["identity", "perimeter", "delegation"]);
-    // `deploiement` résout depuis B1 ; les 5 restants sont le périmètre B2 (clés GUI périmées).
-    expect(byField("roleKeys")).toEqual([
-      "cadrage",
-      "dev",
-      "qualite",
-      "design",
-      "documentation",
-    ]);
+    // B2 : les 8 roleKeys canon résolvent tous désormais (dont les 5 alignés) → aucun non résolu.
+    expect(byField("roleKeys")).toEqual([]);
     expect(byField("workflowId")).toEqual(["iakaframe-3phases"]);
   });
 

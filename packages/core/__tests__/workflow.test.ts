@@ -35,9 +35,9 @@ describe("W-1 — Workflow modélisé + canonique conforme (§ 3)", () => {
     expect(byId.prod.gate.kind).toBe("human");
   });
 
-  it("le jalon cadrage porte from architecture → to coordination", () => {
+  it("le jalon cadrage porte from cadrage → to coordination", () => {
     const cadrage = wf.phases.find((p) => p.id === "cadrage")!;
-    expect(cadrage.gate.from).toBe("architecture");
+    expect(cadrage.gate.from).toBe("cadrage");
     expect(cadrage.gate.to).toBe("coordination");
   });
 
@@ -117,13 +117,13 @@ describe("W-4 — renderWorkflowMarkdown : sortie canonique = littéral historiq
 
 | Phase | Rôle | Entrée → Sortie | Gate |
 |---|---|---|---|
-| 🔵 **P1 — Cadrage** | architecture | besoin → \`specs/instructions/<feature>.md\` | **humain** (le décideur valide) |
-| 🔴 **P2 — Réalisation** | fabrication + tests | instruction → branche + commits + tests verts | **auto** (typecheck/lint/tests) |
-| 🟢 **P3 — Staging** | fabrication (devops) + tests | PASS → build/déploiement **staging** (\`vX.Y.Z-rc\`) | auto |
+| 🔵 **P1 — Cadrage** | cadrage | besoin → \`specs/instructions/<feature>.md\` | **humain** (le décideur valide) |
+| 🔴 **P2 — Réalisation** | dev + qualite | instruction → branche + commits + tests verts | **auto** (typecheck/lint/tests) |
+| 🟢 **P3 — Staging** | dev (devops) + qualite | PASS → build/déploiement **staging** (\`vX.Y.Z-rc\`) | auto |
 
 La chaîne **s'arrête au staging**. La **mise en production** est un **squad séparé**, déclenché
 **sur feu vert humain** — hors les 3 phases. Au-dessus des projets : le rôle **portefeuille**
-(switch de projet, vue d'ensemble). Transverses : **graphisme** (design on-brand), **doc** (guides).`;
+(switch de projet, vue d'ensemble). Transverses : **design** (design on-brand), **documentation** (guides).`;
 
   it("le rendu du canonique reproduit exactement le littéral", () => {
     expect(renderWorkflowMarkdown(IAKAFRAME_CANONICAL_WORKFLOW)).toBe(
@@ -151,7 +151,7 @@ describe("W-6 — agnosticisme : rend un workflow factice ≠ canonique (2 phase
         order: 0,
         name: "Spécification",
         description: "idée → spec",
-        roleKeys: ["architecture"],
+        roleKeys: ["cadrage"],
         gate: { kind: "human", condition: "revue" },
       },
       {
@@ -159,7 +159,7 @@ describe("W-6 — agnosticisme : rend un workflow factice ≠ canonique (2 phase
         order: 1,
         name: "Code",
         description: "spec → binaire",
-        roleKeys: ["fabrication", "tests"],
+        roleKeys: ["dev", "qualite"],
         gate: { kind: "auto", condition: "CI verte" },
       },
     ],
@@ -169,8 +169,8 @@ describe("W-6 — agnosticisme : rend un workflow factice ≠ canonique (2 phase
     const md = renderWorkflowMarkdown(fake);
     expect(md).toContain("## Méthode factice");
     // Rôles rendus par libellés canoniques (pas les clés brutes ni un nom de code).
-    expect(md).toContain("| **Spécification** | Architecture | idée → spec | **humain** (revue) |");
-    expect(md).toContain("| **Code** | Fabrication + Tests | spec → binaire | **auto** (CI verte) |");
+    expect(md).toContain("| **Spécification** | Cadrage | idée → spec | **humain** (revue) |");
+    expect(md).toContain("| **Code** | Développement + Qualité | spec → binaire | **auto** (CI verte) |");
     // Aucune note de section, aucune fuite iakaframe.
     expect(md).not.toContain("squad prod");
     expect(md).not.toContain("iakaframe");
