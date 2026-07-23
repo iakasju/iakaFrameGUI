@@ -25,11 +25,11 @@ export interface Skill {
 export const CATALOG_SKILLS: readonly Skill[] = [
   { id: "iakaframe-odin", roleKey: "portefeuille", label: "Odin (portefeuille)" },
   { id: "iakaframe-aragorn", roleKey: "coordination", label: "Coordination projet" },
-  { id: "iakaframe-cadrage", roleKey: "architecture", label: "Cadrage / architecture" },
-  { id: "iakaframe-qualite", roleKey: "tests", label: "Qualité / gate" },
-  { id: "iakaframe-naonedge", roleKey: "graphisme", label: "Charte NaonEdge" },
-  { id: "iakaframe-nathalie", roleKey: "doc", label: "Documentation" },
-  { id: "iakaframe-helm", roleKey: "coordination", label: "Déploiement prod (Helm)" },
+  { id: "iakaframe-cadrage", roleKey: "cadrage", label: "Cadrage / architecture" },
+  { id: "iakaframe-qualite", roleKey: "qualite", label: "Qualité / gate" },
+  { id: "iakaframe-naonedge", roleKey: "design", label: "Charte NaonEdge" },
+  { id: "iakaframe-nathalie", roleKey: "documentation", label: "Documentation" },
+  { id: "iakaframe-deploiement", roleKey: "deploiement", label: "Déploiement (Helm)" },
 ] as const;
 
 /** Ids de skills connues (ordre du catalogue). */

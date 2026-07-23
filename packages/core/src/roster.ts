@@ -17,24 +17,24 @@ import { DEFAULT_VIGNETTE_TEAM, type Team } from "./team";
 const DEFAULT_NAMES: Readonly<Record<string, string>> = {
   portefeuille: "Odin",
   coordination: "Aragorn",
-  architecture: "Gandalf",
-  fabrication: "Gimli",
-  tests: "Legolas",
-  graphisme: "Loki",
-  doc: "Nathalie",
+  cadrage: "Gandalf",
+  dev: "Gimli",
+  qualite: "Legolas",
   deploiement: "Helm",
+  design: "Loki",
+  documentation: "Nathalie",
 };
 
 /** Skills proposées par défaut par rôle (gabarit — reclassé par rôle, pas par nom). */
 const DEFAULT_SKILLS: Readonly<Record<string, string[]>> = {
   portefeuille: ["iakaframe-odin"],
   coordination: ["iakaframe-aragorn"],
-  architecture: ["iakaframe-cadrage"],
-  fabrication: [],
-  tests: ["iakaframe-qualite"],
-  graphisme: ["iakaframe-naonedge"],
-  doc: ["iakaframe-nathalie"],
+  cadrage: ["iakaframe-cadrage"],
+  dev: [],
+  qualite: ["iakaframe-qualite"],
   deploiement: ["iakaframe-deploiement"],
+  design: ["iakaframe-naonedge"],
+  documentation: ["iakaframe-nathalie"],
 };
 
 /**

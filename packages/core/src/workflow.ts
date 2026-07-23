@@ -27,7 +27,7 @@ export interface Gate {
   kind: GateKind;
   /** Libellé de la condition de franchissement (ex. « le décideur valide »). */
   condition: string;
-  /** Optionnel — jalon : rôle émetteur (clé canonique, ex. "architecture"). */
+  /** Optionnel — jalon : rôle émetteur (clé canonique, ex. "cadrage"). */
   from?: string;
   /** Optionnel — jalon : rôle récepteur (clé canonique, ex. "coordination"). */
   to?: string;
@@ -195,20 +195,20 @@ export const IAKAFRAME_CANONICAL_WORKFLOW: Workflow = {
   sectionNote:
     "La chaîne **s'arrête au staging**. La **mise en production** est un **squad séparé**, déclenché\n" +
     "**sur feu vert humain** — hors les 3 phases. Au-dessus des projets : le rôle **portefeuille**\n" +
-    "(switch de projet, vue d'ensemble). Transverses : **graphisme** (design on-brand), **doc** (guides).",
+    "(switch de projet, vue d'ensemble). Transverses : **design** (design on-brand), **documentation** (guides).",
   phases: [
     {
       id: "cadrage",
       order: 0,
       name: "P1 — Cadrage",
       description: "besoin → `specs/instructions/<feature>.md`",
-      roleKeys: ["architecture"],
+      roleKeys: ["cadrage"],
       badge: "🔵",
-      roleDisplay: "architecture",
+      roleDisplay: "cadrage",
       gate: {
         kind: "human",
         condition: "le décideur valide",
-        from: "architecture",
+        from: "cadrage",
         to: "coordination",
         display: "**humain** (le décideur valide)",
       },
@@ -218,9 +218,9 @@ export const IAKAFRAME_CANONICAL_WORKFLOW: Workflow = {
       order: 1,
       name: "P2 — Réalisation",
       description: "instruction → branche + commits + tests verts",
-      roleKeys: ["fabrication", "tests"],
+      roleKeys: ["dev", "qualite"],
       badge: "🔴",
-      roleDisplay: "fabrication + tests",
+      roleDisplay: "dev + qualite",
       gate: {
         kind: "auto",
         condition: "typecheck/lint/tests",
@@ -232,9 +232,9 @@ export const IAKAFRAME_CANONICAL_WORKFLOW: Workflow = {
       order: 2,
       name: "P3 — Staging",
       description: "PASS → build/déploiement **staging** (`vX.Y.Z-rc`)",
-      roleKeys: ["fabrication", "tests"],
+      roleKeys: ["dev", "qualite"],
       badge: "🟢",
-      roleDisplay: "fabrication (devops) + tests",
+      roleDisplay: "dev (devops) + qualite",
       gate: {
         kind: "auto",
         condition: "build/déploiement staging OK",

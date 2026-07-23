@@ -8,12 +8,12 @@
 const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#b8862b", "#8a5e12"], // 0 portefeuille — or
   ["#2f7d43", "#1f5c30"], // 1 coordination — vert
-  ["#2b5f9e", "#1d4372"], // 2 architecture — bleu
-  ["#b3261e", "#7d1a15"], // 3 fabrication — rouge
-  ["#1f7a6b", "#124a40"], // 4 tests — cyan
-  ["#7a3b86", "#52285f"], // 5 graphisme — violet
-  ["#9a5b17", "#6b3d0f"], // 6 doc — orange
-  ["#7a2b2b", "#4f1a1a"], // 7 déploiement — grenat
+  ["#2b5f9e", "#1d4372"], // 2 cadrage — bleu
+  ["#b3261e", "#7d1a15"], // 3 dev — rouge
+  ["#1f7a6b", "#124a40"], // 4 qualite — cyan
+  ["#7a2b2b", "#4f1a1a"], // 5 déploiement — grenat
+  ["#7a3b86", "#52285f"], // 6 design — violet
+  ["#9a5b17", "#6b3d0f"], // 7 documentation — orange
 ];
 
 /** Couple de couleurs du dégradé pour un index de casting (déterministe, borné). */
