@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:all": "npm run test",
     "test:coverage": "vitest run --coverage",
+    "test:vendor": "node scripts/test-vendor.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
