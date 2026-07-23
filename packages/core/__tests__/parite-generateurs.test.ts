@@ -143,14 +143,32 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (8 personas)", () =>
     }
   });
 
-  it("tools câblés depuis le binding (scalaire virgule) — gandalf/gimli/odin", () => {
-    expect(toolsForPersona(binding, "gandalf")).toEqual([
-      "Read", "Grep", "Glob", "Write", "Edit", "WebSearch", "WebFetch",
-    ]);
+  // Attendu 8/8 TIRÉ du binding vendoré lui-même (source unique). Parse DIRECT du frontmatter,
+  // distinct de `loadBinding` : `expected[id]` et `toolsForPersona(binding, id)` empruntent deux
+  // chemins depuis la même source → la couverture prouve que `toolsForPersona` surface fidèlement
+  // les tools des 8 assignments, sans réécrire l'attendu à la main.
+  const expectedTools: Record<string, string[]> = (() => {
+    const { data } = parseFrontmatter(bindingMd);
+    const rows = Array.isArray(data.assignments) ? data.assignments : [];
+    const byId: Record<string, string[]> = {};
+    for (const r of rows) {
+      const a = r as Record<string, unknown>;
+      byId[String(a.personaId ?? "")] = Array.isArray(a.tools) ? (a.tools as string[]) : [];
+    }
+    return byId;
+  })();
+
+  it("tools câblés depuis le binding vendoré — couverture 8/8 (attendu tiré du binding)", () => {
+    // C-AC1 : les 8 ids, valeurs égales aux `tools` du binding vendoré correspondant.
+    expect(Object.keys(expectedTools).sort()).toEqual(IDS);
+    for (const id of IDS) {
+      expect(toolsForPersona(binding, id), `${id}: tools != binding`).toEqual(expectedTools[id]);
+    }
+    // C-AC2 : ancre littérale anti-tautologie (attrape une altération de `loadBinding` qu'un test
+    // 100 % dérivé du binding ne verrait pas) + forme scalaire-virgule du contrat.
     expect(toolsForPersona(binding, "gimli")).toEqual([
       "Read", "Edit", "Write", "Bash", "Grep", "Glob",
     ]);
-    expect(toolsForPersona(binding, "odin")).toEqual(["Read", "Grep", "Glob", "Bash", "Task"]);
     expect(renderAgentContract(loadCanon("gimli", binding))).toMatch(
       /^tools: Read, Edit, Write, Bash, Grep, Glob$/m,
     );

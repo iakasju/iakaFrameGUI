@@ -11,17 +11,26 @@ import {
   DEFAULT_KIT_NODE,
   parseKitMd,
   parseMethodMd,
+  parseTeamMd,
   serializeKitMd,
   serializeMethodMd,
+  serializeTeamMd,
+  buildTeamFromRoster,
   type Kit,
   type Method,
+  type Team,
 } from "@iakaframe/core";
 import { useForgeDocument, type DocConfig } from "./useForgeDocument";
 import { IAKAFRAME_STARTER_METHOD } from "./useForgeMethod";
-import { kitToMd, mdToKit, mdToMethod, methodToMd } from "./mappers";
+import { kitToMd, mdToKit, mdToMethod, methodToMd, teamToMd, mdToTeam } from "./mappers";
 import type { Backend } from "../api/backend";
 import methodWrapped from "../../packages/core/__tests__/fixtures/method.iakaframe-wrapped.md?raw";
 import kitClaude from "../../packages/core/__tests__/fixtures/kit.iakaframe-claude.md?raw";
+// Copie FIDÈLE (byte-exacte) de `iakaframe/teams/iakaframe-8.md` — sha256 caafc103…dca791b9.
+// Co-localisée HORS du dossier vendoré `packages/core/__tests__/fixtures/` (que la garde
+// vendor-check scanne) : c'est une COPIE conforme, pas une dérivée sérialisée — elle prouve la
+// byte-parité du round-trip contre le VRAI artefact du frame (corps + note inclus).
+import teamCanon from "./__fixtures__/team.iakaframe-8.md?raw";
 
 /** Backend bibliothèque en mémoire (une Map par `<collection>/<id>`). */
 function fakeBackend(seed: Record<string, string> = {}): {
@@ -50,6 +59,22 @@ const methodBody = (m: Method): string =>
   `# ${m.name}\n\nAssemblage de discipline (ids vers \`library/*\`). Forgé par iakaFrameGUI.\n`;
 const kitBody = (k: Kit): string =>
   `# Kit ${k.id || "sans-titre"}\n\nManifeste d'assemblage (méthode + team + binding). Forgé par iakaFrameGUI.\n`;
+const teamBody = (t: Team): string =>
+  `# ${t.name}\n\nAssemblage de casting (ids de \`library/personas/\`). Forgé par iakaFrameGUI.\n`;
+
+/** Config Team = miroir de la closure `teamDoc` de ForgeShell (mappers + rethread corps). */
+const teamConfig = (api: Backend): DocConfig<Team> => ({
+  collection: "teams",
+  blank: () => buildTeamFromRoster("Team iakaframe", "iakaframe"),
+  serialize: (t, o) => serializeTeamMd(teamToMd(t), o.body ?? teamBody(t)),
+  parse: (t) => {
+    const md = parseTeamMd(t);
+    return md ? mdToTeam(md) : null;
+  },
+  idOf: (t) => t.id,
+  nameOf: (t) => t.name,
+  api,
+});
 
 /** Config Méthode = miroir de la closure `methodDoc` de ForgeShell (mappers + rethread corps/layout). */
 const methodConfig = (api: Backend): DocConfig<Method> => ({
@@ -122,6 +147,25 @@ describe("fidélité Open→Save au frame (défauts 2+3, doctrine GUI ← frame)
     });
     expect(writes).toEqual(["kits/iakaframe-claude.md"]);
     expect(files.get("kits/iakaframe-claude")).toBe(kitClaude);
+  });
+
+  it("AC-3c (levée par B1) — round-trip idempotent TEAM : Open→Save sans édition = byte-identique, 8 personas préservées (helm inclus)", async () => {
+    const { api, files, writes } = fakeBackend({ "teams/iakaframe-8": teamCanon });
+    const { result } = renderHook(() => useForgeDocument(teamConfig(api)));
+    await act(async () => {
+      result.current.requestOpen("iakaframe-8");
+    });
+    await waitFor(() => expect(result.current.id).toBe("iakaframe-8"));
+    // Preuve du fix roster : les 8 personas sont réhydratées (avant B1, `helm` était filtré → 7).
+    expect(result.current.artifact?.personas.map((p) => p.id)).toEqual([
+      "odin", "aragorn", "gandalf", "gimli", "legolas", "helm", "loki", "nathalie",
+    ]);
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(writes).toEqual(["teams/iakaframe-8.md"]);
+    // Preuve-reine (AC-3c de l'étape 2+3, levée) : diff vide contre la copie fidèle du frame.
+    expect(files.get("teams/iakaframe-8")).toBe(teamCanon);
   });
 
   it("AC-4 — document neuf : Save écrit le boilerplate (capture nulle, comportement historique)", async () => {

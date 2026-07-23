@@ -12,7 +12,7 @@ import {
   type Team,
 } from "../src/index";
 
-/** Team gabarit (7 personas) SANS gardes (état du roster canonique P1). */
+/** Team gabarit (8 personas) SANS gardes (état du roster canonique P1). */
 function gabaritTeam(): Team {
   return buildTeamFromRoster("Gabarit", "gabarit");
 }
@@ -45,15 +45,15 @@ describe("G-1 — adaptateur pur (aucune I/O)", () => {
   });
 });
 
-describe("G-2 — génération depuis la team gabarit (7 personas)", () => {
+describe("G-2 — génération depuis la team gabarit (8 personas)", () => {
   const tree = generateClaudeCodeKit(gabaritTeam());
   const paths = Object.keys(tree.files);
 
-  it("produit un .claude/agents/<id>.md par persona (7)", () => {
+  it("produit un .claude/agents/<id>.md par persona (8)", () => {
     const agents = paths.filter(
       (p) => p.startsWith(".claude/agents/") && p.endsWith(".md"),
     );
-    expect(agents).toHaveLength(7);
+    expect(agents).toHaveLength(8);
   });
 
   it("produit les SKILL.md des skills référencées", () => {

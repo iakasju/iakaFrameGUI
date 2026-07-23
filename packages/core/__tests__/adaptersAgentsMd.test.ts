@@ -21,7 +21,7 @@ import {
   type Team,
 } from "../src/index";
 
-/** Team gabarit (7 personas, un par rôle canonique). */
+/** Team gabarit (8 personas, un par rôle canonique). */
 function gabaritTeam(): Team {
   return buildTeamFromRoster("Gabarit", "gabarit");
 }
@@ -34,6 +34,7 @@ const ROLE_LABELS = [
   "Tests",
   "Graphisme",
   "Doc",
+  "Déploiement",
 ];
 
 describe("G-1 — registre : 4 nœuds implémentés, interface stable", () => {
@@ -65,12 +66,12 @@ describe("G-2 — codex → AGENTS.md conforme", () => {
     expect(tree.files["CLAUDE.md"]).toBeUndefined();
   });
 
-  it("contient les 7 personas par rôle", () => {
+  it("contient les 8 personas par rôle", () => {
     const md = tree.files["AGENTS.md"];
     for (const label of ROLE_LABELS) expect(md).toContain(label);
-    // 7 lignes de roster (une pastille [ROYAUME][Nom] par persona).
+    // 8 lignes de roster (une pastille [ROYAUME][Nom] par persona).
     const badgeRows = md.match(/\| `\[[^\]]+\]\[[^\]]+\]` \|/g) ?? [];
-    expect(badgeRows).toHaveLength(7);
+    expect(badgeRows).toHaveLength(8);
   });
 
   it("contient les 3 phases + gates", () => {
