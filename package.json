@@ -1,7 +1,7 @@
 {
   "name": "iakaframegui",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "iakaFrameGUI - la forge de la methode iakaframe (authoring de teams PURES). Coquille Tauri React+Rust.",
   "type": "module",
   "workspaces": [
