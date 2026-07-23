@@ -54,7 +54,7 @@ describe("useForgeTeams", () => {
     const { result: r2 } = renderHook(() => useForgeTeams({ api: backend.api }));
     await waitFor(() => expect(r2.current.loaded).toBe(true));
     expect(r2.current.teams).toHaveLength(1);
-    expect(r2.current.teamById("ma-team")?.personas).toHaveLength(7);
+    expect(r2.current.teamById("ma-team")?.personas).toHaveLength(8);
   });
 
   it("INVARIANT AR-1 (C-6) — le JSON persisté ne contient ni runner ni model", async () => {

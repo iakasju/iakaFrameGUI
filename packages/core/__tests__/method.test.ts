@@ -264,8 +264,13 @@ describe("unresolvedRefsForMethod — visibilité de la perte (D-7)", () => {
 // `canon-avant-citation` et `preuve-avant-declaration` existent dans `library/principles/`
 // mais restent absents de `CATALOG_PRINCIPLES` (14 entrées).
 // Ce déplacement est pré-annoncé au § 4.3 de `specs/instructions/d9-re-vendorage-canon-iakaframe.md`.
-// Ces 16 références non résolues ne sont PAS résorbées par D-9 : le catalogue du cœur n'est
+// Ces références non résolues ne sont PAS résorbées par D-9 : le catalogue du cœur n'est
 // pas élargi (dette D7-f, distincte). Ce test les rend exactes, il ne les corrige pas.
+//
+// VOLET B1 (roster 8) : `deploiement` est désormais un rôle canonique GUI (CANONICAL_ROLES) →
+// ce roleKey RÉSOUT, faisant tomber le total de 16 à 15 (une entrée `roleKeys` en moins). Les 5
+// roleKeys restants (`cadrage`, `dev`, `qualite`, `design`, `documentation`) restent non résolus :
+// c'est exactement le périmètre de B2 (alignement des 5 clés GUI périmées sur le canon), hors de ce lot.
 // ---------------------------------------------------------------------------
 
 describe("A-5 — références non résolues du cas réel (fixture vendorée)", () => {
@@ -273,8 +278,8 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
   const refs = unresolvedRefsForMethod(parsed);
   const byField = (f: string) => refs.filter((r) => r.field === f).map((r) => r.id);
 
-  it("16 entrées sur la fixture telle qu'elle est vendorée aujourd'hui", () => {
-    expect(refs).toHaveLength(16);
+  it("15 entrées sur la fixture telle qu'elle est vendorée aujourd'hui (deploiement résolu par B1)", () => {
+    expect(refs).toHaveLength(15);
   });
 
   it("décomposition par champ, id par id", () => {
@@ -287,11 +292,11 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
     ]);
     expect(byField("scaffoldIds")).toEqual(["portefeuille", "projet"]);
     expect(byField("guardrailIds")).toEqual(["identity", "perimeter", "delegation"]);
+    // `deploiement` résout depuis B1 ; les 5 restants sont le périmètre B2 (clés GUI périmées).
     expect(byField("roleKeys")).toEqual([
       "cadrage",
       "dev",
       "qualite",
-      "deploiement",
       "design",
       "documentation",
     ]);

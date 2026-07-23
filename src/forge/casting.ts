@@ -4,7 +4,7 @@
  * fonctions). Déterministe, borné : sert les pastilles `[ROYAUME][Nom]` et vignettes de rail.
  */
 
-/** Palette de dégradés par index de casting (0..6), repli sur le premier. */
+/** Palette de dégradés par index de casting (0..7), repli sur le premier. */
 const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#b8862b", "#8a5e12"], // 0 portefeuille — or
   ["#2f7d43", "#1f5c30"], // 1 coordination — vert
@@ -13,6 +13,7 @@ const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#1f7a6b", "#124a40"], // 4 tests — cyan
   ["#7a3b86", "#52285f"], // 5 graphisme — violet
   ["#9a5b17", "#6b3d0f"], // 6 doc — orange
+  ["#7a2b2b", "#4f1a1a"], // 7 déploiement — grenat
 ];
 
 /** Couple de couleurs du dégradé pour un index de casting (déterministe, borné). */

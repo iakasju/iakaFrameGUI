@@ -1,12 +1,16 @@
 /**
- * roles.ts — LISTE CANONIQUE FERMÉE des 7 rôles iakaframe (cœur partagé 🟦).
+ * roles.ts — LISTE CANONIQUE FERMÉE des 8 rôles iakaframe (cœur partagé 🟦).
  *
  * Repris de `IakaCockpit/src/theme/roles.ts:22-30` (source unique mûre). Le **rôle**
  * est la FONCTION d'un intervenant (portefeuille, coordination, …), DISTINCT du **nom**
- * (persona, cf. `persona.ts`). L'ordre = `roleIndex` (0→6), invariant qui pioche le
+ * (persona, cf. `persona.ts`). L'ordre = `roleIndex` (0→7), invariant qui pioche le
  * casting visuel. La liste est **fermée pour iakaframe** mais **paramétrable par méthode**
  * (agnosticisme AR-9) : une autre méthode déclarerait ses propres rôles ; au MVP seule la
  * liste iakaframe est peuplée.
+ *
+ * NB (VOLET B1) : `deploiement` (persona helm) est ajouté en 8ᵉ position pour compléter le
+ * roster à 8 — c'est le rôle canon de `library/personas/helm.md`. L'alignement des 5 autres
+ * clés GUI (`architecture→cadrage`, etc.) sur le canon relève de B2 (lot distinct), non traité ici.
  *
  * En documentation, un intervenant se désigne par son **rôle** (libellé ci-dessous),
  * JAMAIS par un nom de code (le `name` d'une persona est une donnée éditable).
@@ -18,11 +22,11 @@ export interface Role {
   key: string;
   /** Libellé d'affichage capitalisé (menus de l'éditeur). */
   label: string;
-  /** Index de rôle (0..6) = position dans la liste = clé de vignette. */
+  /** Index de rôle (0..7) = position dans la liste = clé de vignette. */
   roleIndex: number;
 }
 
-/** Les 7 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→6). */
+/** Les 8 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→7). */
 export const CANONICAL_ROLES: readonly Role[] = [
   { key: "portefeuille", label: "Portefeuille", roleIndex: 0 },
   { key: "coordination", label: "Coordination", roleIndex: 1 },
@@ -31,9 +35,10 @@ export const CANONICAL_ROLES: readonly Role[] = [
   { key: "tests", label: "Tests", roleIndex: 4 },
   { key: "graphisme", label: "Graphisme", roleIndex: 5 },
   { key: "doc", label: "Doc", roleIndex: 6 },
+  { key: "deploiement", label: "Déploiement", roleIndex: 7 },
 ] as const;
 
-/** Clés des 7 rôles canoniques (ordre `roleIndex`). */
+/** Clés des 8 rôles canoniques (ordre `roleIndex`). */
 export const CANONICAL_ROLE_KEYS: readonly string[] = CANONICAL_ROLES.map(
   (r) => r.key,
 );
