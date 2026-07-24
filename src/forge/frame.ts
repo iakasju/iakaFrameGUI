@@ -79,10 +79,11 @@ export async function loadFrame(api: Backend = backend): Promise<Frame> {
       pools[type] = await api.poolReadAll(type).catch(() => []);
     }),
   );
-  const [teams, methods, bindings] = await Promise.all([
+  const [teams, methods, bindings, frames] = await Promise.all([
     api.libraryList("teams").catch(() => []),
     api.libraryList("methods").catch(() => []),
     api.libraryList("bindings").catch(() => []),
+    api.libraryList("frames").catch(() => []),   // AR-1 : réservoir de frames (descripteurs)
   ]);
-  return buildFrame({ root, pools, teams, methods, bindings });
+  return buildFrame({ root, pools, teams, methods, bindings, frames });
 }

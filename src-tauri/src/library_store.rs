@@ -26,7 +26,7 @@ const LIBRARY_EXT: &str = "md";
 /// Sous-ensemble du mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/`
 /// (P6b) — à ne pas confondre avec le pool d'atomes read-only `<home>/library/workflows/`
 /// (`POOL_TYPES`, Q-9).
-const COLLECTIONS: [&str; 5] = ["teams", "methods", "kits", "workflows", "bindings"];
+const COLLECTIONS: [&str; 6] = ["teams", "methods", "kits", "workflows", "bindings", "frames"];
 
 /// Types d'ATOMES du pool `library/<type>/` (référencés par les assemblages, I1). En lecture
 /// seule : la forge n'édite pas encore les atomes (E2 différé), mais doit les **scanner** pour

@@ -89,7 +89,8 @@ export type LibraryCollection =
   | "methods"
   | "kits"
   | "workflows"
-  | "bindings";
+  | "bindings"
+  | "frames";
 
 /**
  * Liste le contenu `.md` brut de chaque artefact de `<home>/<collection>/` (scan, invariant I2).
