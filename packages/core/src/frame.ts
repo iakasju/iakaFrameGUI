@@ -4,10 +4,11 @@
  * dans `@iakaframe/core`, enrichie de l'**assemblage résolu** (method + team + binding) et de la
  * **facette portefeuille** (l'étage Odin).
  *
- * Un frame = une racine `IAKAFRAME_HOME` qui expose **11 types** : les **8 atomes de pool** sous
- * `library/<type>/` + les **3 assemblages** `teams`/`methods`/`bindings` à plat. Ce module porte,
- * **sans aucun I/O** (l'I/O reste dans la forge, `loadFrame`) :
- *   - la **taxonomie des 11 types** (`POOL_FRAME_TYPES`/`COLLECTION_FRAME_TYPES`/`FRAME_TYPES`),
+ * Un frame = une racine `IAKAFRAME_HOME` qui expose **12 types** : les **8 atomes de pool** sous
+ * `library/<type>/` + les **4 assemblages** `teams`/`methods`/`bindings`/`frames` à plat (le type
+ * `frames` = AR-1, réservoir de frames). Ce module porte, **sans aucun I/O** (l'I/O reste dans la
+ * forge, `loadFrame`) :
+ *   - la **taxonomie des 12 types** (`POOL_FRAME_TYPES`/`COLLECTION_FRAME_TYPES`/`FRAME_TYPES`),
  *     **découplée du backend** : ce sont des littéraux `const` autonomes (le cœur ne dépend
  *     d'aucun enum `PoolType`) ; la compat avec l'enum backend est ré-assertée côté forge ;
  *   - l'**intégrité référentielle** (`FrameMissingRef`/`FrameIntegrityReport`/`checkFrameRefs`) ;
@@ -31,7 +32,7 @@ import { parseScaffold, PORTFOLIO_SCAFFOLD } from "./scaffold";
 import { parseWorkflow, workflowById } from "./workflow";
 
 // ---------------------------------------------------------------------------
-// 1. Taxonomie des 11 types — littéraux autonomes (DÉCOUPLÉS du backend `PoolType`).
+// 1. Taxonomie des 12 types — littéraux autonomes (DÉCOUPLÉS du backend `PoolType`).
 // ---------------------------------------------------------------------------
 
 /** Les 8 types d'atomes de pool (lus en contenu sous `library/<type>/`, G1). */
@@ -46,10 +47,15 @@ export const POOL_FRAME_TYPES = [
   "skills",
 ] as const;
 
-/** Les 3 assemblages chargés à plat comme collections (`bindings` câblé par G2). */
-export const COLLECTION_FRAME_TYPES = ["teams", "methods", "bindings"] as const;
+/**
+ * Les 4 assemblages chargés à plat comme collections (`bindings` câblé par G2, `frames` = AR-1).
+ * `frames` = réservoir de frames : descripteurs `<id>.md` (method+team nommés) à plat, miroir de
+ * teams/methods/bindings. Note d'asymétrie `kits` : côté CLI la table `COLLECTIONS` porte `kits`
+ * (13 collections) ; côté GUI `kits` n'est PAS un `FrameType` → 12 types (8 pools + 4 collections).
+ */
+export const COLLECTION_FRAME_TYPES = ["teams", "methods", "bindings", "frames"] as const;
 
-/** Les 11 types d'un frame, dans l'ordre d'affichage (8 pools + 3 assemblages). */
+/** Les 12 types d'un frame, dans l'ordre d'affichage (8 pools + 4 assemblages). */
 export const FRAME_TYPES = [
   ...POOL_FRAME_TYPES,
   ...COLLECTION_FRAME_TYPES,
@@ -60,10 +66,10 @@ export type CollectionFrameType = (typeof COLLECTION_FRAME_TYPES)[number];
 export type FrameType = (typeof FRAME_TYPES)[number];
 
 /**
- * Libellés FR des 11 types de frame — **source unique** (à côté de `FRAME_TYPES`), réutilisée par
- * l'affichage du réservoir (`reservoir.ts`) ET par la GUI (`OpenFramePanel`). Zéro doublon : les
- * consommateurs importent cette map plutôt que de la redéfinir localement. Clés = exactement les 11
- * `FRAME_TYPES` (le type `Record<FrameType, string>` garantit qu'aucune clé ne manque ni n'est en trop).
+ * Libellés FR des 12 types de frame — **source unique** (à côté de `FRAME_TYPES`), réutilisée par
+ * l'affichage de l'element pool (`element-pool.ts`) ET par la GUI (`OpenFramePanel`). Zéro doublon :
+ * les consommateurs importent cette map plutôt que de la redéfinir localement. Clés = exactement les
+ * 12 `FRAME_TYPES` (le type `Record<FrameType, string>` garantit qu'aucune clé ne manque ni n'est en trop).
  */
 export const FRAME_TYPE_LABELS: Record<FrameType, string> = {
   personas: "Personas",
@@ -77,6 +83,7 @@ export const FRAME_TYPE_LABELS: Record<FrameType, string> = {
   teams: "Teams",
   methods: "Méthodes",
   bindings: "Bindings",
+  frames: "Frames",
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +133,20 @@ export interface FrameBinding {
   personaIds: string[];
 }
 
+/**
+ * Descripteur d'une **frame** (type `frames`, AR-1 — réservoir de frames) : un **assemblage nommé**
+ * = un tuple d'ids (`methodId` + `teamId`) piochant dans la library partagée. N'a **pas** de copie
+ * de briques (I1/E2 : ids seulement). `default: true` désigne la frame héritée / le repli.
+ */
+export interface FrameDescriptor {
+  id: string;
+  name: string;
+  version: string;
+  methodId: string;
+  teamId: string;
+  default: boolean;
+}
+
 /** Références sortantes d'une skill (composition `subskills`) — pour l'intégrité (T3/B). */
 export interface SkillRefs {
   id: string;
@@ -142,13 +163,20 @@ export interface WorkflowRefs {
 // 4. Schéma de l'entité — assemblage résolu + facette portefeuille + inventaire + intégrité.
 // ---------------------------------------------------------------------------
 
-/** L'assemblage résolu d'un frame (mono-méthode / mono-team au MVP). */
+/**
+ * L'assemblage résolu d'un frame. **Multi-frame (AR-1)** : le pivot est la **frame active** parmi
+ * N (la frame `default`, ou la 1re chargée à défaut) — plus `bindings[0]`. `method`/`team`/`binding`
+ * sont résolus depuis les ids de la frame active ; repli legacy (`bindings[0]`) quand aucune frame
+ * n'est déclarée (zéro régression sur les racines sans descripteur `frames`).
+ */
 export interface FrameAssembly {
-  /** Le binding, pivot de l'appariement (schéma SF2 `assignments`). `null` si aucun. */
+  /** La frame active, pivot de l'assemblage (descripteur `frames`). `null` si aucune déclarée. */
+  frame: FrameDescriptor | null;
+  /** Le binding apparié (schéma SF2 `assignments`). `null` si aucun. */
   binding: FrameBinding | null;
-  /** La méthode résolue depuis `binding.methodId` (repli : 1re méthode chargée). `null` si aucune. */
+  /** La méthode résolue depuis `frame.methodId`/`binding.methodId` (repli : 1re). `null` si aucune. */
   method: MethodMd | null;
-  /** La team résolue depuis `binding.teamId` (repli : 1re team chargée). `null` si aucune. */
+  /** La team résolue depuis `frame.teamId`/`binding.teamId` (repli : 1re). `null` si aucune. */
   team: TeamMd | null;
 }
 
@@ -185,6 +213,8 @@ export interface FrameRaw {
   teams: string[];
   methods: string[];
   bindings: string[];
+  /** Descripteurs de frames (type `frames`, AR-1). Optionnel : absent = racine sans réservoir. */
+  frames?: string[];
 }
 
 /**
@@ -262,6 +292,26 @@ export function parseFrameBinding(md: string): FrameBinding | null {
     .filter((a): a is FrameAssignment => a !== null);
   const personaIds = assignments.map((a) => a.personaId);
   return { id, methodId, teamId, assignments, personaIds };
+}
+
+/**
+ * Parse un descripteur de **frame** (type `frames`, AR-1) depuis son `.md` (frontmatter). Défensif :
+ * `null` si pas d'`id` exploitable. `default` est coercé en booléen ; `name`/`version`/`methodId`/
+ * `teamId` retombent sur `""` s'ils manquent (le descripteur reste comptabilisé mais l'intégrité le
+ * signalera). Un descripteur ne porte **que des ids** (I1/E2), jamais de corps recopié.
+ */
+export function parseFrameDescriptor(md: string): FrameDescriptor | null {
+  const { data } = parseFrontmatter(md);
+  const id = str(data.id);
+  if (!id) return null;
+  return {
+    id,
+    name: str(data.name) ?? "",
+    version: str(data.version) ?? "",
+    methodId: str(data.methodId) ?? "",
+    teamId: str(data.teamId) ?? "",
+    default: data.default === true,
+  };
 }
 
 /**
@@ -407,15 +457,37 @@ export function checkFrameRefs(
 }
 
 /**
- * Résout l'assemblage (mono-frame) : le 1er binding est le pivot ; method/team sont résolus par
- * `binding.methodId`/`teamId` dans ce qui est chargé, avec repli sur la 1re method/team. Sans
- * binding, on retombe sur la 1re method/team chargée. Jamais d'exception (tout `null` si vide).
+ * Résout l'assemblage **multi-frame (AR-1)** : le pivot est la **frame active** parmi N — la frame
+ * `default: true`, ou la 1re chargée à défaut. method/team sont résolus depuis les ids de cette
+ * frame (`methodId`/`teamId`), le binding depuis le couple (method, team) apparié.
+ *
+ * **Repli legacy — zéro régression :** sans aucun descripteur `frames`, on retombe sur le
+ * comportement mono-frame historique (le 1er binding est le pivot ; method/team depuis le binding).
+ * Jamais d'exception (tout `null` si vide).
  */
 function resolveAssembly(
   methods: MethodMd[],
   teams: TeamMd[],
   bindings: FrameBinding[],
+  frames: FrameDescriptor[] = [],
 ): FrameAssembly {
+  const active = frames.find((f) => f.default) ?? frames[0] ?? null;
+
+  if (active) {
+    // Pivot = frame active : method/team par ses ids ; binding apparié au couple (repli 1er binding).
+    const method =
+      methods.find((m) => m.id === active.methodId) ?? methods[0] ?? null;
+    const team = teams.find((t) => t.id === active.teamId) ?? teams[0] ?? null;
+    const binding =
+      bindings.find(
+        (b) => b.methodId === active.methodId && b.teamId === active.teamId,
+      ) ??
+      bindings[0] ??
+      null;
+    return { frame: active, binding, method, team };
+  }
+
+  // Repli legacy (aucune frame déclarée) : le 1er binding est le pivot.
   const binding = bindings[0] ?? null;
   const method = binding
     ? methods.find((m) => m.id === binding.methodId) ?? methods[0] ?? null
@@ -423,7 +495,7 @@ function resolveAssembly(
   const team = binding
     ? teams.find((t) => t.id === binding.teamId) ?? teams[0] ?? null
     : teams[0] ?? null;
-  return { binding, method, team };
+  return { frame: null, binding, method, team };
 }
 
 /**
@@ -486,6 +558,9 @@ export function buildFrame(raw: FrameRaw): Frame {
   const bindings = (raw.bindings ?? [])
     .map((md) => parseFrameBinding(md))
     .filter((b): b is FrameBinding => b !== null);
+  const frames = (raw.frames ?? [])
+    .map((md) => parseFrameDescriptor(md))
+    .filter((f): f is FrameDescriptor => f !== null);
 
   // Références sortantes des atomes de pool à intégrité étendue (T1/T5/T3), depuis les `md` déjà lus.
   const personaList = (raw.pools.personas ?? [])
@@ -501,12 +576,13 @@ export function buildFrame(raw: FrameRaw): Frame {
   counts.teams = teams.length;
   counts.methods = methods.length;
   counts.bindings = bindings.length;
+  counts.frames = frames.length;
 
   return {
     root: raw.root,
     counts,
     poolIds,
-    assembly: resolveAssembly(methods, teams, bindings),
+    assembly: resolveAssembly(methods, teams, bindings, frames),
     portfolio: detectPortfolioFacet(raw),
     integrity: checkFrameRefs(
       poolIds,
@@ -592,7 +668,7 @@ export function parseFrame(raw: unknown): Frame | null {
     root: typeof raw.root === "string" ? raw.root : null,
     counts,
     poolIds,
-    assembly: { binding: null, method: null, team: null },
+    assembly: { frame: null, binding: null, method: null, team: null },
     portfolio: coercePortfolio(raw.portfolio),
     integrity: coerceIntegrity(raw.integrity),
   };

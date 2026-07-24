@@ -1,6 +1,6 @@
 /**
  * OpenFramePanel — l'action **« Open frame »** (G3/G4, `open-frame-gui-stefframe2.md`). Un point
- * d'entrée qui : `pickDirectory()` → `setIakaframeHome(dir)` → **charge les 11 types** du frame
+ * d'entrée qui : `pickDirectory()` → `setIakaframeHome(dir)` → **charge les 12 types** du frame
  * (8 atomes de pool en contenu via `poolReadAll`/G1 + 3 assemblages teams/methods/bindings via
  * `libraryList`, `bindings` câblé G2) → **affiche les comptes** par type + le verdict d'**intégrité
  * référentielle** de l'ensemble chargé (G4). Réutilise le plumbing racine existant (le sélecteur
@@ -61,7 +61,7 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
       <h3>Ouvrir un frame</h3>
       <p className="settings-hint">
         Pointe la racine d'un frame (ex. <code>StefFrame2/</code>) : la GUI charge et compte les
-        11 types (8 pools <code>library/</code> + teams · méthodes · bindings à plat).
+        12 types (8 pools <code>library/</code> + teams · méthodes · bindings · frames à plat).
       </p>
       <div className="settings-actions">
         <button type="button" className="docbtn" disabled={busy} onClick={() => void openFrame()}>

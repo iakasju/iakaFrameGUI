@@ -46,7 +46,7 @@ import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
 import { OpenFramePanel } from "../components/OpenFramePanel";
 import { ReservoirPanel } from "./ReservoirPanel";
-import type { ReservoirElement } from "@iakaframe/core";
+import type { ElementPoolTarget } from "@iakaframe/core";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
@@ -63,7 +63,7 @@ type Tab = "team" | "methode" | "kit" | "workflow" | "apprentissage";
  * Élément dont on montre le réservoir (Volet A) pour l'onglet actif : Team→team, Méthode→method,
  * Kit→kit ; les onglets sans mapping direct (workflow/apprentissage) retombent sur le frame entier.
  */
-function reservoirElementForTab(tab: Tab): ReservoirElement {
+function reservoirElementForTab(tab: Tab): ElementPoolTarget {
   if (tab === "team") return "team";
   if (tab === "methode") return "method";
   if (tab === "kit") return "kit";

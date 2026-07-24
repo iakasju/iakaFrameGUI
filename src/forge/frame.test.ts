@@ -84,10 +84,11 @@ function coherentRaw(): FrameRaw {
   };
 }
 
-describe("buildFrame — comptage des 11 types (G3/G5)", () => {
-  it("compte chaque type et expose les 11 clés", () => {
+describe("buildFrame — comptage des 12 types (G3/G5 ; frames = AR-1)", () => {
+  it("compte chaque type et expose les 12 clés", () => {
     const inv = buildFrame(coherentRaw());
     expect(Object.keys(inv.counts).sort()).toEqual([...FRAME_TYPES].sort());
+    expect(inv.counts.frames).toBe(0); // pas de descripteur de frame dans le fixture legacy
     expect(inv.counts.personas).toBe(2);
     expect(inv.counts.roles).toBe(2);
     expect(inv.counts.principles).toBe(1);
@@ -148,7 +149,7 @@ describe("checkFrameRefs — intégrité référentielle (G4, critère B)", () =
 });
 
 describe("loadFrame — lecture backend + G5 (workflows compté une fois)", () => {
-  it("lit les 8 pools via poolReadAll + 3 collections via libraryList, sans la collection workflows/", () => {
+  it("lit les 8 pools via poolReadAll + 4 collections via libraryList (dont frames, AR-1), sans la collection workflows/", () => {
     const raw = coherentRaw();
     const libraryListCalls: string[] = [];
     const api = {
@@ -165,7 +166,8 @@ describe("loadFrame — lecture backend + G5 (workflows compté une fois)", () =
 
     return loadFrame(api).then((inv) => {
       // G5 : `workflows/` (collection éditable) N'EST PAS chargée — workflow compté 1 fois (le pool).
-      expect(libraryListCalls.sort()).toEqual(["bindings", "methods", "teams"]);
+      // `frames` (AR-1) EST chargée (réservoir de frames).
+      expect(libraryListCalls.sort()).toEqual(["bindings", "frames", "methods", "teams"]);
       expect(inv.counts.workflows).toBe(1);
       expect(inv.counts.bindings).toBe(1);
       expect(inv.integrity.ok).toBe(true);
