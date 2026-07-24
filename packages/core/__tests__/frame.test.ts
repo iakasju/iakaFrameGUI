@@ -130,15 +130,16 @@ describe("AC-1 — l'entité Frame est de 1er ordre (@iakaframe/core)", () => {
     expect(typeof parseFrame).toBe("function");
     expect(typeof checkFrameRefs).toBe("function");
     expect(typeof parseFrameBinding).toBe("function");
-    expect(FRAME_TYPES).toHaveLength(11);
+    expect(FRAME_TYPES).toHaveLength(12); // 8 pools + teams/methods/bindings/frames (AR-1)
     expect(PORTFOLIO_BACKLOG_ENTRY).toBe("BACKLOG.md");
   });
 });
 
-describe("AC-2 — inventaire des 11 (critère A)", () => {
-  it("porte 11 clés aux comptes SF2 (workflows compté une fois, G5)", () => {
+describe("AC-2 — inventaire des 12 (critère A)", () => {
+  it("porte 12 clés aux comptes SF2 (workflows compté une fois, G5 ; frames = AR-1)", () => {
     const f = buildFrame(sf2Raw());
     expect(Object.keys(f.counts).sort()).toEqual([...FRAME_TYPES].sort());
+    expect(f.counts.frames).toBe(0); // aucune frame déclarée dans le fixture legacy
     expect(f.counts.personas).toBe(8);
     expect(f.counts.roles).toBe(8);
     expect(f.counts.principles).toBe(16);
@@ -194,6 +195,36 @@ describe("AC-4 — assemblage résolu (method/team résolus par le binding)", ()
   });
 });
 
+describe("AR-1 — assemblage MULTI-frame (pivot = frame active parmi N)", () => {
+  const frameMd = (id: string, methodId: string, teamId: string, def: boolean): string =>
+    `---\nid: ${id}\nname: Frame ${id}\nversion: v1\nmethodId: ${methodId}\nteamId: ${teamId}\ndefault: ${def}\n---\n# ${id}\n`;
+
+  it("le pivot est la frame `default`, pas `bindings[0]` (mono→multi)", () => {
+    const raw = sf2Raw();
+    // 2 méthodes / 2 teams / 2 frames : le binding legacy pivoterait sur iakaframe/iakaframe-8 ;
+    // la frame DEFAULT désigne l'AUTRE couple -> c'est elle qui gagne (entry 15, R2).
+    raw.methods = [methodMd, `---\nid: alt\nname: Alt\nworkflowId: iakaframe-3phases\nroleKeys: [dev]\n---\n# alt\n`];
+    raw.teams = [teamMd, `---\nid: alt-team\nname: Alt team\npersonas: [gimli]\ncoordinator: gimli\n---\n# alt-team\n`];
+    raw.frames = [
+      frameMd("iakaframe", "iakaframe", "iakaframe-8", false),
+      frameMd("alt", "alt", "alt-team", true),
+    ];
+    const f = buildFrame(raw);
+    expect(f.counts.frames).toBe(2);
+    expect(f.assembly.frame?.id).toBe("alt");       // la frame active = la default
+    expect(f.assembly.method?.id).toBe("alt");       // pivot par methodId de la frame active
+    expect(f.assembly.team?.id).toBe("alt-team");    // pivot par teamId de la frame active
+  });
+
+  it("sans descripteur `frames` → repli legacy (bindings[0]), zéro régression", () => {
+    const f = buildFrame(sf2Raw());              // sf2Raw ne déclare aucune frame
+    expect(f.assembly.frame).toBeNull();
+    expect(f.assembly.binding?.id).toBe("iakaframe-claude-default");
+    expect(f.assembly.method?.id).toBe("iakaframe");
+    expect(f.assembly.team?.id).toBe("iakaframe-8");
+  });
+});
+
 describe("AC-5 — intégrité dans le périmètre (critère B)", () => {
   it("0 référence cassée sur le fixture cohérent", () => {
     const f = buildFrame(sf2Raw());
@@ -222,7 +253,7 @@ describe("AC-6 / AC-F — parseFrame défensif (jamais d'exception)", () => {
     }
   });
 
-  it("record plausible (avec counts) → Frame aux 11 clés + coercition sûre", () => {
+  it("record plausible (avec counts) → Frame aux 12 clés + coercition sûre", () => {
     const f = parseFrame({
       root: "/x",
       counts: { personas: 8, bindings: 1, bogus: 99 },
@@ -239,7 +270,7 @@ describe("AC-6 / AC-F — parseFrame défensif (jamais d'exception)", () => {
     expect(frame.portfolio.scaffoldId).toBe("portefeuille");
     expect(frame.integrity.ok).toBe(false);
     expect(frame.integrity.missing).toEqual([{ source: "s", field: "f", id: "i" }]);
-    expect(frame.assembly).toEqual({ binding: null, method: null, team: null });
+    expect(frame.assembly).toEqual({ frame: null, binding: null, method: null, team: null });
   });
 
   it("record plausible sans facette/intégrité → replis sûrs", () => {
