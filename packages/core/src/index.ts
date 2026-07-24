@@ -33,6 +33,6 @@ export * from "./runner";
 export * from "./node";
 export * from "./binding";
 export * from "./frame";
-export * from "./reservoir";
+export * from "./element-pool";
 export * from "./llm";
 export * from "./adapters";

@@ -1,10 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildReservoir,
-  RESERVOIR_COMPOSITION,
-  type ReservoirElement,
-} from "../src/reservoir";
+  buildElementPool,
+  ELEMENT_POOL_COMPOSITION,
+  type ElementPoolTarget,
+} from "../src/element-pool";
 import { buildFrame, FRAME_TYPES, FRAME_TYPE_LABELS, type FrameRaw } from "../src/frame";
+
+// Types composant un kit/frame : l'assemblage total MOINS `frames` (une frame ne se compose pas
+// de frames, AR-1). Miroir de ELEMENT_POOL_COMPOSITION.kit/frame.
+const ASSEMBLY_TYPES = FRAME_TYPES.filter((t) => t !== "frames");
 
 // --- Fixtures `.md` minimales (frontmatter), calquées sur frame.test.ts. ---
 const persona = (id: string, roleKey: string): string =>
@@ -39,9 +43,9 @@ function makeFrame() {
   return buildFrame(raw);
 }
 
-describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
+describe("element pool des sous-éléments — buildElementPool (Volet A, ex-réservoir AR-2)", () => {
   it("Team ← personas UNIQUEMENT (bonne liste par type)", () => {
-    const r = buildReservoir("team", makeFrame());
+    const r = buildElementPool("team", makeFrame());
     expect(r.groups.map((g) => g.type)).toEqual(["personas"]);
     const personas = r.groups[0];
     expect(personas.ids).toEqual(["odin", "gimli"]);
@@ -51,7 +55,7 @@ describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
   });
 
   it("Méthode ← principes + rituels + gardes + rôles + scaffolds + workflow (6 types)", () => {
-    const r = buildReservoir("method", makeFrame());
+    const r = buildElementPool("method", makeFrame());
     expect(r.groups.map((g) => g.type)).toEqual([
       "principles",
       "rituals",
@@ -75,7 +79,7 @@ describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
   });
 
   it("Skill ← skills UNIQUEMENT (miroir exact de team ← personas)", () => {
-    const r = buildReservoir("skill", makeFrame());
+    const r = buildElementPool("skill", makeFrame());
     expect(r.groups.map((g) => g.type)).toEqual(["skills"]);
     const skills = r.groups[0];
     expect(skills.ids).toEqual(["iakaframe-cadrage"]);
@@ -86,14 +90,16 @@ describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
     expect(r.groups.every((g) => g.type === "skills")).toBe(true);
   });
 
-  it("Kit ← l'assemblage total (les 11 types de FRAME_TYPES)", () => {
-    const r = buildReservoir("kit", makeFrame());
-    expect(r.groups.map((g) => g.type)).toEqual([...FRAME_TYPES]);
+  it("Kit ← l'assemblage total (FRAME_TYPES MOINS `frames`, AR-1)", () => {
+    const r = buildElementPool("kit", makeFrame());
+    expect(r.groups.map((g) => g.type)).toEqual([...ASSEMBLY_TYPES]);
+    expect(r.groups.some((g) => g.type === "frames")).toBe(false); // une frame ne compose pas un kit
   });
 
-  it("Frame ← les 11 types ; collections (teams/methods/bindings) : compte sans ids", () => {
-    const r = buildReservoir("frame", makeFrame());
-    expect(r.groups.map((g) => g.type)).toEqual([...FRAME_TYPES]);
+  it("Frame ← FRAME_TYPES moins `frames` ; collections (teams/methods/bindings) : compte sans ids", () => {
+    const r = buildElementPool("frame", makeFrame());
+    expect(r.groups.map((g) => g.type)).toEqual([...ASSEMBLY_TYPES]);
+    expect(r.groups.some((g) => g.type === "frames")).toBe(false); // une frame ne se compose pas de frames
     const byType = Object.fromEntries(r.groups.map((g) => [g.type, g]));
     // Collections : le frame ne garde que les comptes (ids vides), mais le compte est exact.
     expect(byType.teams.count).toBe(1);
@@ -119,11 +125,11 @@ describe("réservoir de sous-éléments — buildReservoir (Volet A)", () => {
       methods: [],
       bindings: [],
     });
-    for (const el of ["team", "method", "skill", "kit", "frame"] as ReservoirElement[]) {
-      const r = buildReservoir(el, empty);
+    for (const el of ["team", "method", "skill", "kit", "frame"] as ElementPoolTarget[]) {
+      const r = buildElementPool(el, empty);
       expect(r.total).toBe(0);
       expect(r.groups.every((g) => g.ids.length === 0 && g.count === 0)).toBe(true);
-      expect(r.groups.map((g) => g.type)).toEqual([...RESERVOIR_COMPOSITION[el]]);
+      expect(r.groups.map((g) => g.type)).toEqual([...ELEMENT_POOL_COMPOSITION[el]]);
     }
   });
 });

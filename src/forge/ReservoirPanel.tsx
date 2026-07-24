@@ -9,13 +9,13 @@
  * Frontière : c'est le **stock** (ce qui PEUT composer l'élément), pas l'assemblage courant ; le `+`
  * d'insertion réelle reste porté par les ateliers (non dupliqué ici).
  */
-import { RESERVOIR_COMPOSITION, type ReservoirElement } from "@iakaframe/core";
+import { ELEMENT_POOL_COMPOSITION, type ElementPoolTarget } from "@iakaframe/core";
 import { backend, type Backend } from "../api/backend";
 import { useForgeReservoir } from "./useForgeReservoir";
 import { RailSection } from "./Rail";
 
-/** Libellé lisible de l'élément dont on montre le réservoir. */
-const ELEMENT_LABELS: Record<ReservoirElement, string> = {
+/** Libellé lisible de l'élément dont on montre l'element pool. */
+const ELEMENT_LABELS: Record<ElementPoolTarget, string> = {
   team: "Team",
   method: "Méthode",
   skill: "Skill",
@@ -27,7 +27,7 @@ export function ReservoirPanel({
   element,
   api = backend,
 }: {
-  element: ReservoirElement;
+  element: ElementPoolTarget;
   api?: Backend;
 }) {
   const { reservoir, busy, error, reload } = useForgeReservoir(element, api);
@@ -40,7 +40,7 @@ export function ReservoirPanel({
       </h3>
       <p className="settings-hint">
         Le <b>stock</b> des sous-éléments qui peuvent composer un <b>{ELEMENT_LABELS[element]}</b>,
-        lu depuis la racine bibliothèque courante ({RESERVOIR_COMPOSITION[element].length} type(s)).
+        lu depuis la racine bibliothèque courante ({ELEMENT_POOL_COMPOSITION[element].length} type(s)).
       </p>
 
       <div className="settings-actions">
