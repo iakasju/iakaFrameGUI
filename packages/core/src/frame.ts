@@ -326,19 +326,27 @@ export function parseSkillRefs(md: string): SkillRefs | null {
 }
 
 /**
- * Références d'un workflow depuis son `.md` (frontmatter) : agrège les `agentsRoleKeys` de toutes
- * les `phases` (champ **réel du canon**, distinct du `roleKeys` calibré rendu par `parseWorkflow`).
- * Dédupliqué, défensif ; `null` si pas d'`id`.
+ * Références d'un workflow depuis son `.md` (frontmatter) : agrège le champ d'acteurs de chaque étape.
+ * Lecture **ALIAS-AWARE** du modèle agnostique (correction-biais-modele-frame.md § 3.1), miroir exact
+ * du CLI (`frame-lint.js` `workflowRoleKeys`) :
+ *   - conteneur d'étapes unifié : `phases` (canon, A-1) OU `stages` (alias Kanban) ;
+ *   - champ d'acteurs unifié : `actorsRoleKeys` (canon, A-2) OU `agentsRoleKeys` (alias rétro-compat).
+ * Avant ce lot, seul `phases[].agentsRoleKeys` était lu : les refs d'acteurs des 8 frames forgés
+ * (`actorsRoleKeys`, et `stages` pour Kanban) échappaient à l'intégrité (§ 1.3). Dédupliqué, défensif ;
+ * `null` si pas d'`id`. Distinct du `roleKeys` calibré rendu par `parseWorkflow`.
  */
 export function parseWorkflowRefs(md: string): WorkflowRefs | null {
   const { data } = parseFrontmatter(md);
   const id = str(data.id);
   if (!id) return null;
   const roleKeys: string[] = [];
-  const phases = Array.isArray(data.phases) ? data.phases : [];
-  for (const ph of phases) {
+  const rawSteps = data.phases != null ? data.phases : data.stages;
+  const steps = Array.isArray(rawSteps) ? rawSteps : [];
+  for (const ph of steps) {
     if (ph && typeof ph === "object") {
-      for (const k of coerceStringArray((ph as Record<string, unknown>).agentsRoleKeys)) {
+      const r = ph as Record<string, unknown>;
+      const actors = r.actorsRoleKeys != null ? r.actorsRoleKeys : r.agentsRoleKeys;
+      for (const k of coerceStringArray(actors)) {
         if (!roleKeys.includes(k)) roleKeys.push(k);
       }
     }

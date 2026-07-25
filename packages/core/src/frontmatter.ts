@@ -24,7 +24,7 @@
  * Défensif : jamais d'exception ; champ inconnu ignoré ; artefact sans `id` → `null`.
  */
 
-import type { GateKind, Phase, Workflow } from "./workflow";
+import type { GateKind, Phase, Workflow, WorkflowKind } from "./workflow";
 import { parseWorkflow } from "./workflow";
 
 // ---------------------------------------------------------------------------
@@ -540,16 +540,18 @@ export interface KitMd {
 }
 
 /**
- * Une **phase** au schéma-fichier du frame (`workflows/<id>.md`, frontmatter `phases:`). Miroir
- * **exact** de la map inline `- { id, label, side?, agentsRoleKeys[], input, output }` — champs
- * `input`/`output`/`side`/`label` que le type riche `Phase` (fusionne en `description`/`offChain`)
- * ne porte pas. `side` présent uniquement hors chaîne (frame : `prod`).
+ * Une **phase** au schéma-fichier du frame (`workflows/<id>.md`, frontmatter `phases:`/`stages:`).
+ * Miroir **exact** de la map inline `- { id, label, side?, actorsRoleKeys[], input, output }` —
+ * champs `input`/`output`/`side`/`label` que le type riche `Phase` (fusionne en
+ * `description`/`offChain`) ne porte pas. `side` présent uniquement hors chaîne (frame : `prod`).
+ * Champ d'acteurs **unifié** `actorsRoleKeys` (canon A-2 ; l'alias `agentsRoleKeys` reste **lu** en
+ * rétro-compat — correction-biais-modele-frame.md § 3.1).
  */
 export interface WorkflowMdPhase {
   id: string;
   label: string;
   side?: string;
-  agentsRoleKeys: string[];
+  actorsRoleKeys: string[];
   input: string;
   output: string;
 }
@@ -575,6 +577,11 @@ export interface WorkflowMd {
   id: string;
   name: string;
   methodId?: string;
+  /**
+   * **Famille de gouvernance** (`kind` first-class, § 3.1). Optionnel/présent-si-porté : absent du
+   * fichier = non émis (lu `pipeline` par les consommateurs). MVP permissif (AC5).
+   */
+  kind?: WorkflowKind;
   phases: WorkflowMdPhase[];
   gates: WorkflowMdGate[];
 }
@@ -761,8 +768,8 @@ function renderInlineMap(pairs: string[]): string {
  * Sérialise un `WorkflowMd` en `.md` **frame-format canonique** (byte-parité **structurelle**, pas
  * l'alignement manuel — celui-ci passe par la capture verbatim côté hôte, cf. `serializeWorkflowDoc`).
  * `phases`/`gates` en **frontmatter**, maps inline indentées de 2 espaces, ordre de champ
- * `id, label, side?, agentsRoleKeys, input, output` (`side` omis si absent), `gates` en tableau
- * séparé `{ afterPhase, kind, criteria }`, **`methodId` omis si absent**. `body` = prose (préservée).
+ * `id, label, side?, actorsRoleKeys, input, output` (`side` omis si absent), `gates` en tableau
+ * séparé `{ afterPhase, kind, criteria }`, **`methodId`/`kind` omis si absents**. `body` = prose.
  * **Aucun** bloc `` ```json `` n'est écrit.
  */
 export function serializeWorkflowFrontmatterMd(md: WorkflowMd, body = ""): string {
@@ -773,13 +780,18 @@ export function serializeWorkflowFrontmatterMd(md: WorkflowMd, body = ""): strin
   if (md.methodId && md.methodId.trim().length > 0) {
     lines.push(`methodId: ${renderScalar(md.methodId)}`);
   }
+  // `kind` first-class émis quand présent (jamais défaulté : un fichier sans `kind` le reste,
+  // byte-neutralité — correction-biais-modele-frame.md § 3.1 / AC5).
+  if (md.kind && md.kind.trim().length > 0) {
+    lines.push(`kind: ${renderScalar(md.kind)}`);
+  }
   lines.push("phases:");
   for (const p of md.phases) {
     const pairs = [`id: ${renderInlineScalar(p.id)}`, `label: ${renderInlineScalar(p.label)}`];
     if (p.side !== undefined && p.side.length > 0) {
       pairs.push(`side: ${renderInlineScalar(p.side)}`);
     }
-    pairs.push(`agentsRoleKeys: ${renderFlowList(p.agentsRoleKeys)}`);
+    pairs.push(`actorsRoleKeys: ${renderFlowList(p.actorsRoleKeys)}`);
     pairs.push(`input: ${renderInlineScalar(p.input)}`);
     pairs.push(`output: ${renderInlineScalar(p.output)}`);
     lines.push(`  - ${renderInlineMap(pairs)}`);
@@ -806,10 +818,12 @@ function coerceWorkflowMd(id: string, data: FrontmatterData): WorkflowMd | null 
     const r = raw as Record<string, FrontmatterValue>;
     const pid = asString(r.id).trim();
     if (!pid) continue;
+    // Champ d'acteurs unifié : `actorsRoleKeys` (canon A-2) sinon alias lu `agentsRoleKeys` (rétro-compat).
+    const actorsRaw = r.actorsRoleKeys != null ? r.actorsRoleKeys : r.agentsRoleKeys;
     const phase: WorkflowMdPhase = {
       id: pid,
       label: asString(r.label) || pid,
-      agentsRoleKeys: asStringArray(r.agentsRoleKeys),
+      actorsRoleKeys: asStringArray(actorsRaw),
       input: asString(r.input),
       output: asString(r.output),
     };
@@ -835,6 +849,9 @@ function coerceWorkflowMd(id: string, data: FrontmatterData): WorkflowMd | null 
   const md: WorkflowMd = { id, name: asString(data.name) || id, phases, gates };
   const methodId = asString(data.methodId).trim();
   if (methodId) md.methodId = methodId;
+  // `kind` first-class, présent-si-porté (permissif : toute valeur non vide, § 3.1 / AC5).
+  const kind = asString(data.kind).trim();
+  if (kind) md.kind = kind as WorkflowKind;
   return md;
 }
 
@@ -858,7 +875,7 @@ const WORKFLOW_DEFAULT_METHOD_ID = "iakaframe";
 
 /**
  * Projette un `WorkflowMd` (fichier) sur le type riche `Workflow` (diagramme/atelier). `label`→`name`,
- * `agentsRoleKeys`→`roleKeys`, `input`/`output`→`description` (« input → output »), `side: prod`→
+ * `actorsRoleKeys`→`roleKeys`, `input`/`output`→`description` (« input → output »), `side: prod`→
  * `offChain`, gate appariée par `afterPhase` (`criteria`→`condition`). `order` = index de position.
  * `methodId` absent → défaulté (in-memory ; réciproquement omis à l'écriture).
  */
@@ -874,24 +891,26 @@ export function mdToWorkflow(md: WorkflowMd): Workflow {
       order: index,
       name: p.label,
       description,
-      roleKeys: [...p.agentsRoleKeys],
+      roleKeys: [...p.actorsRoleKeys],
       gate: g ? { kind: g.kind, condition: g.criteria } : { kind: "human", condition: "" },
     };
     if (p.side === "prod") phase.offChain = true;
     return phase;
   });
-  return {
+  const wf: Workflow = {
     id: md.id,
     name: md.name,
     methodId:
       md.methodId && md.methodId.length > 0 ? md.methodId : WORKFLOW_DEFAULT_METHOD_ID,
     phases,
   };
+  if (md.kind) wf.kind = md.kind; // `kind` traverse le mapper (present-si-porté).
+  return wf;
 }
 
 /**
  * Reprojette un `Workflow` riche sur son `WorkflowMd` (fichier). `name`→`label`, `roleKeys`→
- * `agentsRoleKeys`, `description` **re-scindée** sur `WORKFLOW_IO_ARROW` en `input`/`output`,
+ * `actorsRoleKeys`, `description` **re-scindée** sur `WORKFLOW_IO_ARROW` en `input`/`output`,
  * `offChain`→`side: prod`, gate→`gates[]` séparé. `methodId` **omis** s'il est absent ou égal au
  * défaut (byte-parité : pas de ligne `methodId:` parasite sur le workflow du frame). Les champs de
  * calage riches ne sont **pas** portés (pas de home fichier).
@@ -905,7 +924,7 @@ export function workflowToMd(wf: Workflow): WorkflowMd {
     const phase: WorkflowMdPhase = {
       id: p.id,
       label: p.name,
-      agentsRoleKeys: [...p.roleKeys],
+      actorsRoleKeys: [...p.roleKeys],
       input,
       output,
     };
@@ -921,6 +940,7 @@ export function workflowToMd(wf: Workflow): WorkflowMd {
   if (wf.methodId && wf.methodId.length > 0 && wf.methodId !== WORKFLOW_DEFAULT_METHOD_ID) {
     md.methodId = wf.methodId;
   }
+  if (wf.kind) md.kind = wf.kind; // `kind` reprojeté sur le fichier (present-si-porté).
   return md;
 }
 

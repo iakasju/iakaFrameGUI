@@ -53,11 +53,12 @@ describe("AC-1 — parseWorkflowMd lit le format frame autoritaire (frontmatter 
     const md = parseWorkflowFrontmatterMd(frameWorkflow);
     expect(md).not.toBeNull();
     expect(md!.methodId).toBeUndefined(); // le frame ne porte pas methodId
+    expect(md!.kind).toBe("pipeline"); // `kind` first-class capté du frontmatter (§ 3.1 / A-2)
     expect(md!.phases[3]).toEqual({
       id: "prod",
       label: "Déploiement prod",
       side: "prod",
-      agentsRoleKeys: ["deploiement"],
+      actorsRoleKeys: ["deploiement"], // champ d'acteurs unifié (canon A-2)
       input: "rc recettée + feu vert humain",
       output: "prod (alias de version) + surveillance/rollback",
     });
@@ -95,7 +96,7 @@ describe("WorkflowMd — round-trip structurel canonique (lossless)", () => {
     const fm = canon.slice(0, canon.indexOf("\n---\n", 4));
     expect(fm).toMatch(/^phases:/m);
     expect(fm).toMatch(/^gates:/m);
-    expect(fm).toMatch(/- \{ id: p1, label: Cadrage, agentsRoleKeys: \[cadrage\]/);
+    expect(fm).toMatch(/- \{ id: p1, label: Cadrage, actorsRoleKeys: \[cadrage\]/);
     expect(fm).toMatch(/- \{ afterPhase: p1, kind: human, criteria:/);
     expect(canon).not.toContain("```json");
     // methodId absent → omis (byte-parité : pas de ligne parasite).

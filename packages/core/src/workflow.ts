@@ -21,6 +21,30 @@ import { roleLabel } from "./roles";
 /** Type de gate d'une phase : validation **humaine** (décideur) ou **auto** (qualité). */
 export type GateKind = "human" | "auto";
 
+/**
+ * **Famille de gouvernance d'un workflow** (`kind` first-class — correction-biais-modele-frame.md
+ * § 3.1). Rend agnostique le modèle : le pipeline-à-gates n'est plus le présupposé unique, chaque
+ * famille est un cas de **première classe**.
+ *   - `pipeline` — étapes séquentielles + gates (iakaframe, waterfall) ;
+ *   - `cycle` — itération/boucle sans gate hiérarchique (scrum, design-thinking) ;
+ *   - `flow` — flux tiré continu, sans conteneur temporel (kanban, gtd) ;
+ *   - `cycle-with-gate` — cycle avec **un** gate d'engagement aux frontières (shape up).
+ * MVP **permissif** (AC5, ARB-1) : l'énum est **ouverte à extension** et **tolérée à la validation**
+ * (un `kind` hors énum est accepté ; le rejet strict relève du Finding 3). Absent → lu `pipeline`.
+ */
+export type WorkflowKind = "pipeline" | "cycle" | "flow" | "cycle-with-gate";
+
+/** Les familles de gouvernance de l'énum MVP (vocabulaire documenté ; validation stricte = Finding 3). */
+export const WORKFLOW_KINDS: readonly WorkflowKind[] = [
+  "pipeline",
+  "cycle",
+  "flow",
+  "cycle-with-gate",
+];
+
+/** `kind` par défaut quand absent (rétro-compat des lecteurs, AC5) : un workflow sans `kind` est un pipeline. */
+export const DEFAULT_WORKFLOW_KIND: WorkflowKind = "pipeline";
+
 /** Une **gate** : condition de franchissement entre deux phases (+ jalon rôle→rôle optionnel). */
 export interface Gate {
   /** humain (validation décideur) | auto (gate qualité). */
@@ -72,6 +96,12 @@ export interface Workflow {
   name: string;
   /** Méthode (agnosticisme AR-9) — "iakaframe" au MVP. */
   methodId: string;
+  /**
+   * **Famille de gouvernance** (`kind` first-class, § 3.1). Optionnel/présent-si-porté : absent =
+   * lu `pipeline` (rétro-compat, {@link DEFAULT_WORKFLOW_KIND}). MVP permissif : un `kind` hors énum
+   * est **toléré** (AC5) — la validation stricte est différée (Finding 3).
+   */
+  kind?: WorkflowKind;
   /** Phases (rendues triées par `order`). */
   phases: Phase[];
   /**
@@ -164,6 +194,10 @@ export function parseWorkflow(raw: unknown): Workflow | null {
     : [];
   if (phases.length === 0) return null;
   const workflow: Workflow = { id, name, methodId, phases };
+  // `kind` first-class, présent-si-porté (permissif AC5 : toute valeur non vide est acceptée ; un
+  // `kind` absent est lu `pipeline` par les consommateurs via DEFAULT_WORKFLOW_KIND).
+  const kind = optString(r.kind);
+  if (kind) workflow.kind = kind as WorkflowKind;
   const sectionTitle = optString(r.sectionTitle);
   if (sectionTitle) workflow.sectionTitle = sectionTitle;
   const sectionNote = typeof r.sectionNote === "string" ? r.sectionNote : undefined;
@@ -191,6 +225,7 @@ export const IAKAFRAME_CANONICAL_WORKFLOW: Workflow = {
   id: "iakaframe-canonical",
   name: "Workflow canonique iakaframe",
   methodId: "iakaframe",
+  kind: "pipeline",
   sectionTitle: "Les 3 phases (cible : staging) + le squad prod",
   sectionNote:
     "La chaîne **s'arrête au staging**. La **mise en production** est un **squad séparé**, déclenché\n" +
@@ -370,6 +405,7 @@ export function cloneWorkflow(wf: Workflow): Workflow {
     methodId: wf.methodId,
     phases: wf.phases.map(clonePhase),
   };
+  if (wf.kind !== undefined) clone.kind = wf.kind;
   if (wf.sectionTitle !== undefined) clone.sectionTitle = wf.sectionTitle;
   if (wf.sectionNote !== undefined) clone.sectionNote = wf.sectionNote;
   return clone;
