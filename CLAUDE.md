@@ -145,12 +145,20 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
-- [ ] **Chantier frames : cadrage manquant côté GUI.** Les lots des 24–25/07 (`b782e19` type
-  `frames` de 1re classe / AR-1, `3b2b14c` renommage `reservoir` → `element-pool` / AR-2+A13,
-  `49dc84c` collection `frames` chargée + allow-list Rust, comptes 11→12, `453cd29` 9ᵉ rôle
-  canonique **`frame` — Constructeur de frame** + 9ᵉ dégradé de casting, `c88e8bf` vignette flamme
-  Feanor) sont **mergés sur `main` sans instruction versée dans `specs/instructions/`** — le
-  cadrage vit côté dépôt `iakaframe`. **Verser le cadrage ici** puis définir le lot suivant.
+- [ ] **Sélecteur de frame active — absent de la forge.** Le cœur sait résoudre **N** assemblages
+  (`resolveAssembly` mono→multi, `b782e19`), mais **rien ne permet de choisir lequel est actif** :
+  `grep -rn "iakaframeactive\|frameActive\|activeFrame"` sur `src/`, `packages/core/src/` et
+  `src-tauri/src/` rend **0 occurrence** (mesuré le 2026-07-25). Lot non commencé — le canon
+  l'autorisait (*« MVP = affichage + sélection ; l'écriture peut être différée »*).
+  ⚠️ **Décision à deux dépôts** : le pointeur doit être lisible par le **CLI ET la GUI** ; le poser
+  côté GUI seul fabriquerait la divergence GUI≠CLI qu'aucune garde ne détecte.
+  **À cadrer par Gandalf avant tout code.** Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.1.
+- [ ] **Renommage `reservoir` → `element pool` inachevé (A13).** AR-2 libère le mot « réservoir »
+  pour le sens *dépôt/frame*, mais seul `element-pool.ts` a été renommé : `llm.ts` (cœur),
+  `useForgeReservoir.ts`, `ReservoirPanel.tsx`, `ForgeShell.tsx`, `llm/prompt.ts`, `llm/resolve.ts`
+  portent encore l'ancien sens. **Le mot est donc ambigu dans le même dépôt** — exactement ce
+  qu'AR-2 voulait éviter. Lot mécanique, sans changement de comportement, à mener **avant** que de
+  nouveaux consommateurs ne s'y greffent. Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.2.
 - [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code /
   Open WebUI** (addition assumée + golden dédié). *Mesuré le 2026-07-25 : toujours ouvert —
   `grep -c phase` donne `0` sur `adapters/claudeCode.ts` et `adapters/openwebui.ts`, `1` sur
@@ -230,6 +238,10 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
 - ~~Réserve P6b « total front consolidé non re-mesuré / `ForgeShell.test.tsx` à reconfirmer »~~ —
   **close** : `npm run test:all` → `56 passed (56)` / `518 passed (518)`, et le run ciblé
   `npx vitest run src/forge/ForgeShell.test.tsx` → `Test Files 1 passed (1) / Tests 3 passed (3)`.
+- ~~Chantier frames sans instruction locale~~ — **close** : cadrage rétro-porté dans
+  `specs/instructions/frame-reservoir-et-9e-role-portage-gui.md` (les 7 commits des 24–25/07
+  tracés entrée canon ↔ preuve mesurée, reste à faire borné en § 2). Sources canon :
+  `iakaframe/specs/instructions/reservoir-de-frames.md` et `role-frame-builder.md`.
 - ~~3 branches de travail obsolètes~~ — **supprimées** (local + `origin`) après archivage par tags
   `archive/feat/open-frame-portfolio` (`a9bc7ca`), `archive/feat/align-binding-format-frame`
   (`5152c72`), `archive/feat/ch-a-reconciliation-rolekey` (`27d8a2d`), poussés sur Forgejo.

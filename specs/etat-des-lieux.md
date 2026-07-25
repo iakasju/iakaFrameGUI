@@ -55,10 +55,17 @@
   placeholders vides — donc **toute regeneration DETRUIT ce recit**. Sauvegarder la section
   « Reprise du travail » avant tout `snapshot`/`update`, puis la reinjecter. Dette a remonter au
   depot `iakaframe` : le snapshot devrait preserver la section si elle est remplie.
-- **Prochaine etape concrete** : **verser ici le cadrage du chantier frames** — les lots des
-  24-25/07 (frames de 1re classe AR-1, `element-pool` AR-2/A13, collection `frames` + allow-list
-  Rust, 9e role `frame` / Feanor) sont mergés sans instruction dans `specs/instructions/` ; le
-  cadrage vit cote depot `iakaframe`. Puis cadrage Gandalf du lot suivant.
+- **Cadrage du chantier frames : VERSE le 25/07** — `specs/instructions/frame-reservoir-et-9e-role-portage-gui.md`
+  (retro-porte, assume comme tel). Il trace les 7 commits des 24-25/07 entree canon <-> preuve
+  mesuree, et **borne le reste**. Sources canon : `iakaframe/specs/instructions/reservoir-de-frames.md`
+  et `role-frame-builder.md`. Plus aucun code merge sans instruction locale.
+- **Prochaine etape concrete** : deux lots ouverts, mesures, a cadrer par Gandalf avant tout code —
+  (1) **selecteur de frame active** (le coeur resout N assemblages, la forge ne sait pas choisir :
+  0 occurrence de `iakaframeactive`/`frameActive`/`activeFrame` ; **decision a deux depots**, le
+  pointeur doit etre lisible CLI ET GUI) ; (2) **renommage `reservoir` -> `element pool` inachevé**
+  (A13 tenu au coeur seulement ; `llm.ts`, `useForgeReservoir.ts`, `ReservoirPanel.tsx`,
+  `ForgeShell.tsx`, `llm/prompt.ts`, `llm/resolve.ts` portent encore l'ancien sens -> mot ambigu
+  dans le meme depot). Le (2) est mecanique et sans changement de comportement : le faire d'abord.
 - **Mesure de reprise (2026-07-25)** : `npm run lint:all` -> exit `0`, aucune sortie ;
   `npm run test:all` -> exit `0`, `Test Files 56 passed (56) / Tests 518 passed (518)`.
   Cargo (`src-tauri/`) **non mesure** a la reprise.
