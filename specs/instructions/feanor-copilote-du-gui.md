@@ -143,6 +143,38 @@ que l'absence d'identité.
 
 ---
 
+## 4bis. ✅ LIVRÉ le 2026-07-26 — état d'exécution
+
+> Merge `--no-ff` de `feat/feanor-copilote` (`440c9d2`). **Gate : `lint:all` exit `0` ;
+> `test:all` exit `0`, `Test Files 58 passed (58) / Tests 533 passed (533)`** — +2 fichiers,
+> +15 tests, aucun retrait.
+
+| AC | État | Preuve |
+|---|---|---|
+| AC-1 | ✅ | comparaison **stricte** avec la chaîne anonyme figée dans le test |
+| AC-2 | ✅ | fixture `persona.feanor.md` **byte-identique au canon** au versement ; charte comparée verbatim |
+| AC-3 | ✅ | 3 cas (fiche absente, pool vide, backend en échec) → `null` + `IDENTITY_MISSING_HINT` affiché |
+| AC-4 | ✅ | 0 appel `llm.complete` au montage ; 1 après le geste |
+| AC-5 | ✅ | ouverture `🟠 [FRAME][Fëanor]`, clôture `[FRAME][Fëanor] 🟠` |
+| AC-6 | ✅ | **tenu par conception** : le badge est rendu par l'UI, donc indépendant de la source |
+| AC-7 | ✅ | voir gate ci-dessus |
+
+**Écarts et décisions d'exécution, consignés :**
+
+- **`verbatimBody()` au lieu de `parseFrontmatter().body`.** Le second **strippe la ligne blanche de
+  tête** — le test AC-2 l'a attrapé. « Verbatim » doit vouloir dire verbatim : même exigence que la
+  capture d'Open→Save.
+- **`Persona.pastille` n'est émis que s'il est déclaré.** Une clé `pastille: ""` systématique cassait
+  l'égalité du round-trip `parseTeam ∘ serializeTeam` (régression attrapée par `handoff.test.ts`,
+  corrigée **à la source** plutôt qu'en ajustant le test).
+- **Entrée 4 du périmètre (`mock/copilote.ts`) : rien à faire.** Le badge étant posé par l'UI,
+  l'identité est déjà la même en mock et en live — l'AC-6 tombe sans code.
+- **Constat hors périmètre, non corrigé** : `CopiloteShell` appelle `api.authoringModel()` **sans**
+  garde optionnelle, contrairement à son voisin `api.authoringEndpoint?.()` — un backend partiel
+  fait planter le montage. Signalé, pas traité : ce lot porte l'identité.
+
+---
+
 ## 5. Critères d'acceptation
 
 - **AC-1** — `buildSystemPrompt()` **sans** persona rend **exactement** la chaîne actuelle

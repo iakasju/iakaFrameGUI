@@ -21,8 +21,22 @@ import {
   type Proposition,
 } from "./mock/copilote";
 import { resolveProposition, type PropositionSource } from "./llm/resolve";
+import {
+  copiloteBadgeClose,
+  copiloteBadgeOpen,
+  loadCopiloteIdentity,
+  type CopiloteIdentity,
+} from "./llm/identity";
 import { realLlm } from "./llm/transport";
 import { backend, type Backend } from "../api/backend";
+
+/**
+ * Repli d'identité (AC-3) : la fiche du rôle `frame` est introuvable dans la racine bibliothèque
+ * active. On le **dit** et on retombe sur le copilote anonyme — on n'invente jamais une identité
+ * de substitution, qui rendrait la dérive invisible.
+ */
+export const IDENTITY_MISSING_HINT =
+  "identité indisponible (fiche du rôle « frame » introuvable dans la racine bibliothèque)";
 
 export function CopiloteShell({
   subject,
@@ -56,6 +70,8 @@ export function CopiloteShell({
   const [pending, setPending] = useState(false);
   // Endpoint d'authoring optionnel (D3) : hôte Ollama LAN. Vide → localhost (résolu par le résolveur).
   const [endpoint, setEndpoint] = useState<string | null>(null);
+  // Identite DERIVEE du canon (jamais fabriquee) : null = fiche introuvable -> copilote anonyme.
+  const [identity, setIdentity] = useState<CopiloteIdentity | null>(null);
   // § Volet B : le modèle d'authoring UNIQUE et global, lu depuis les Settings (persisté comme
   // `iakaframeHome`). **Aucun défaut** : vide tant que rien n'est réglé → l'absence est signalée
   // (jamais masquée). Défensif hors Tauri : le mock reste actif, il indique juste l'absence de modèle.
@@ -98,6 +114,20 @@ export function CopiloteShell({
     };
   }, [api]);
 
+  // Identite du copilote : lue de la racine bibliotheque active (fiche du role `frame`).
+  // ⚠️ Lire la fiche n'est PAS activer l'agent : AUCUN appel LLM ici — l'invariant d'activation
+  // explicite (I-2) porte sur `llm.complete`, declenche uniquement par `handlePropose`.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const found = await loadCopiloteIdentity(api);
+      if (alive) setIdentity(found);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api]);
+
   async function handlePropose() {
     const trimmed = prompt.trim();
     if (trimmed.length === 0 || pending) return; // garde anti-double-clic (un seul appel en vol)
@@ -108,7 +138,7 @@ export function CopiloteShell({
       const result = await resolveProposition(
         trimmed,
         { ...context, model: configuredModel },
-        { llm, endpoint },
+        { llm, endpoint, identity },
       );
       setProposition(result.proposition);
       setSource(result.source);
@@ -138,7 +168,20 @@ export function CopiloteShell({
     <div className="copilote">
       <div className="chead">
         <span className="k" />
-        <span className="t">Copilote d'authoring · {subject}</span>
+        <span className="t">
+          {identity ? (
+            <>
+              {copiloteBadgeOpen(identity)} · copilote d'authoring · {subject}
+            </>
+          ) : (
+            <>
+              Copilote d'authoring · {subject}{" "}
+              <em className="no-model" aria-label="Identité du copilote indisponible">
+                {IDENTITY_MISSING_HINT}
+              </em>
+            </>
+          )}
+        </span>
         <span className="runner">
           <span className="tagme">runner d'authoring · build-time · LLM mocké</span>
           <select
@@ -172,7 +215,7 @@ export function CopiloteShell({
           </div>
           <div className="amsg">
             <div className="who">
-              Copilote de forge · proposition ·{" "}
+              {identity ? copiloteBadgeOpen(identity) : "Copilote de forge"} · proposition ·{" "}
               {proposition.model ? (
                 <>
                   modèle <code>{proposition.model}</code>
@@ -209,6 +252,11 @@ export function CopiloteShell({
               </button>
               <span className="hint">{proposition.hint}</span>
             </div>
+            {identity && (
+              <div className="who close" aria-label="Clôture du copilote">
+                {copiloteBadgeClose(identity)}
+              </div>
+            )}
           </div>
         </div>
       ) : (

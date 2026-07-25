@@ -153,14 +153,6 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   ⚠️ **Décision à deux dépôts** : le pointeur doit être lisible par le **CLI ET la GUI** ; le poser
   côté GUI seul fabriquerait la divergence GUI≠CLI qu'aucune garde ne détecte.
   **À cadrer par Gandalf avant tout code.** Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.1.
-- [ ] **Fëanor est le copilote du GUI — CADRÉ, non codé.** Décision décideur (2026-07-25) : le LLM
-  interne du GUI **est** le persona Fëanor, pas un copilote anonyme. Instruction fermée :
-  `specs/instructions/feanor-copilote-du-gui.md` (arbitrages rendus : persona **dérivée du canon à
-  l'exécution**, jamais réécrite en dur ; **activation explicite** = ouvrir la console + soumettre
-  une intention). Mesuré : le copilote est aujourd'hui anonyme (`buildSystemPrompt()` dit « Tu es le
-  copilote d'AUTHORING »), `Fëanor` n'existe dans le GUI que dans `roster.ts` et `casting.ts`.
-  Bonne nouvelle mesurée : **aucun appel LLM au montage** — l'invariant d'activation explicite est
-  déjà tenu, il reste à le verrouiller par un test. ~1,3 j-h, incertitude faible.
 - [ ] **Troisième sens de « réservoir » — non cadré.** L'onglet **Apprentissage** appelle
   « réservoir » son **stock de propositions** (`useForgeLearning.ts`, `LearningAtelier.tsx`,
   `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne
@@ -245,10 +237,20 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
 - ~~Réserve P6b « total front consolidé non re-mesuré / `ForgeShell.test.tsx` à reconfirmer »~~ —
   **close** : `npm run test:all` → `56 passed (56)` / `518 passed (518)`, et le run ciblé
   `npx vitest run src/forge/ForgeShell.test.tsx` → `Test Files 1 passed (1) / Tests 3 passed (3)`.
+- ~~Fëanor est le copilote du GUI (cadré, non codé)~~ — **close, LIVRÉ 2026-07-26** : identité
+  **dérivée du canon** (`identity.ts` lit la fiche du rôle `frame` par `poolReadAll`, recherche par
+  RÔLE et non par nom), `buildSystemPrompt(identity?)` injecté (**sans identité = byte-identique**,
+  prouvé), badge d'ouverture/clôture **posé par l'UI** (schéma JSON intact), repli explicite sans
+  identité inventée. Instruction : `specs/instructions/feanor-copilote-du-gui.md` § 4bis.
+  Gate : `lint:all` `0`, `test:all` `0`, **`58 passed (58)` / `533 passed (533)`** (+15 tests).
+  *Constat consigné non corrigé : `CopiloteShell` appelle `api.authoringModel()` sans garde
+  optionnelle, contrairement à `api.authoringEndpoint?.()` — un backend partiel plante au montage.*
 - ~~Renommage `reservoir` → `element pool` inachevé (A13)~~ — **close** : merge `--no-ff` de
   `refactor/element-pool-renommage` (`f55e0dd` code + `3136b00` libellés, isolé et révocable).
-  Fichiers/symboles renommés, doc alignée, libellés « Pool d'éléments ». **Contrat de prompt LLM
-  volontairement inchangé** (clé `reservoir` du payload = contrat externe avec le modèle).
+  Fichiers/symboles renommés, doc alignée. **Libellés visibles passés à « Briques »** (`16af12b`,
+  arbitrage décideur : « outils » écarté car déjà pris par `Binding.tools`/`toolKinds`, et émis
+  verbatim dans les contrats générés). **Contrat de prompt LLM volontairement inchangé** (clé
+  `reservoir` du payload = contrat externe avec le modèle).
   Gate : `lint:all` `0`, `test:all` `0`, `56 passed (56)` / `518 passed (518)` — compte inchangé.
 - ~~Chantier frames sans instruction locale~~ — **close** : cadrage rétro-porté dans
   `specs/instructions/frame-reservoir-et-9e-role-portage-gui.md` (les 7 commits des 24–25/07

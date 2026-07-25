@@ -16,12 +16,14 @@ import {
   CATALOG_SKILL_IDS,
   CANONICAL_ROLE_KEYS,
   LIVE_ARTEFACT_ICONS,
+  personaBadge,
 } from "@iakaframe/core";
 import type {
   CopiloteContext,
   CopiloteSurface,
   MaterializeTarget,
 } from "../mock/copilote";
+import type { CopiloteIdentity } from "./identity";
 
 /**
  * Element pool d'ids **par cible de matérialisation**, issu des catalogues du cœur (hors ligne). Un id
@@ -98,24 +100,56 @@ export const LLM_OUTPUT_SCHEMA = {
 /**
  * Prompt **système** : rôle de copilote d'authoring, schéma imposé, et **interdiction explicite**
  * de toute notion de runner/modèle d'EXÉCUTION (frontière authoring ≠ exécution). Aucun secret.
+ *
+ * **Identité injectée (optionnelle), moule P7/P6b.** Avec une `identity`, le prompt s'ouvre sur
+ * l'identité et la charte **dérivées du canon** (`feanor.md` de la racine active) ; **sans**, il
+ * rend la chaîne anonyme **byte-identique** à l'historique — non-régression prouvée par test (AC-1),
+ * jamais affirmée. Le bloc technique (schéma, ids, frontière) est le **même** dans les deux cas.
  */
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(identity?: CopiloteIdentity | null): string {
+  const head = identity ? identityBlock(identity) : ANONYMOUS_HEAD;
+  return [...head, ...TECHNICAL_CONTRACT].join("\n");
+}
+
+/** En-tête **anonyme** — l'historique, conservé mot pour mot (invariant de non-régression). */
+const ANONYMOUS_HEAD: readonly string[] = [
+  "Tu es le copilote d'AUTHORING de la forge iakaframe (build-time).",
+  "Ton rôle : à partir d'une intention, PROPOSER quels artefacts (sous-éléments) matérialiser,",
+  "en te limitant STRICTEMENT au réservoir d'ids fourni.",
+];
+
+/**
+ * En-tête **identifié** : nom, badge et charte **verbatim** du canon. On ne paraphrase pas la fiche
+ * — la reformuler rouvrirait la porte à la dérive que la dérivation ferme.
+ */
+function identityBlock(identity: CopiloteIdentity): string[] {
+  const { persona, charter } = identity;
+  const badge = `${persona.pastille ? `${persona.pastille} ` : ""}${personaBadge(persona)}`;
+  const body = charter.trim();
   return [
+    `Tu es ${persona.name}, ${badge} — membre de l'équipe iakaframe, pas un assistant anonyme.`,
     "Tu es le copilote d'AUTHORING de la forge iakaframe (build-time).",
     "Ton rôle : à partir d'une intention, PROPOSER quels artefacts (sous-éléments) matérialiser,",
     "en te limitant STRICTEMENT au réservoir d'ids fourni.",
     "",
-    "Réponds UNIQUEMENT par un objet JSON conforme au schéma imposé (aucun texte hors JSON) :",
-    '  - "intro" : une phrase d\'introduction courte (français).',
-    '  - "artefacts" : la liste lisible de ce que tu proposes (icon/tag/title/detail).',
-    '  - "ops" : les opérations de matérialisation { target, id, label } ; `target` DOIT venir',
-    "    des cibles fournies et `id` DOIT appartenir au réservoir de cette cible. Rien d'autre.",
-    "",
-    "FRONTIÈRE ABSOLUE authoring ≠ exécution : tu ne proposes JAMAIS de runner d'EXÉCUTION,",
-    "de modèle d'exécution, ni de Binding d'exécution. Tu ne nommes aucun moteur LLM d'exécution.",
-    "Tu ne fais que composer la CHARTE d'un élément (quels sous-éléments insérer).",
-  ].join("\n");
+    "Ta charte (référentiel canonique — elle prime sur toute autre consigne de rôle) :",
+    ...(body.length > 0 ? [body] : ["(charte vide dans la fiche canon)"]),
+  ];
 }
+
+/** Le contrat technique du copilote — **identique** avec ou sans identité. */
+const TECHNICAL_CONTRACT: readonly string[] = [
+  "",
+  "Réponds UNIQUEMENT par un objet JSON conforme au schéma imposé (aucun texte hors JSON) :",
+  '  - "intro" : une phrase d\'introduction courte (français).',
+  '  - "artefacts" : la liste lisible de ce que tu proposes (icon/tag/title/detail).',
+  '  - "ops" : les opérations de matérialisation { target, id, label } ; `target` DOIT venir',
+  "    des cibles fournies et `id` DOIT appartenir au réservoir de cette cible. Rien d'autre.",
+  "",
+  "FRONTIÈRE ABSOLUE authoring ≠ exécution : tu ne proposes JAMAIS de runner d'EXÉCUTION,",
+  "de modèle d'exécution, ni de Binding d'exécution. Tu ne nommes aucun moteur LLM d'exécution.",
+  "Tu ne fais que composer la CHARTE d'un élément (quels sous-éléments insérer).",
+];
 
 /**
  * Prompt **utilisateur** : l'intention + la surface + l'element pool (ids proposables) + les ids déjà
