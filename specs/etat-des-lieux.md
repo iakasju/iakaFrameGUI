@@ -1,33 +1,33 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-07-19 23:10 (motif: pause).
+> Genere par iakaframe (CLI) le 2026-07-25 23:33 (motif: manual).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
 | Champ | Valeur |
 |---|---|
-| Version | v0.3.11 |
+| Version | - |
 | Branche | main |
-| Dernier commit | 8b3e63c chore(iakaframe): update etat des lieux + commit global (version v0.3.10) |
+| Dernier commit | c88e8bf merge(frame): support de Feanor cote GUI - 9e role/casting + vignette flamme |
 | Arbre | MODIFICATIONS NON COMMITEES |
-| Fichiers (hors .git/node_modules) | 16985 |
-| Note | Capacite de preservation du wrapping des listes flow dans serializeMethodMd : readListLayout (releve la decoupe en lignes d'un .md source, tokenizer respectant les quotes) + Field.wrap + type ListLayout + 3e parametre OPTIONNEL de serializeMethodMd. Fixture method.iakaframe-wrapped.md (principleIds wrappe sur 4 lignes) + 5 cas de test dont round-trip byte-a-byte et layout perime ignore (retombe sur la forme canonique au lieu de produire un rendu faux). COMPORTEMENT PAR DEFAUT INCHANGE (mono-ligne) et cablage ForgeShell.tsx:125 VOLONTAIREMENT NON FAIT : cli/src/lib/frontmatter.js:217-222 reflow exactement pareil, donc activer cote GUI seul aurait fabrique une divergence GUI!=CLI - precisement la classe de defaut qu'aucune garde ne detecte (cf. contrat fantome v0.3.10). Le cablage est rattache au chantier vendor-check cross-repo, decision a deux depots. Tests 480 pass / 0 fail (53 fichiers), tsc --noEmit clean, eslint clean. Gate Legolas PASS. Dettes ouvertes cote GUI : perte du corps markdown au Save (ForgeShell.tsx:84-86 regenere un boilerplate de 2 lignes - ecraserait tout le recit d'un fichier de methode) ; fixture method.iakaframe-wrapped.md declaree 'copie conforme' alors que son corps est tronque de 8 lignes (frontmatter byte-identique, validite du test intacte). |
+| Fichiers (hors .git/node_modules) | 18227 |
+| Note | Reprise 25/07 : menage des refs (3 branches obsoletes supprimees local+origin, archivees par tags), backlog CLAUDE.md reecrit sur l etat mesure (4 items mensongers corriges, 4 dettes closes), CLI mis dans le PATH. Gate : lint:all exit 0, test:all 56 fichiers / 518 tests verts. |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
-| `8b3e63c` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.10) |
-| `895ffd2` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.9) |
-| `03f2589` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.8) |
-| `f282532` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.7) |
-| `94cde16` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.6) |
-| `19d0119` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.5) |
-| `940db15` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.4) |
-| `d037450` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.3) |
-| `3925419` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.2) |
-| `5f7ab2c` | 2026-07-19 | chore(iakaframe): update etat des lieux + commit global (version v0.3.1) |
+| `c88e8bf` | 2026-07-25 | merge(frame): support de Feanor cote GUI - 9e role/casting + vignette flamme |
+| `98a6259` | 2026-07-25 | test+fixtures(gui): sync vendorage feanor + comptes 8->9 |
+| `453cd29` | 2026-07-25 | feat(core): 9e rôle frame (Constructeur de frame) + 9e dégradé de casting |
+| `96accf1` | 2026-07-24 | merge(frame): support du reservoir de frames cote GUI - resolveAssembly mono->multi + renommage element-pool |
+| `49dc84c` | 2026-07-24 | feat(gui): charge la collection frames (backend + allow-list Rust) + comptes 11->12 |
+| `3b2b14c` | 2026-07-24 | refactor(core): renomme reservoir -> element-pool (AR-2, A13) |
+| `b782e19` | 2026-07-24 | feat(core): type frames de 1re classe (AR-1) + resolveAssembly mono->multi |
+| `721165a` | 2026-07-23 | chore(release): v0.1.4 - alignement cles de role sur le canon (B2) + cadrage versé |
+| `6fb7e36` | 2026-07-23 | merge(roster): B2 - alignement des 5 cles de role sur le canon (cadrage/dev/qualite/design/documentation) + reordre canon + bug skill helm->deploiement - gate Legolas PASS |
+| `292df50` | 2026-07-23 | test(core): aligner les tests derives sur les cles de role canon (B2) |
 
 ## Reprise du travail (a completer par Cowork)
 
@@ -40,6 +40,8 @@
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-07-25 23:33 | manual | - | main | Reprise 25/07 : menage des refs (3 branches obsoletes supprimees local+origin, archivees par tags), backlog CLAUDE.md reecrit sur l etat mesure (4 items mensongers corriges, 4 dettes closes), CLI mis dans le PATH. Gate : lint:all exit 0, test:all 56 fichiers / 518 tests verts. |
+| 2026-07-25 23:13 | reprise | - | main | reprise de session 2026-07-25 |
 | 2026-07-19 23:10 | pause | v0.3.11 | main | Capacite de preservation du wrapping des listes flow dans serializeMethodMd : readListLayout (releve la decoupe en lignes d'un .md source, tokenizer respectant les quotes) + Field.wrap + type ListLayout + 3e parametre OPTIONNEL de serializeMethodMd. Fixture method.iakaframe-wrapped.md (principleIds wrappe sur 4 lignes) + 5 cas de test dont round-trip byte-a-byte et layout perime ignore (retombe sur la forme canonique au lieu de produire un rendu faux). COMPORTEMENT PAR DEFAUT INCHANGE (mono-ligne) et cablage ForgeShell.tsx:125 VOLONTAIREMENT NON FAIT : cli/src/lib/frontmatter.js:217-222 reflow exactement pareil, donc activer cote GUI seul aurait fabrique une divergence GUI!=CLI - precisement la classe de defaut qu'aucune garde ne detecte (cf. contrat fantome v0.3.10). Le cablage est rattache au chantier vendor-check cross-repo, decision a deux depots. Tests 480 pass / 0 fail (53 fichiers), tsc --noEmit clean, eslint clean. Gate Legolas PASS. Dettes ouvertes cote GUI : perte du corps markdown au Save (ForgeShell.tsx:84-86 regenere un boilerplate de 2 lignes - ecraserait tout le recit d'un fichier de methode) ; fixture method.iakaframe-wrapped.md declaree 'copie conforme' alors que son corps est tronque de 8 lignes (frontmatter byte-identique, validite du test intacte). |
 | 2026-07-19 22:36 | version | v0.3.10 | main | Re-vendorage des fixtures depuis iakaframe v0.17.14 : les 3 fixtures aragorn (golden, persona, binding) figeaient un contrat FANTOME (Task sans Write) mutuellement coherent et sha-valide, donc invisible aux 475 tests. Remises au canon (tools: Read, Grep, Glob, Write, Bash, Task ; sha f89e1b89 -> 249b51cb). Parite byte-a-byte re-verifiee sur les 17 fixtures vendorees, sha256 des 8 goldens recalcules. Tests 475/475, typecheck + lint verts. Gate Legolas PASS. Dette ouverte cote iakaframe : aucune garde ne detecte une derive cohérente cross-repo (drift injecte binding+golden+sha ensemble = 475/475 verts) -> vendor-check a cadrer. |
 | 2026-07-19 21:01 | version | v0.3.9 | main | Parite generateurs (GUI converge sur le CLI) : serializeAgentContract/renderAgentContract format autorite (name=id, description, tools depuis binding via toolsForPersona, guardrails, PAS de model), corps verbatim canon via loader de fixture -> byte-identique aux 8 contrats CLI ; test golden + garde sha256 (cliquet bilateral). model retire du contrat claude (vit dans binding.json) ; openwebui/codex non regresses. Gate Legolas PASS (475 front + 75 Rust verts). |

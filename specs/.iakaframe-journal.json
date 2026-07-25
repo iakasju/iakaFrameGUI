@@ -138,5 +138,25 @@
     "dirty": true,
     "files": 16985,
     "note": "Capacite de preservation du wrapping des listes flow dans serializeMethodMd : readListLayout (releve la decoupe en lignes d'un .md source, tokenizer respectant les quotes) + Field.wrap + type ListLayout + 3e parametre OPTIONNEL de serializeMethodMd. Fixture method.iakaframe-wrapped.md (principleIds wrappe sur 4 lignes) + 5 cas de test dont round-trip byte-a-byte et layout perime ignore (retombe sur la forme canonique au lieu de produire un rendu faux). COMPORTEMENT PAR DEFAUT INCHANGE (mono-ligne) et cablage ForgeShell.tsx:125 VOLONTAIREMENT NON FAIT : cli/src/lib/frontmatter.js:217-222 reflow exactement pareil, donc activer cote GUI seul aurait fabrique une divergence GUI!=CLI - precisement la classe de defaut qu'aucune garde ne detecte (cf. contrat fantome v0.3.10). Le cablage est rattache au chantier vendor-check cross-repo, decision a deux depots. Tests 480 pass / 0 fail (53 fichiers), tsc --noEmit clean, eslint clean. Gate Legolas PASS. Dettes ouvertes cote GUI : perte du corps markdown au Save (ForgeShell.tsx:84-86 regenere un boilerplate de 2 lignes - ecraserait tout le recit d'un fichier de methode) ; fixture method.iakaframe-wrapped.md declaree 'copie conforme' alors que son corps est tronque de 8 lignes (frontmatter byte-identique, validite du test intacte)."
+  },
+  {
+    "date": "2026-07-25 23:13",
+    "reason": "reprise",
+    "version": "-",
+    "branch": "main",
+    "commit": "c88e8bf merge(frame): support de Feanor cote GUI - 9e role/casting + vignette flamme",
+    "dirty": false,
+    "files": 18227,
+    "note": "reprise de session 2026-07-25"
+  },
+  {
+    "date": "2026-07-25 23:33",
+    "reason": "manual",
+    "version": "-",
+    "branch": "main",
+    "commit": "c88e8bf merge(frame): support de Feanor cote GUI - 9e role/casting + vignette flamme",
+    "dirty": true,
+    "files": 18227,
+    "note": "Reprise 25/07 : menage des refs (3 branches obsoletes supprimees local+origin, archivees par tags), backlog CLAUDE.md reecrit sur l etat mesure (4 items mensongers corriges, 4 dettes closes), CLI mis dans le PATH. Gate : lint:all exit 0, test:all 56 fichiers / 518 tests verts."
   }
 ]

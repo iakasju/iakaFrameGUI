@@ -135,56 +135,32 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 <!-- Liste des features priorisées. Chaque entrée pointe vers son instruction. -->
 
-> Reste à faire sur **iakaFrameGUI** — miroir des items du backlog portefeuille
-> (`~/work/BACKLOG.md`) qui concernent ce projet, au **2026-07-15**. État détaillé et
-> récit de reprise : `specs/etat-des-lieux.md`.
+> Reste à faire sur **iakaFrameGUI**, au **2026-07-25** (reprise). État détaillé et récit de
+> reprise : `specs/etat-des-lieux.md`. **Ce backlog n'inscrit un item comme livré qu'avec sa
+> preuve** (merge + mesure) : un item coché sans référence est à re-mesurer, pas à croire.
+>
+> **Santé mesurée à la reprise du 2026-07-25** (`main` `c88e8bf`, arbre propre) :
+> `npm run lint:all` → exit `0`, aucune sortie ; `npm run test:all` → exit `0`,
+> `Test Files 56 passed (56) / Tests 518 passed (518)`. **`cargo test` non mesuré** à la reprise.
 
-### Prochaine étape / à cadrer (avant tout code)
-- [x] **Champ nom ÉDITABLE en grand, au milieu, sous les boutons fichier** — **LIVRÉ 2026-07-15**
-  (instruction `specs/instructions/gui-doctitle-editable-et-new.md`, merge `fc22eec`, gate Legolas
-  PASS 301/301, poussé). Titre éditable en ligne pour Team/Méthode (Kit read-only), `setName`/
-  `canRename`/`withName`, Save As prérempli, geste New confirmé. **Recette visuelle humaine PASSÉE
-  (RAS) 2026-07-15** : titre éditable Team/Méthode OK, `•` dirty OK, Save As prérempli OK, Kit
-  read-only OK. *Réserve non bloquante consignée (pas de code, arbitrage reporté par le décideur) :
-  **New = no-op visuel** — `requestNew` recharge un starter identique à celui semé au montage, donc
-  aucun changement à l'écran dans l'état pristine. Décision « que doit produire New » à trancher plus tard.*
-- [x] **Commandes terminal + livraison bibliothèque** — **LIVRÉ (dépôt `iakaframe`)** : 5 verbes
-  `list`/`show`/`assemble`/`add`/`switch(use)` codés + testés, **gate Legolas PASS, mergé + poussé**
-  (`iakaframe` main `2d481bf`), pool matérialisé (`library/`+`teams/`+`methods/`+`bindings/`+`kits/`).
-  **Lot de convergence LIVRÉ 2026-07-15** (merge `2c85702`, gate Legolas PASS, 86/86, poussé) : les 3 écarts
-  (racine partagée `<chapeau>/iakaframe`, schéma binding E1 `node`/`origin` additif, parité `assemble`↔cœur
-  + golden byte-à-byte) **résolus** ; bonus `etat.test.js` réparé. *Réserve mineure non bloquante : CLI
-  `existsSync` vs GUI `is_dir()` sur le marqueur de racine (cas de bord).* **Item clos.**
-- [ ] **Modèle Méthode élargi** — à graver par Gandalf : Méthode = scaffold + workflow (migré) +
-  **assemblage de principes composables** (qualité, backlog, doc/état des lieux, commits/versionnement,
-  isolation Docker, self-hosted-first, réutilisation, MVP-first, identité/badges, périmètres étanches,
-  langue, mock, cadrage-avant-code, confirmation actes destructifs) + rituels + gardes-fous + rôles.
-  *NB : la séparation **Méthode ≠ Team** est déjà livrée (E2a/b/c) ; reste le modèle de principes.*
+### Ouvert — à trancher ou à cadrer (avant tout code)
 
-### Cadré, non codé
-- [x] **P7 — Binding réel** — **LIVRÉ 2026-07-16** (jalon validé décideur Q-1→Q-5 = recos, merge `--no-ff`
-  `9ecf97f`, **gate Legolas PASS** : typecheck/lint 0, vitest **330/330**, cargo **56/56**, build OK, poussé).
-  Schéma `Binding`/`PersonaBinding` + `defaultBindingForNode` dans `@iakaframe/core` ; émission
-  **conditionnelle** du modèle par adaptateur via `KitGenOptions.binding?` (optionnel) ; `LiaisonPanel` dans
-  le flux Déploiement ; `binding.json` ajouté au `KitFileTree` par la forge (`kit_deploy` **inchangé**, zéro
-  Rust). Invariant B-2 tenu : **sans binding = sortie byte-identique**. Team pure, façade unique, zéro credential.
-  `specs/instructions/P7-forge-liaison-deploiement.md`. *Reste : **recettes humaines B-7/B-10** (voir ci-dessous).*
-
-### À faire
-- [x] **Éditeur de workflow** — **LIVRÉ 2026-07-16** (instruction `specs/instructions/P6b-editeur-workflow.md`,
-  jalon validé décideur : Q-1 = **workflow = artefact de 1re classe de la bibliothèque** (collection `workflows/`),
-  Q-2→Q-9 = recos ; merge `--no-ff` `be9dcd4`, poussé). Collection `workflows/` (4ᵉ onglet, `useForgeDocument`,
-  sérialiseur `.md` frontmatter plat + phases en corps), résolution **pure** par injection `KitGenOptions.workflow`
-  (moule P7), extension Rust `COLLECTIONS += workflows`, I1 Méthode validant `workflowId` contre la collection +
-  catalogue. Golden P6 byte-identique, canonique non muté, façade unique, zéro runner/modèle. **Gate Legolas :
-  FAIL initial (EW-13 = faux-négatif I1 pool vs collection) → corrigé (`8c94769`) → re-vérif indépendante `refs`
-  10/10, cœur 251/251, cargo 57/57, front 116/116 hors ForgeShell**. *Réserve documentée (acceptée décideur) :
-  total front consolidé non re-mesuré ici (machine saturée VM Docker) — 2 tests `ForgeShell.test.tsx` à
-  reconfirmer sur CI/machine reposée. Reste : recette visuelle du 4ᵉ onglet.*
-- [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code / Open WebUI**
-  (addition assumée + golden dédié ; aujourd'hui seuls codex/ollama la portent).
+- [ ] **Chantier frames : cadrage manquant côté GUI.** Les lots des 24–25/07 (`b782e19` type
+  `frames` de 1re classe / AR-1, `3b2b14c` renommage `reservoir` → `element-pool` / AR-2+A13,
+  `49dc84c` collection `frames` chargée + allow-list Rust, comptes 11→12, `453cd29` 9ᵉ rôle
+  canonique **`frame` — Constructeur de frame** + 9ᵉ dégradé de casting, `c88e8bf` vignette flamme
+  Feanor) sont **mergés sur `main` sans instruction versée dans `specs/instructions/`** — le
+  cadrage vit côté dépôt `iakaframe`. **Verser le cadrage ici** puis définir le lot suivant.
+- [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code /
+  Open WebUI** (addition assumée + golden dédié). *Mesuré le 2026-07-25 : toujours ouvert —
+  `grep -c phase` donne `0` sur `adapters/claudeCode.ts` et `adapters/openwebui.ts`, `1` sur
+  `adapters/agentsMd.ts`.*
+- [ ] **Arbitrage reporté — « que doit produire New ? »** `requestNew` recharge un starter
+  identique à celui semé au montage : dans l'état pristine, le geste est un **no-op visuel**.
+  Décision de produit, pas de code. *(Réserve ouverte depuis le 2026-07-15, à re-vérifier.)*
 
 ### Recettes humaines (gestes visuels/interactifs — Legolas ne valide pas le pixel)
+
 - [ ] Forge **Cinabre** + écran **Générer / Déployer** : voir la charte, basculer, cycle
   team → nœud → Générer → Déployer sur un dossier tmp (**U-10**).
 - [ ] Cycle **handoff** Livrer → Réceptionner (forge → cockpit).
@@ -197,9 +173,64 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 - [ ] **P6b — 4ᵉ onglet Workflow** : recette visuelle — liste des phases, boutons monter/descendre/ajouter/
   supprimer, éditeur de phase (nom, description, rôles par cases, offChain, gate), reflet dans le `FlowDiagram`,
   sélecteur `workflowId` de l'onglet Méthode (`npm run tauri dev`).
-- [ ] **P6b — total front consolidé** : rejouer `npm run test` complet (≈ 42 fichiers / ~369 tests) sur
-  **CI / machine reposée** pour lever la réserve `ForgeShell.test.tsx` (non re-mesurable sur machine saturée).
+- [ ] **Chantier frames** : recette visuelle du réservoir de frames (12 types, collection `frames`)
+  et de la vignette flamme du 9ᵉ rôle.
 
 ### North-star (design gardé ouvert, hors MVP)
+
 - [ ] **Import multi-méthodes** (BMAD / MetaGPT / SPARC) — agnosticisme de méthode gravé dès le cœur ;
   ne rien hard-wirer « iakaframe-only ».
+
+### Livré — objectif « charger le frame dans le GUI », **FERMÉ 4 étapes / 4**
+
+| Étape | Livré | Merge | Version |
+|---|---|---|---|
+| 2+3 | Open→Save fidèle au frame (capture corps + layout, rethread au Save) | `c70dbe0` | v0.1.1 |
+| 3bis | Workflow au format frame autoritaire (frontmatter phases/gates) | `68a7bf4` | v0.1.2 |
+| 4 Lot 1 | Roster 8/8 (helm) + byte-parité team `iakaframe-8` + tools 8/8 + `test:vendor` | `5011e38` | v0.1.3 |
+| 4 Lot 2 | B2 — 5 clés de rôle alignées sur le canon + bug skill helm→deploiement | `6fb7e36` | v0.1.4 |
+
+Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliation.md`,
+`frame-parite-vendoring-garde.md`, `b2-alignement-cles-role-canon.md`.
+**Doctrine tenue : GUI ← frame** — le canon `iakaframe` est autoritaire, le miroir ne le déforme jamais.
+
+### Livré — jalons antérieurs (preuves conservées, détail dans `specs/etat-des-lieux.md`)
+
+- [x] **D-7** — perte silencieuse à la résolution d'une Méthode rendue **visible**
+  (`unresolvedRefsForMethod` + bandeau du rail Méthode), merge `e9add1a`.
+- [x] **D-8** — réparation du **gate menteur** : scripts `lint:all`/`test:all` réellement exposés,
+  format de verdict contraint gravé ci-dessus, registre `specs/notes/rectifications.md` ouvert
+  (motif : le merge `8ae5748` portait « gate PASS » avec un lint rouge), merge `65e64f2`.
+- [x] **D-9** — re-vendorage du canon `iakaframe` vers le miroir GUI, merge `e8cb7ba`.
+- [x] **Modèle Méthode élargi** — `Method` porte `scaffoldIds` + `workflowId` + `principleIds` +
+  `ritualIds` + `guardrailIds` + `roleKeys`, adossés aux catalogues composables du cœur
+  (`principle.ts`, `ritual.ts`, `guardrail.ts`, `roles.ts`) et validés par `unresolvedRefsForMethod`.
+  *(Item ré-évalué le 2026-07-25 : il était encore listé « à graver » alors que le code le porte.)*
+- [x] **P7 — Binding réel** (2026-07-16, merge `9ecf97f`) — `Binding`/`PersonaBinding` +
+  `defaultBindingForNode`, émission **conditionnelle** du modèle par adaptateur
+  (`KitGenOptions.binding?`), `LiaisonPanel`, `binding.json` au `KitFileTree`. Invariant B-2 :
+  **sans binding = sortie byte-identique**. `specs/instructions/P7-forge-liaison-deploiement.md`.
+- [x] **P6b — Éditeur de workflow** (2026-07-16, merge `be9dcd4`) — collection `workflows/` comme
+  artefact de 1re classe, 4ᵉ onglet, résolution pure par `KitGenOptions.workflow`, `COLLECTIONS +=
+  workflows` côté Rust. `specs/instructions/P6b-editeur-workflow.md`.
+- [x] **Champ nom éditable** (2026-07-15, merge `fc22eec`) — titre éditable Team/Méthode, Kit
+  read-only, Save As prérempli. **Recette visuelle humaine PASSÉE (RAS).**
+- [x] **Commandes terminal + livraison bibliothèque** (dépôt `iakaframe`, merges `2d481bf` +
+  `2c85702`) — 5 verbes `list`/`show`/`assemble`/`add`/`switch(use)`, pool matérialisé. *Réserve
+  mineure : CLI `existsSync` vs GUI `is_dir()` sur le marqueur de racine (cas de bord).*
+
+### Dettes closes le 2026-07-25 (re-mesurées à la reprise — ne pas les rouvrir sans preuve)
+
+- ~~Perte du corps markdown au Save~~ — **close** par le lot Open→Save : `useForgeDocument.ts`
+  capture `verbatimBody(text)` et `ForgeShell.tsx` sérialise `o.body ?? <boilerplate>`.
+- ~~Câblage du wrapping des listes flow volontairement non fait~~ — **close** : `readListLayout`
+  est capturé (`useForgeDocument.ts`) et passé à `serializeMethodMd` (`ForgeShell.tsx:124`).
+- ~~Fixture `method.iakaframe-wrapped.md` au corps tronqué~~ — **close** : `diff` avec
+  `~/work/iakaframe/methods/iakaframe.md` ne sort **rien** (22 lignes de part et d'autre).
+- ~~Réserve P6b « total front consolidé non re-mesuré / `ForgeShell.test.tsx` à reconfirmer »~~ —
+  **close** : `npm run test:all` → `56 passed (56)` / `518 passed (518)`, et le run ciblé
+  `npx vitest run src/forge/ForgeShell.test.tsx` → `Test Files 1 passed (1) / Tests 3 passed (3)`.
+- ~~3 branches de travail obsolètes~~ — **supprimées** (local + `origin`) après archivage par tags
+  `archive/feat/open-frame-portfolio` (`a9bc7ca`), `archive/feat/align-binding-format-frame`
+  (`5152c72`), `archive/feat/ch-a-reconciliation-rolekey` (`27d8a2d`), poussés sur Forgejo.
+  Résurrection : `git switch -c <nom> archive/<nom>`.
