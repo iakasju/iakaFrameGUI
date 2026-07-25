@@ -53,7 +53,7 @@ export interface Method {
 
 /**
  * **`IAKAFRAME_CANONICAL_METHOD`** — la méthode iakaframe, en DONNÉE : référence l'intégralité
- * des catalogues du cœur (14 principes · 5 rituels · 2 scaffolds · gardes canoniques · 7 rôles)
+ * des catalogues du cœur (14 principes · 5 rituels · 2 scaffolds · gardes canoniques · 9 rôles)
  * + le workflow canonique. C'est le **repli** des adaptateurs (sortie byte-identique).
  */
 export const IAKAFRAME_CANONICAL_METHOD: Method = {
