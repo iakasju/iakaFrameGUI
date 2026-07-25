@@ -29,7 +29,7 @@ function fakeApi(): Backend {
 describe("ElementPoolPanel — rend visible le stock typé de l'élément (Volet A)", () => {
   it("Team : affiche le groupe Personas avec les ids du frame chargé", async () => {
     render(<ElementPoolPanel element="team" api={fakeApi()} />);
-    const section = await screen.findByLabelText(/Réservoir de sous-éléments — Team/);
+    const section = await screen.findByLabelText(/Pool d'éléments — sous-éléments de Team/);
     // Le groupe Personas et ses ids (odin, gimli) sont rendus.
     await waitFor(() => expect(within(section).getByText("odin")).toBeTruthy());
     expect(within(section).getByText("gimli")).toBeTruthy();
@@ -39,7 +39,7 @@ describe("ElementPoolPanel — rend visible le stock typé de l'élément (Volet
 
   it("Méthode : affiche les 6 types de composition (Principes, Rituels…)", async () => {
     render(<ElementPoolPanel element="method" api={fakeApi()} />);
-    const section = await screen.findByLabelText(/Réservoir de sous-éléments — Méthode/);
+    const section = await screen.findByLabelText(/Pool d'éléments — sous-éléments de Méthode/);
     await waitFor(() => expect(within(section).getByText("Principes")).toBeTruthy());
     expect(within(section).getByText("mvp-first")).toBeTruthy();
     expect(within(section).getByText("qualite")).toBeTruthy();

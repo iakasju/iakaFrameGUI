@@ -37,9 +37,9 @@ export function ElementPoolPanel({
   const { elementPool, busy, error, reload } = useForgeElementPool(element, api);
 
   return (
-    <section className="element-pool-panel" aria-label={`Réservoir de sous-éléments — ${ELEMENT_LABELS[element]}`}>
+    <section className="element-pool-panel" aria-label={`Pool d'éléments — sous-éléments de ${ELEMENT_LABELS[element]}`}>
       <h3>
-        Réservoir — {ELEMENT_LABELS[element]}{" "}
+        Pool d'éléments — {ELEMENT_LABELS[element]}{" "}
         {elementPool && <span className="element-pool-total">({elementPool.total} disponibles)</span>}
       </h3>
       <p className="settings-hint">
