@@ -1,11 +1,11 @@
 /**
- * prompt.ts — construction du prompt d'authoring **live** + le **réservoir** d'ids proposables.
+ * prompt.ts — construction du prompt d'authoring **live** + l'**element pool** d'ids proposables.
  *
  * Le prompt **impose** au modèle un JSON conforme au schéma (sorties structurées Ollama `format`)
  * et **interdit explicitement** toute notion de runner/modèle d'EXÉCUTION (Binding) : la frontière
  * authoring ≠ exécution est **dite** dans le système ET **filtrée** au parsing (`@iakaframe/core`).
  *
- * Le réservoir d'ids provient des **catalogues du cœur** (disponibles HORS LIGNE, déterministes) —
+ * L'element pool d'ids provient des **catalogues du cœur** (disponibles HORS LIGNE, déterministes) —
  * c'est la source unique du « stock » proposable, scopée par **surface** (team / méthode / kit).
  */
 import {
@@ -24,11 +24,11 @@ import type {
 } from "../mock/copilote";
 
 /**
- * Réservoir d'ids **par cible de matérialisation**, issu des catalogues du cœur (hors ligne). Un id
+ * Element pool d'ids **par cible de matérialisation**, issu des catalogues du cœur (hors ligne). Un id
  * hors de cette liste est **rejeté** au parsing. `kit-binding` n'a pas de catalogue : ses presets
  * structurels sont ceux du mock (`defaut-suggere`/`local-first`) — jamais un `RunnerKind` d'exécution.
  */
-export const TARGET_RESERVOIR: Readonly<Record<MaterializeTarget, readonly string[]>> = {
+export const TARGET_ELEMENT_POOL: Readonly<Record<MaterializeTarget, readonly string[]>> = {
   "persona-skill": CATALOG_SKILL_IDS,
   "persona-guardrail": CATALOG_GUARDRAIL_IDS,
   "method-principle": CATALOG_PRINCIPLE_IDS,
@@ -46,13 +46,13 @@ export const SURFACE_TARGETS: Readonly<Record<CopiloteSurface, MaterializeTarget
   kit: ["kit-binding"],
 };
 
-/** Sous-réservoir scopé à la surface éditée (ce que le modèle voit ET ce que le parsing accepte). */
-export function buildSurfaceReservoir(
+/** Sous-pool scopé à la surface éditée (ce que le modèle voit ET ce que le parsing accepte). */
+export function buildSurfaceElementPool(
   surface: CopiloteSurface,
 ): Record<string, readonly string[]> {
   const out: Record<string, readonly string[]> = {};
   for (const target of SURFACE_TARGETS[surface]) {
-    out[target] = TARGET_RESERVOIR[target];
+    out[target] = TARGET_ELEMENT_POOL[target];
   }
   return out;
 }
@@ -118,19 +118,21 @@ export function buildSystemPrompt(): string {
 }
 
 /**
- * Prompt **utilisateur** : l'intention + la surface + le réservoir (ids proposables) + les ids déjà
+ * Prompt **utilisateur** : l'intention + la surface + l'element pool (ids proposables) + les ids déjà
  * présents + le fichier de diff. Sérialisation compacte et déterministe. Aucun secret.
  */
 export function buildUserPrompt(
   intention: string,
   context: CopiloteContext,
-  reservoir: Record<string, readonly string[]>,
+  elementPool: Record<string, readonly string[]>,
 ): string {
   const payload = {
     intention,
     surface: context.surface,
     diffFile: context.diffFile ?? "artefact",
-    reservoir,
+    // Clé du payload VOLONTAIREMENT inchangée : c'est ce que le modèle lit (AR-2 renomme le
+    // vocabulaire du code, pas le contrat de prompt). Voir la note de l'instruction § 2.2.
+    reservoir: elementPool,
     present: context.present ?? {},
   };
   return [

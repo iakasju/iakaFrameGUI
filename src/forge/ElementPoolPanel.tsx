@@ -1,17 +1,21 @@
 /**
- * ReservoirPanel — rend **visible le RÉSERVOIR des sous-éléments** de l'élément travaillé (Volet A).
+ * ElementPoolPanel — rend **visible l'element pool** (le stock des sous-éléments) de l'élément
+ * travaillé (Volet A).
  *
  * Read-only (identification/affichage au MVP) : pour l'`element` de l'étage courant, affiche la LISTE
  * TYPÉE du stock disponible (un groupe par type de sous-élément, avec compte + ids), chargée via
- * `useForgeReservoir` (adossé à `loadFrame`/G1/G2). Réutilise le **rail-stock en accordéon**
+ * `useForgeElementPool` (adossé à `loadFrame`/G1/G2). Réutilise le **rail-stock en accordéon**
  * (`RailSection`, `Rail.tsx`) plutôt que d'inventer une surface — affichage sobre. Backend injectable.
  *
  * Frontière : c'est le **stock** (ce qui PEUT composer l'élément), pas l'assemblage courant ; le `+`
  * d'insertion réelle reste porté par les ateliers (non dupliqué ici).
+ *
+ * **Vocabulaire (AR-2, `reservoir-de-frames.md`)** : « réservoir » désigne désormais le *dépôt de
+ * frames* ; ce panneau montre un **element pool**.
  */
 import { ELEMENT_POOL_COMPOSITION, type ElementPoolTarget } from "@iakaframe/core";
 import { backend, type Backend } from "../api/backend";
-import { useForgeReservoir } from "./useForgeReservoir";
+import { useForgeElementPool } from "./useForgeElementPool";
 import { RailSection } from "./Rail";
 
 /** Libellé lisible de l'élément dont on montre l'element pool. */
@@ -23,20 +27,20 @@ const ELEMENT_LABELS: Record<ElementPoolTarget, string> = {
   frame: "Frame",
 };
 
-export function ReservoirPanel({
+export function ElementPoolPanel({
   element,
   api = backend,
 }: {
   element: ElementPoolTarget;
   api?: Backend;
 }) {
-  const { reservoir, busy, error, reload } = useForgeReservoir(element, api);
+  const { elementPool, busy, error, reload } = useForgeElementPool(element, api);
 
   return (
-    <section className="reservoir-panel" aria-label={`Réservoir de sous-éléments — ${ELEMENT_LABELS[element]}`}>
+    <section className="element-pool-panel" aria-label={`Pool d'éléments — sous-éléments de ${ELEMENT_LABELS[element]}`}>
       <h3>
-        Réservoir — {ELEMENT_LABELS[element]}{" "}
-        {reservoir && <span className="reservoir-total">({reservoir.total} disponibles)</span>}
+        Pool d'éléments — {ELEMENT_LABELS[element]}{" "}
+        {elementPool && <span className="element-pool-total">({elementPool.total} disponibles)</span>}
       </h3>
       <p className="settings-hint">
         Le <b>stock</b> des sous-éléments qui peuvent composer un <b>{ELEMENT_LABELS[element]}</b>,
@@ -55,8 +59,8 @@ export function ReservoirPanel({
         </p>
       )}
 
-      {reservoir &&
-        reservoir.groups.map((g) => (
+      {elementPool &&
+        elementPool.groups.map((g) => (
           <RailSection key={g.type} title={g.label} count={g.count}>
             {g.ids.length === 0 ? (
               <p className="empty">
@@ -66,7 +70,7 @@ export function ReservoirPanel({
               </p>
             ) : (
               g.ids.map((id) => (
-                <div className="sub reservoir-item" key={`${g.type}-${id}`}>
+                <div className="sub element-pool-item" key={`${g.type}-${id}`}>
                   <span className={`tagg ${g.type}`} aria-hidden="true" />
                   <span className="sn">{id}</span>
                 </div>

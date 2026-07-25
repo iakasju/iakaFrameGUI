@@ -153,12 +153,11 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   ⚠️ **Décision à deux dépôts** : le pointeur doit être lisible par le **CLI ET la GUI** ; le poser
   côté GUI seul fabriquerait la divergence GUI≠CLI qu'aucune garde ne détecte.
   **À cadrer par Gandalf avant tout code.** Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.1.
-- [ ] **Renommage `reservoir` → `element pool` inachevé (A13).** AR-2 libère le mot « réservoir »
-  pour le sens *dépôt/frame*, mais seul `element-pool.ts` a été renommé : `llm.ts` (cœur),
-  `useForgeReservoir.ts`, `ReservoirPanel.tsx`, `ForgeShell.tsx`, `llm/prompt.ts`, `llm/resolve.ts`
-  portent encore l'ancien sens. **Le mot est donc ambigu dans le même dépôt** — exactement ce
-  qu'AR-2 voulait éviter. Lot mécanique, sans changement de comportement, à mener **avant** que de
-  nouveaux consommateurs ne s'y greffent. Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.2.
+- [ ] **Troisième sens de « réservoir » — non cadré.** L'onglet **Apprentissage** appelle
+  « réservoir » son **stock de propositions** (`useForgeLearning.ts`, `LearningAtelier.tsx`,
+  `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne
+  couvre ce sens**, il a donc été laissé intact. À trancher — le garder (sens distinct assumé) ou
+  l'aligner. *Sans décision, le mot porte deux sens dans l'interface.*
 - [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code /
   Open WebUI** (addition assumée + golden dédié). *Mesuré le 2026-07-25 : toujours ouvert —
   `grep -c phase` donne `0` sur `adapters/claudeCode.ts` et `adapters/openwebui.ts`, `1` sur
@@ -238,6 +237,11 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
 - ~~Réserve P6b « total front consolidé non re-mesuré / `ForgeShell.test.tsx` à reconfirmer »~~ —
   **close** : `npm run test:all` → `56 passed (56)` / `518 passed (518)`, et le run ciblé
   `npx vitest run src/forge/ForgeShell.test.tsx` → `Test Files 1 passed (1) / Tests 3 passed (3)`.
+- ~~Renommage `reservoir` → `element pool` inachevé (A13)~~ — **close** : merge `--no-ff` de
+  `refactor/element-pool-renommage` (`f55e0dd` code + `3136b00` libellés, isolé et révocable).
+  Fichiers/symboles renommés, doc alignée, libellés « Pool d'éléments ». **Contrat de prompt LLM
+  volontairement inchangé** (clé `reservoir` du payload = contrat externe avec le modèle).
+  Gate : `lint:all` `0`, `test:all` `0`, `56 passed (56)` / `518 passed (518)` — compte inchangé.
 - ~~Chantier frames sans instruction locale~~ — **close** : cadrage rétro-porté dans
   `specs/instructions/frame-reservoir-et-9e-role-portage-gui.md` (les 7 commits des 24–25/07
   tracés entrée canon ↔ preuve mesurée, reste à faire borné en § 2). Sources canon :

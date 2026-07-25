@@ -46,7 +46,7 @@ Ce fichier ferme l'écart et **borne ce qui reste**.
 |---|---|---|
 | 14 | `FRAME_TYPES` 11→12 (+`frames`), `FRAME_TYPE_LABELS` gagne la clé | ✅ `frame.ts` : `POOL_FRAME_TYPES` (8) + `COLLECTION_FRAME_TYPES = ["teams","methods","bindings","frames"]` (4) — commentaire « Les 12 types d'un frame » |
 | 15 | `resolveAssembly` : pivot `bindings[0]` → frame active parmi N | ✅ mono→multi livré (`b782e19`) |
-| 16 | `reservoir.ts` → `element-pool.ts` + renommage des symboles | ⚠️ **partiel** — voir § 2.2 |
+| 16 | `reservoir.ts` → `element-pool.ts` + renommage des symboles | ✅ **achevé le 2026-07-25** (partiel au versement de cette instruction) — voir § 2.2 |
 | 18 | `library_store.rs` : +1 type `frames` dans l'allow-list de lecture | ✅ (`49dc84c`) |
 | 19 | Sélecteur de **frame active** + pointeur projet/portefeuille | ❌ **non livré** — voir § 2.1 |
 | 20 | Comptes de types (12), fixtures, tests renommés | ✅ |
@@ -90,7 +90,32 @@ GUI »*). Le poser côté GUI seul fabriquerait une divergence GUI≠CLI — **e
 défaut qu'aucune garde ne détecte, déjà rencontrée sur le wrapping des listes (état des lieux
 v0.3.11) et sur le contrat fantôme (v0.3.10). **Décision à deux dépôts.**
 
-### 2.2 A13 — le renommage `reservoir` → `element pool` s'est arrêté au cœur
+### 2.2 A13 — le renommage `reservoir` → `element pool` — ✅ **LIVRÉ le 2026-07-25**
+
+> **Fait** — merge `--no-ff` de `refactor/element-pool-renommage` (commits `f55e0dd` code +
+> `3136b00` libellés). Gate : `lint:all` exit `0`, `test:all` exit `0`,
+> `Test Files 56 passed (56) / Tests 518 passed (518)` — compte **inchangé**, aucun golden touché.
+>
+> **Découverte de l'exécution — le mot portait TROIS sens, pas deux.** Le premier inventaire
+> (`grep -i "reservoir"`) était **aveugle aux accents** et manquait toutes les occurrences
+> « ré*servoir* ». L'inventaire correct (`grep -iE "r[ée]servoir"`) a séparé :
+>
+> | Sens | Traitement |
+> |---|---|
+> | **pool de sous-éléments** (visé par AR-2) | ✅ renommé — symboles, fichiers, doc, libellés |
+> | **dépôt de frames** (sens neuf, correct) | ✅ intact — `frame.ts`, fixtures vendorées (canon, jamais déformé) |
+> | **réservoir de propositions** de l'onglet Apprentissage | ⚠️ **intact, hors périmètre** — `useForgeLearning.ts`, `LearningAtelier.tsx`, `backend.ts`. **Aucun cadrage ne le couvre** : à trancher séparément. |
+>
+> **Décision d'exécution consignée — le contrat de prompt LLM n'a pas bougé.** La clé du payload
+> reste `reservoir` (commentée comme telle dans `prompt.ts`) et les phrases du prompt système sont
+> inchangées : c'est un **contrat externe avec le modèle**, cohérent en lui-même. Le renommer aurait
+> changé le comportement live sans rien désambiguïser — le LLM ne connaît pas le sens « dépôt de frames ».
+>
+> **Libellés visibles isolés dans `3136b00`** (« Réservoir » → « Pool d'éléments ») : ils relèvent de
+> l'arbitrage du décideur, pas du renommage mécanique. Révocables par `git revert 3136b00` **sans**
+> défaire le renommage de code.
+
+**État initial constaté (conservé pour mémoire)** :
 
 AR-2 **libère** le mot « réservoir » pour le sens *dépôt / frame*. Le critère canon A13 exige que
 `reservoir` ne désigne plus le pool de sous-éléments. **Mesuré le 2026-07-25 — tenu dans
