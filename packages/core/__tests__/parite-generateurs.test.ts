@@ -22,6 +22,7 @@ import type { Binding } from "../src/index";
 
 // --- fixtures partagées (byte-copies du dépôt iakaframe) -----------------------------------------
 import aragornMd from "./fixtures/personas/aragorn.md?raw";
+import feanorMd from "./fixtures/personas/feanor.md?raw";
 import gandalfMd from "./fixtures/personas/gandalf.md?raw";
 import gimliMd from "./fixtures/personas/gimli.md?raw";
 import helmMd from "./fixtures/personas/helm.md?raw";
@@ -32,6 +33,7 @@ import odinMd from "./fixtures/personas/odin.md?raw";
 import bindingMd from "./fixtures/binding/iakaframe-claude-default.md?raw";
 
 import gAragorn from "./fixtures/agents-golden/aragorn.md?raw";
+import gFeanor from "./fixtures/agents-golden/feanor.md?raw";
 import gGandalf from "./fixtures/agents-golden/gandalf.md?raw";
 import gGimli from "./fixtures/agents-golden/gimli.md?raw";
 import gHelm from "./fixtures/agents-golden/helm.md?raw";
@@ -42,6 +44,7 @@ import gOdin from "./fixtures/agents-golden/odin.md?raw";
 
 const PERSONAS: Record<string, string> = {
   aragorn: aragornMd,
+  feanor: feanorMd,
   gandalf: gandalfMd,
   gimli: gimliMd,
   helm: helmMd,
@@ -53,6 +56,7 @@ const PERSONAS: Record<string, string> = {
 
 const GOLDENS: Record<string, string> = {
   aragorn: gAragorn,
+  feanor: gFeanor,
   gandalf: gGandalf,
   gimli: gGimli,
   helm: gHelm,
@@ -116,7 +120,7 @@ async function sha256(text: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-describe("parité CLI ↔ GUI — golden de contrat d'agent (8 personas)", () => {
+describe("parité CLI ↔ GUI — golden de contrat d'agent (9 personas)", () => {
   const binding = loadBinding();
 
   it("rendu GUI == golden CLI byte-à-byte (name=id, tools câblés, guardrails, sans model)", () => {
@@ -158,8 +162,8 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (8 personas)", () =>
     return byId;
   })();
 
-  it("tools câblés depuis le binding vendoré — couverture 8/8 (attendu tiré du binding)", () => {
-    // C-AC1 : les 8 ids, valeurs égales aux `tools` du binding vendoré correspondant.
+  it("tools câblés depuis le binding vendoré — couverture 9/9 (attendu tiré du binding)", () => {
+    // C-AC1 : les 9 ids, valeurs égales aux `tools` du binding vendoré correspondant.
     expect(Object.keys(expectedTools).sort()).toEqual(IDS);
     for (const id of IDS) {
       expect(toolsForPersona(binding, id), `${id}: tools != binding`).toEqual(expectedTools[id]);

@@ -8,8 +8,8 @@ import {
 import { serializeTeam } from "../src/team";
 
 describe("CANONICAL_ROSTER (gabarit AR-5)", () => {
-  it("compte 8 personas, une par rôle canonique, dans l'ordre roleIndex", () => {
-    expect(CANONICAL_ROSTER).toHaveLength(8);
+  it("compte 9 personas, une par rôle canonique, dans l'ordre roleIndex", () => {
+    expect(CANONICAL_ROSTER).toHaveLength(9); // + frame/Fëanor (9e rôle)
     expect(CANONICAL_ROSTER.map((p) => p.roleKey)).toEqual(
       CANONICAL_ROLES.map((r) => r.key),
     );
@@ -28,9 +28,9 @@ describe("CANONICAL_ROSTER (gabarit AR-5)", () => {
 });
 
 describe("buildTeamFromRoster / emptyTeam", () => {
-  it("construit une team de 8 personas, coordinateur = coordination", () => {
+  it("construit une team de 9 personas, coordinateur = coordination", () => {
     const t = buildTeamFromRoster("Ma team");
-    expect(t.personas).toHaveLength(8);
+    expect(t.personas).toHaveLength(9); // + frame/Fëanor (9e rôle)
     const coord = t.personas.find((p) => p.id === t.coordinator);
     expect(coord?.roleKey).toBe("coordination");
     // E2 : la team ne porte plus de méthode (casting pur).
