@@ -37,7 +37,7 @@ export function useForgeElementPool(
       const frame = await loadFrame(api);
       setElementPool(buildElementPool(element, frame));
     } catch {
-      setError("Pool d'éléments indisponible (racine bibliothèque introuvable ?).");
+      setError("Briques indisponibles (racine bibliothèque introuvable ?).");
       setElementPool(null);
     } finally {
       setBusy(false);

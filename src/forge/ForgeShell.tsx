@@ -265,10 +265,10 @@ export function ForgeShell() {
           type="button"
           className="settings-toggle"
           aria-pressed={elementPoolOpen}
-          title="Pool d'éléments — le stock des sous-éléments de l'élément courant"
+          title="Briques — le stock des sous-éléments de l'élément courant"
           onClick={() => setElementPoolOpen((v) => !v)}
         >
-          Pool d'éléments
+          Briques
         </button>
         <button
           type="button"
