@@ -145,14 +145,14 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
-- [ ] **Sélecteur de frame active — absent de la forge.** Le cœur sait résoudre **N** assemblages
-  (`resolveAssembly` mono→multi, `b782e19`), mais **rien ne permet de choisir lequel est actif** :
-  `grep -rn "iakaframeactive\|frameActive\|activeFrame"` sur `src/`, `packages/core/src/` et
-  `src-tauri/src/` rend **0 occurrence** (mesuré le 2026-07-25). Lot non commencé — le canon
-  l'autorisait (*« MVP = affichage + sélection ; l'écriture peut être différée »*).
-  ⚠️ **Décision à deux dépôts** : le pointeur doit être lisible par le **CLI ET la GUI** ; le poser
-  côté GUI seul fabriquerait la divergence GUI≠CLI qu'aucune garde ne détecte.
-  **À cadrer par Gandalf avant tout code.** Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.1.
+- [ ] **Pointeur de frame active — CADRÉ, non codé.** Arbitrage décideur (2026-07-26) : le pointeur
+  va dans **`iakaframe.json` du projet**, le « projet » étant un **dossier réglé dans les Settings**.
+  Instruction fermée : `specs/instructions/pointeur-frame-active.md`. Fait mesuré qui débloque le
+  lot : **`iakaframe config` fusionne** (relit l'existant, ne touche que ses clés) — une clé posée
+  par la GUI survit. Clé proposée : **`frame`**, *à confirmer au dépôt canon avant que le CLI ne s'y
+  branche*. ~1,5 j-h. **Touche le Rust → `cargo test` devra être mesuré.**
+  ⚠️ *Dette signalée au dépôt `iakaframe` : sur un JSON illisible, `iakaframe config` « repart à
+  vide » et perdrait la clé en silence.*
 - [ ] **Troisième sens de « réservoir » — non cadré.** L'onglet **Apprentissage** appelle
   « réservoir » son **stock de propositions** (`useForgeLearning.ts`, `LearningAtelier.tsx`,
   `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne
