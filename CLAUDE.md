@@ -153,6 +153,14 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   ⚠️ **Décision à deux dépôts** : le pointeur doit être lisible par le **CLI ET la GUI** ; le poser
   côté GUI seul fabriquerait la divergence GUI≠CLI qu'aucune garde ne détecte.
   **À cadrer par Gandalf avant tout code.** Réf. `frame-reservoir-et-9e-role-portage-gui.md` § 2.1.
+- [ ] **Fëanor est le copilote du GUI — CADRÉ, non codé.** Décision décideur (2026-07-25) : le LLM
+  interne du GUI **est** le persona Fëanor, pas un copilote anonyme. Instruction fermée :
+  `specs/instructions/feanor-copilote-du-gui.md` (arbitrages rendus : persona **dérivée du canon à
+  l'exécution**, jamais réécrite en dur ; **activation explicite** = ouvrir la console + soumettre
+  une intention). Mesuré : le copilote est aujourd'hui anonyme (`buildSystemPrompt()` dit « Tu es le
+  copilote d'AUTHORING »), `Fëanor` n'existe dans le GUI que dans `roster.ts` et `casting.ts`.
+  Bonne nouvelle mesurée : **aucun appel LLM au montage** — l'invariant d'activation explicite est
+  déjà tenu, il reste à le verrouiller par un test. ~1,3 j-h, incertitude faible.
 - [ ] **Troisième sens de « réservoir » — non cadré.** L'onglet **Apprentissage** appelle
   « réservoir » son **stock de propositions** (`useForgeLearning.ts`, `LearningAtelier.tsx`,
   `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne
