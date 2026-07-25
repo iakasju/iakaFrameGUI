@@ -83,14 +83,18 @@ export function CopiloteShell({
       return;
     }
     let alive = true;
-    void api
-      .authoringModel()
-      .then((m) => {
+    void (async () => {
+      try {
+        // Appel OPTIONNEL (`?.`) : un `api` partiel peut ne pas exposer `authoringModel`. Le
+        // `.catch` seul ne suffisait pas — sur une méthode absente, l'appel lève SYNCHRONEMENT
+        // avant que la chaîne de promesse n'existe, et le montage du composant plantait.
+        // Même forme que le voisin `authoringEndpoint?.()` ci-dessous.
+        const m = await api.authoringModel?.();
         if (alive && m && m.trim().length > 0) setConfiguredModel(m.trim());
-      })
-      .catch(() => {
+      } catch {
         /* hors Tauri / non défini : on garde le défaut (le copilote reste mocké) */
-      });
+      }
+    })();
     return () => {
       alive = false;
     };

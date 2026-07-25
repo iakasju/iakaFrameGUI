@@ -243,8 +243,11 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
   prouvé), badge d'ouverture/clôture **posé par l'UI** (schéma JSON intact), repli explicite sans
   identité inventée. Instruction : `specs/instructions/feanor-copilote-du-gui.md` § 4bis.
   Gate : `lint:all` `0`, `test:all` `0`, **`58 passed (58)` / `533 passed (533)`** (+15 tests).
-  *Constat consigné non corrigé : `CopiloteShell` appelle `api.authoringModel()` sans garde
-  optionnelle, contrairement à `api.authoringEndpoint?.()` — un backend partiel plante au montage.*
+- ~~`CopiloteShell` plante au montage sur un backend partiel~~ — **close** : `api.authoringModel?.()`
+  aligné sur son voisin `authoringEndpoint?.()`. Le `.catch` seul ne protégeait pas — sur une méthode
+  **absente**, l'appel lève **synchronement**, avant que la chaîne de promesse n'existe. Le fake des
+  tests est redevenu **minimal** (`poolReadAll` seul) : il tient lieu de garde, et retirer le `?.`
+  fait rougir immédiatement.
 - ~~Renommage `reservoir` → `element pool` inachevé (A13)~~ — **close** : merge `--no-ff` de
   `refactor/element-pool-renommage` (`f55e0dd` code + `3136b00` libellés, isolé et révocable).
   Fichiers/symboles renommés, doc alignée. **Libellés visibles passés à « Briques »** (`16af12b`,

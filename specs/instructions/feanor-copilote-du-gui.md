@@ -169,9 +169,11 @@ que l'absence d'identité.
   corrigée **à la source** plutôt qu'en ajustant le test).
 - **Entrée 4 du périmètre (`mock/copilote.ts`) : rien à faire.** Le badge étant posé par l'UI,
   l'identité est déjà la même en mock et en live — l'AC-6 tombe sans code.
-- **Constat hors périmètre, non corrigé** : `CopiloteShell` appelle `api.authoringModel()` **sans**
-  garde optionnelle, contrairement à son voisin `api.authoringEndpoint?.()` — un backend partiel
-  fait planter le montage. Signalé, pas traité : ce lot porte l'identité.
+- **Constat signalé pendant le lot, corrigé ensuite** (`fix/authoring-model-garde`) :
+  `CopiloteShell` appelait `api.authoringModel()` **sans** garde optionnelle, contrairement à son
+  voisin `api.authoringEndpoint?.()`. Le `.catch` ne protégeait pas : sur une méthode **absente**,
+  l'appel lève **synchronement**, avant l'existence de la chaîne de promesse. Corrigé, et le fake
+  des tests est redevenu **minimal** pour que la garde morde si on retire le `?.`.
 
 ---
 

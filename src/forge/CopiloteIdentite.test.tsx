@@ -18,17 +18,15 @@ import feanorMd from "./__fixtures__/persona.feanor.md?raw";
 const context: CopiloteContext = { surface: "methode", diffFile: "methode.md", present: {} };
 
 /**
- * Backend simulé : rend (ou non) la fiche du rôle `frame`.
+ * Backend simulé **MINIMAL** : seul `poolReadAll` est exposé.
  *
- * NB : `authoringModel` est fourni car `CopiloteShell` l'appelle **sans garde optionnelle** au
- * montage — contrairement à son voisin `authoringEndpoint?.()`. Asymétrie **constatée, non
- * corrigée ici** (hors périmètre du lot identité) : un backend partiel fait planter le montage.
+ * C'est délibéré — il tient lieu de garde. `CopiloteShell` appelait naguère `api.authoringModel()`
+ * sans `?.`, ce qui levait SYNCHRONEMENT sur un backend partiel et faisait planter le montage. Si
+ * quelqu'un retire la garde optionnelle, ces tests rougissent immédiatement.
  */
 function api(personas: string[]): Backend {
   return {
     poolReadAll: async (type: string) => (type === "personas" ? personas : []),
-    authoringModel: async () => "",
-    authoringEndpoint: async () => "",
   } as unknown as Backend;
 }
 
@@ -122,5 +120,17 @@ describe("copilote identifié — Fëanor (décision décideur)", () => {
         "[FRAME][Fëanor] 🟠",
       ),
     );
+  });
+});
+
+describe("robustesse du montage — backend partiel (hors Tauri)", () => {
+  it("un backend SANS `authoringModel` ni `authoringEndpoint` ne fait pas planter le montage", async () => {
+    const nu = { poolReadAll: async () => [] } as unknown as Backend;
+    const { container } = render(
+      <CopiloteShell subject="test" context={context} onApply={() => {}} api={nu} />,
+    );
+    // Le composant se monte et rend sa console : aucune exception au montage.
+    await waitFor(() => expect(shell(container)).toBeTruthy());
+    expect(within(shell(container)).getByText(IDENTITY_MISSING_HINT)).toBeTruthy();
   });
 });
