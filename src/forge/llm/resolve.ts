@@ -35,6 +35,7 @@ import {
   LLM_OUTPUT_SCHEMA,
   SURFACE_TARGETS,
 } from "./prompt";
+import type { CopiloteIdentity } from "./identity";
 
 /** Hôte Ollama par défaut (D3) — surchargé par l'endpoint d'authoring réglé (LAN). */
 export const DEFAULT_AUTHORING_HOST = "http://localhost:11434";
@@ -69,6 +70,12 @@ export interface ResolveDeps {
   endpoint?: string | null;
   /** Budget de temps de l'appel (défaut `DEFAULT_LLM_TIMEOUT_MS`). */
   timeoutMs?: number;
+  /**
+   * Identité du copilote, **dérivée du canon** par l'appelant (`loadCopiloteIdentity`). Absente
+   * (racine introuvable, fiche manquante) ⇒ prompt système **anonyme**, byte-identique à
+   * l'historique. Jamais d'identité fabriquée ici (I-1/I-5).
+   */
+  identity?: CopiloteIdentity | null;
 }
 
 /** Split `provider:model` sur le **premier** `:` (le modèle peut contenir des `:`). */
@@ -128,7 +135,7 @@ export async function resolveProposition(
     provider,
     model,
     host,
-    system: buildSystemPrompt(),
+    system: buildSystemPrompt(deps.identity),
     user: buildUserPrompt(intention, context, elementPool),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
     format: LLM_OUTPUT_SCHEMA, // D4 : sorties structurées Ollama (`format:<schema>`)

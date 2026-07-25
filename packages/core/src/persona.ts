@@ -25,6 +25,13 @@ export interface Persona {
   roleKey: string;
   /** Royaume MAJUSCULE — pastille `[ROYAUME][Nom]`. */
   royaume: string;
+  /**
+   * Emoji de pastille du badge (ex. `"🟠"` pour Fëanor). **Optionnel — absent = non déclaré** :
+   * on ne fabrique jamais de pastille par défaut (un badge inventé serait indiscernable d'un badge
+   * canon). La clé n'est émise par le parseur que si la fiche la déclare, pour ne pas casser
+   * l'égalité d'un round-trip sur une persona qui ne la porte pas.
+   */
+  pastille?: string;
   /** Index de casting (0..N-1), dérivé du rôle par défaut, éditable. */
   roleIndex: number;
   /** Ids de skills attribuées (ex. "iakaframe-cadrage"). */
@@ -87,12 +94,17 @@ export function parsePersona(raw: unknown): Persona | null {
       ? r.roleIndex
       : roleIndexOf(roleKey);
 
+  // Pastille : reprise VERBATIM si déclarée, sinon CLÉ ABSENTE (jamais de défaut fabriqué,
+  // jamais de clé vide qui casserait un round-trip).
+  const pastille = typeof r.pastille === "string" ? r.pastille.trim() : "";
+
   // AR-1 : `r.runner` / `r.model` sont volontairement NON lus → jamais réémis.
   return {
     id,
     name,
     roleKey,
     royaume,
+    ...(pastille.length > 0 ? { pastille } : {}),
     roleIndex,
     skills: toStringArray(r.skills),
     guardrails: toStringArray(r.guardrails),
