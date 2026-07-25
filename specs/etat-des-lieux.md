@@ -31,10 +31,49 @@
 
 ## Reprise du travail (a completer par Cowork)
 
-- **Ce qui vient d'etre fait** : <!-- ... -->
-- **En cours / a reprendre** : <!-- ... -->
-- **Prochaine etape concrete** : <!-- premiere action a faire en reprenant -->
-- **Pieges connus** : <!-- ... -->
+- **Ce qui vient d'etre fait** : l'objectif parent « charger le frame dans le GUI » est **ferme**
+  (4 etapes / 4). Etapes 2+3 = Open->Save fidele au frame (v0.1.1, `c70dbe0`) ; etape 3bis = workflow
+  au format frame autoritaire (v0.1.2, `68a7bf4`) ; etape 4 Lot 1 = roster 8/8 avec helm + byte-parite
+  team `iakaframe-8` + tools 8/8 + option `test:vendor` (v0.1.3, `5011e38`) ; etape 4 Lot 2 = B2,
+  alignement des 5 cles de role sur le canon (v0.1.4, `6fb7e36`). **Enchaine ensuite** (non versionne) :
+  reservoir de frames — type `frames` de 1re classe (AR-1), `resolveAssembly` mono->multi, renommage
+  `reservoir` -> `element-pool` (AR-2/A13), collection `frames` chargee cote GUI (allow-list Rust),
+  comptes 11->12 types (`96accf1`) ; puis 9e role canonique **`frame` (Constructeur de frame)** + 9e
+  degrade de casting + vignette flamme (Feanor), vendorage et comptes 8->9 synchronises (`c88e8bf`).
+- **Menage fait a la reprise (2026-07-25)** : les 3 branches datees non mergees ont ete
+  **supprimees en local ET sur `origin`**, apres archivage par tags annotes pousses sur Forgejo —
+  `archive/feat/open-frame-portfolio` (`a9bc7ca`), `archive/feat/align-binding-format-frame`
+  (`5152c72`), `archive/feat/ch-a-reconciliation-rolekey` (`27d8a2d`). Leur contenu avait ete
+  **refait autrement sur main** (main porte `src/forge/frame.ts`, pas `openFrame.ts`/`useOpenFrame.ts` ;
+  le role `deploiement` de CH-A est deja canonique a l'index 5, et main est passe a 9 roles).
+  Resurrection possible : `git switch -c <nom> archive/<nom>`. Il ne reste que `main`.
+  Le **backlog de `CLAUDE.md`** a ete reecrit sur l'etat reel (il datait du 15-16/07).
+- **En cours / a reprendre** : rien d'ouvert. La reprise a ete versee par `iakaframe update`
+  (motif `manual`) : `CLAUDE.md` + etat des lieux commites et pousses sur `origin/main`.
+- **PIEGE DU CLI, vu en direct le 25/07** : `iakaframe update` regenere l'etat des lieux AVANT de
+  commiter, et `cli/src/commands/snapshot.js:106-109` **reecrit le fichier entier** avec les
+  placeholders vides — donc **toute regeneration DETRUIT ce recit**. Sauvegarder la section
+  « Reprise du travail » avant tout `snapshot`/`update`, puis la reinjecter. Dette a remonter au
+  depot `iakaframe` : le snapshot devrait preserver la section si elle est remplie.
+- **Prochaine etape concrete** : **verser ici le cadrage du chantier frames** — les lots des
+  24-25/07 (frames de 1re classe AR-1, `element-pool` AR-2/A13, collection `frames` + allow-list
+  Rust, 9e role `frame` / Feanor) sont mergés sans instruction dans `specs/instructions/` ; le
+  cadrage vit cote depot `iakaframe`. Puis cadrage Gandalf du lot suivant.
+- **Mesure de reprise (2026-07-25)** : `npm run lint:all` -> exit `0`, aucune sortie ;
+  `npm run test:all` -> exit `0`, `Test Files 56 passed (56) / Tests 518 passed (518)`.
+  Cargo (`src-tauri/`) **non mesure** a la reprise.
+- **Dettes du 19/07 RE-MESUREES et CLOSES le 25/07** (ne pas les rouvrir sans preuve) : perte du
+  corps markdown au Save -> close (`useForgeDocument.ts` capture `verbatimBody`, `ForgeShell.tsx`
+  serialise `o.body ?? boilerplate`) ; cablage du wrapping des listes flow -> close (`readListLayout`
+  capture et passe a `serializeMethodMd`, `ForgeShell.tsx:124`) ; fixture `method.iakaframe-wrapped.md`
+  au corps tronque -> close (`diff` avec `~/work/iakaframe/methods/iakaframe.md` ne sort rien) ;
+  reserve P6b `ForgeShell.test.tsx` -> close (run cible : 1 fichier / 3 tests verts).
+- **Pieges connus** : (1) le CLI `iakaframe` n'etait pas dans le PATH — **corrige le 25/07** par un
+  wrapper `~/.local/bin/iakaframe` (exec node sur `~/work/iakaframe/cli/src/index.js` ; pas d'install
+  npm globale, donc pas de rupture quand nvm change de version) ; (2) le champ Version du snapshot est
+  vide (`-`) alors que `package.json` porte `0.1.4` ; (3) `cargo test` est **volontairement hors de
+  `test:all`** et n'a pas ete mesure a la reprise ; (4) recettes visuelles humaines toujours en
+  attente (U-10, handoff, G-8, B-7/B-10, 4e onglet P6b, reservoir de frames).
 
 ## Journal (versions & pauses)
 
