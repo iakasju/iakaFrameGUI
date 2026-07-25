@@ -29,7 +29,7 @@ import {
   type Proposition,
 } from "../mock/copilote";
 import {
-  buildSurfaceReservoir,
+  buildSurfaceElementPool,
   buildSystemPrompt,
   buildUserPrompt,
   LLM_OUTPUT_SCHEMA,
@@ -119,7 +119,7 @@ export async function resolveProposition(
 
   // 3. Chemin live.
   const surface = context.surface;
-  const reservoir = buildSurfaceReservoir(surface);
+  const elementPool = buildSurfaceElementPool(surface);
   const host =
     deps.endpoint && deps.endpoint.trim().length > 0
       ? deps.endpoint.trim()
@@ -129,7 +129,7 @@ export async function resolveProposition(
     model,
     host,
     system: buildSystemPrompt(),
-    user: buildUserPrompt(intention, context, reservoir),
+    user: buildUserPrompt(intention, context, elementPool),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
     format: LLM_OUTPUT_SCHEMA, // D4 : sorties structurées Ollama (`format:<schema>`)
   };
@@ -148,7 +148,7 @@ export async function resolveProposition(
 
   const live = parseLiveProposition(raw, {
     allowedTargets: SURFACE_TARGETS[surface],
-    reservoir,
+    elementPool,
   });
   if (!live) {
     return {

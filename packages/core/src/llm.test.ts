@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { parseLiveProposition, LIVE_ARTEFACT_ICONS } from "./llm";
 
-/** Réservoir minimal de test : deux cibles, quelques ids disponibles. */
+/** Element pool minimal de test : deux cibles, quelques ids disponibles. */
 const opts = {
   allowedTargets: ["method-principle", "method-ritual", "persona-skill"],
-  reservoir: {
+  elementPool: {
     "method-principle": ["qualite", "mvp-first"],
     "method-ritual": ["snapshot"],
     "persona-skill": ["iakaframe-cadrage"],
@@ -43,7 +43,7 @@ describe("parseLiveProposition — défensif, jamais d'exception (cœur)", () =>
     expect(parseLiveProposition(raw, opts)).toBeNull();
   });
 
-  it("id hors réservoir → op rejetée", () => {
+  it("id hors element pool → op rejetée", () => {
     const raw = JSON.stringify({
       intro: "x",
       artefacts: [],

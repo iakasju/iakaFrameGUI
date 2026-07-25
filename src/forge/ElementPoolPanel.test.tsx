@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within, waitFor } from "@testing-library/react";
-import { ReservoirPanel } from "./ReservoirPanel";
+import { ElementPoolPanel } from "./ElementPoolPanel";
 import type { Backend } from "../api/backend";
 
 const persona = (id: string, roleKey: string): string =>
@@ -26,9 +26,9 @@ function fakeApi(): Backend {
   } as unknown as Backend;
 }
 
-describe("ReservoirPanel — rend visible le stock typé de l'élément (Volet A)", () => {
+describe("ElementPoolPanel — rend visible le stock typé de l'élément (Volet A)", () => {
   it("Team : affiche le groupe Personas avec les ids du frame chargé", async () => {
-    render(<ReservoirPanel element="team" api={fakeApi()} />);
+    render(<ElementPoolPanel element="team" api={fakeApi()} />);
     const section = await screen.findByLabelText(/Réservoir de sous-éléments — Team/);
     // Le groupe Personas et ses ids (odin, gimli) sont rendus.
     await waitFor(() => expect(within(section).getByText("odin")).toBeTruthy());
@@ -38,7 +38,7 @@ describe("ReservoirPanel — rend visible le stock typé de l'élément (Volet A
   });
 
   it("Méthode : affiche les 6 types de composition (Principes, Rituels…)", async () => {
-    render(<ReservoirPanel element="method" api={fakeApi()} />);
+    render(<ElementPoolPanel element="method" api={fakeApi()} />);
     const section = await screen.findByLabelText(/Réservoir de sous-éléments — Méthode/);
     await waitFor(() => expect(within(section).getByText("Principes")).toBeTruthy());
     expect(within(section).getByText("mvp-first")).toBeTruthy();

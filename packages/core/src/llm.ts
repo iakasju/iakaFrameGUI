@@ -6,8 +6,8 @@
  * (`llm_complete`, dérogation bornée AR-1/AR-6) et est injecté en front via un `LlmTransport`.
  *
  * ⚠️ **FRONTIÈRE authoring ≠ exécution** : ce parseur ne connaît **que** des cibles de
- * matérialisation d'artefacts (fournies par l'appelant) et un **réservoir** d'ids disponibles ;
- * il **rejette** toute cible hors liste et tout id hors réservoir. Aucune notion de runner/modèle
+ * matérialisation d'artefacts (fournies par l'appelant) et un **element pool** d'ids disponibles ;
+ * il **rejette** toute cible hors liste et tout id hors pool. Aucune notion de runner/modèle
  * d'EXÉCUTION (Binding) n'existe ici — la frontière est tenue par filtrage, jamais par confiance.
  *
  * Esprit `parse*` du cœur (cf. `kit.ts`) : `try/catch` sur `JSON.parse`, validation champ par
@@ -28,7 +28,7 @@ export interface LlmRequest {
   host: string;
   /** Prompt système (impose le schéma JSON de sortie, interdit toute notion d'exécution). */
   system: string;
-  /** Prompt utilisateur (intention + surface + réservoir + présents + fichier de diff). */
+  /** Prompt utilisateur (intention + surface + element pool + présents + fichier de diff). */
   user: string;
   /** Budget de temps de l'appel (ms). */
   timeoutMs: number;
@@ -90,12 +90,12 @@ export interface LiveProposition {
   ops: LiveOp[];
 }
 
-/** Options de parsing : l'appelant fournit les cibles permises + le réservoir d'ids par cible. */
+/** Options de parsing : l'appelant fournit les cibles permises + l'element pool d'ids par cible. */
 export interface ParseLiveOptions {
   /** Cibles de matérialisation autorisées (les valeurs de `MaterializeTarget`, côté app). */
   allowedTargets: Iterable<string>;
-  /** Réservoir d'ids disponibles **par cible** (catalogues du cœur) — un id hors liste est rejeté. */
-  reservoir: Readonly<Record<string, readonly string[]>>;
+  /** Element pool d'ids disponibles **par cible** (catalogues du cœur) — un id hors liste est rejeté. */
+  elementPool: Readonly<Record<string, readonly string[]>>;
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -109,8 +109,8 @@ function isObject(v: unknown): v is Record<string, unknown> {
  * - `intro` : chaîne (vide toléré ; l'appelant pose un défaut).
  * - `artefacts` : filtre chaque entrée (icône ∈ {@link LIVE_ARTEFACT_ICONS}, `tag`/`title`/`detail`
  *   chaînes) ; les invalides sont **jetées** (pas d'échec global).
- * - `ops` : filtre chaque entrée (`target` ∈ `allowedTargets`, `id` ∈ `reservoir[target]`) ; toute
- *   op à cible inconnue ou id hors réservoir est **rejetée** (frontière type-safe + réservoir).
+ * - `ops` : filtre chaque entrée (`target` ∈ `allowedTargets`, `id` ∈ `elementPool[target]`) ; toute
+ *   op à cible inconnue ou id hors pool est **rejetée** (frontière type-safe + element pool).
  * - **`null` si zéro op valide** : la proposition serait vide de matérialisable → l'appelant
  *   retombe sur le mock.
  */
@@ -158,8 +158,8 @@ export function parseLiveProposition(
       if (!isObject(o)) continue;
       if (typeof o.target !== "string" || !allowed.has(o.target)) continue;
       if (typeof o.id !== "string") continue;
-      const pool = opts.reservoir[o.target];
-      if (!pool || !pool.includes(o.id)) continue; // id hors réservoir → rejeté
+      const pool = opts.elementPool[o.target];
+      if (!pool || !pool.includes(o.id)) continue; // id hors element pool → rejeté
       const label =
         typeof o.label === "string" && o.label.trim().length > 0 ? o.label : o.id;
       ops.push({ target: o.target, id: o.id, label });
