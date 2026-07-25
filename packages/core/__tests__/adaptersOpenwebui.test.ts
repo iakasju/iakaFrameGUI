@@ -18,7 +18,7 @@ import {
   type Team,
 } from "../src/index";
 
-/** Team gabarit (8 personas, un par rôle canonique). */
+/** Team gabarit (9 personas, un par rôle canonique). */
 function gabaritTeam(): Team {
   return buildTeamFromRoster("Gabarit", "gabarit");
 }
@@ -74,9 +74,9 @@ describe("O-3 — génération : N Models JSON valides (un par persona)", () => 
   const team = gabaritTeam();
   const tree = generateOpenWebUIKit(team);
 
-  it("produit un models/<personaId>.json par persona (8), aucun autre fichier", () => {
+  it("produit un models/<personaId>.json par persona (9), aucun autre fichier", () => {
     const paths = Object.keys(tree.files);
-    expect(paths).toHaveLength(8);
+    expect(paths).toHaveLength(9);
     for (const p of paths) expect(p).toMatch(/^models\/[^/]+\.json$/);
     const expected = team.personas
       .map((p) => `models/${p.id}.json`)

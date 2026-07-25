@@ -4,7 +4,15 @@
  * fonctions). Déterministe, borné : sert les pastilles `[ROYAUME][Nom]` et vignettes de rail.
  */
 
-/** Palette de dégradés par index de casting (0..7), repli sur le premier. */
+/**
+ * Palette de dégradés par index de casting (0..8), repli sur le premier.
+ *
+ * D-E (role-frame-builder.md) : le 9ᵉ rôle `frame` (index 8) DOIT recevoir un couple
+ * EXPLICITE et DISTINCT. Sans lui, `8 % 8 = 0` lui donnerait en silence l'or du portefeuille
+ * (mode de défaillance décrit § 4.3 de vocabulaire-roles-agnostique.md). Aucune teinte
+ * existante (0..7) ne change (invariant § 8). La teinte de `frame` = flamme/braise (Fëanor,
+ * forgeur des Silmarils), distincte de l'or (0) et de l'orange documentation (7).
+ */
 const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#b8862b", "#8a5e12"], // 0 portefeuille — or
   ["#2f7d43", "#1f5c30"], // 1 coordination — vert
@@ -14,6 +22,7 @@ const CASTING_GRADIENTS: readonly [string, string][] = [
   ["#7a2b2b", "#4f1a1a"], // 5 déploiement — grenat
   ["#7a3b86", "#52285f"], // 6 design — violet
   ["#9a5b17", "#6b3d0f"], // 7 documentation — orange
+  ["#c2410c", "#7c2d12"], // 8 frame — flamme/braise (Fëanor)
 ];
 
 /** Couple de couleurs du dégradé pour un index de casting (déterministe, borné). */

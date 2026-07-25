@@ -1,16 +1,19 @@
 /**
- * roles.ts — LISTE CANONIQUE FERMÉE des 8 rôles iakaframe (cœur partagé 🟦).
+ * roles.ts — LISTE CANONIQUE FERMÉE des 9 rôles iakaframe (cœur partagé 🟦).
  *
  * Repris de `IakaCockpit/src/theme/roles.ts:22-30` (source unique mûre). Le **rôle**
  * est la FONCTION d'un intervenant (portefeuille, coordination, …), DISTINCT du **nom**
- * (persona, cf. `persona.ts`). L'ordre = `roleIndex` (0→7), invariant qui pioche le
+ * (persona, cf. `persona.ts`). L'ordre = `roleIndex` (0→8), invariant qui pioche le
  * casting visuel. La liste est **fermée pour iakaframe** mais **paramétrable par méthode**
  * (agnosticisme AR-9) : une autre méthode déclarerait ses propres rôles ; au MVP seule la
  * liste iakaframe est peuplée.
  *
- * NB (VOLET B2) : les 8 clés sont alignées sur le canon `methods/iakaframe.md:11`
- * (`[portefeuille, coordination, cadrage, dev, qualite, deploiement, design, documentation]`).
- * `deploiement` (persona helm) est en 6ᵉ position (index 5) conformément au casting canon.
+ * NB (VOLET B2) : les 9 clés sont alignées sur le canon `methods/iakaframe.md`
+ * (`[portefeuille, coordination, cadrage, dev, qualite, deploiement, design, documentation,
+ * frame]`). `deploiement` (persona helm) est en 6ᵉ position (index 5) conformément au casting
+ * canon. `frame` (persona feanor, Constructeur de frame) est le 9ᵉ rôle, en queue (index 8) :
+ * ajouté SANS renumérotation (aucun roleIndex existant ne change — D-C). Base d'index cœur = 0,
+ * base bibliothèque = 1 (mapping GUI = library − 1) : NE PAS unifier ici (D-C).
  *
  * En documentation, un intervenant se désigne par son **rôle** (libellé ci-dessous),
  * JAMAIS par un nom de code (le `name` d'une persona est une donnée éditable).
@@ -22,11 +25,11 @@ export interface Role {
   key: string;
   /** Libellé d'affichage capitalisé (menus de l'éditeur). */
   label: string;
-  /** Index de rôle (0..7) = position dans la liste = clé de vignette. */
+  /** Index de rôle (0..8) = position dans la liste = clé de vignette. */
   roleIndex: number;
 }
 
-/** Les 8 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→7). */
+/** Les 9 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→8). */
 export const CANONICAL_ROLES: readonly Role[] = [
   { key: "portefeuille", label: "Portefeuille", roleIndex: 0 },
   { key: "coordination", label: "Coordination", roleIndex: 1 },
@@ -36,9 +39,10 @@ export const CANONICAL_ROLES: readonly Role[] = [
   { key: "deploiement", label: "Déploiement", roleIndex: 5 },
   { key: "design", label: "Design", roleIndex: 6 },
   { key: "documentation", label: "Documentation", roleIndex: 7 },
+  { key: "frame", label: "Constructeur de frame", roleIndex: 8 },
 ] as const;
 
-/** Clés des 8 rôles canoniques (ordre `roleIndex`). */
+/** Clés des 9 rôles canoniques (ordre `roleIndex`). */
 export const CANONICAL_ROLE_KEYS: readonly string[] = CANONICAL_ROLES.map(
   (r) => r.key,
 );
