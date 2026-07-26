@@ -7,6 +7,8 @@
  * réelle des dossiers est portée par le rituel `init` (outillage différé).
  */
 
+import type { FrontmatterPatch } from "./frontmatter";
+
 /** Niveau d'un scaffold : portefeuille (`~/work`) ou projet. */
 export type ScaffoldLevel = "portfolio" | "project";
 
@@ -117,4 +119,17 @@ export function parseScaffold(raw: unknown): Scaffold | null {
     ? r.entries.map(parseScaffoldEntry).filter((e): e is ScaffoldEntry => e !== null)
     : [];
   return { id, level, entries, nonDestructive: true };
+}
+
+/**
+ * Construit le **patch de frontmatter** d'un scaffold pour une réécriture **non-destructive**
+ * (Lot 5b, C1) : au MVP le seul champ éditable est `level` (l'éditeur ne touche ni `entries` — tableau
+ * riche préservé, cf. simplification MVP du Lot 2 — ni `nonDestructive`, invariant). **Exclus** : `id`
+ * (verrouillé, C-1), `entries` et `nonDestructive` — **préservés à l'octet** par `patchFrontmatter` du
+ * seul fait de leur absence du patch. Round-trip sans édition ⇒ document byte-identique.
+ */
+export function scaffoldFrontmatterPatch(s: Scaffold): FrontmatterPatch {
+  return {
+    level: { kind: "scalar", value: s.level },
+  };
 }

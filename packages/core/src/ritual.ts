@@ -10,6 +10,8 @@
  * modélisé (Q-5) mais **aucun code de journalisation** n'est produit dans ce lot.
  */
 
+import type { FrontmatterPatch } from "./frontmatter";
+
 /** Tranche d'un rituel : fabrication (forge) ou run (cockpit) — frontière PROJET.md. */
 export type RitualSide = "forge" | "cockpit";
 
@@ -122,5 +124,22 @@ export function parseRitual(raw: unknown): Ritual | null {
     triggers: toStringArray(r.triggers),
     actions: toStringArray(r.actions),
     side,
+  };
+}
+
+/**
+ * Construit le **patch de frontmatter** d'un rituel pour une réécriture **non-destructive**
+ * (Lot 5b, C1) : uniquement les champs que l'éditeur modélise (`label, triggers, actions, side`).
+ * **Exclu** : `id` (verrouillé, C-1). Toute clé non modélisée (`cadence`, `timebox`, corps, inconnues)
+ * est **préservée à l'octet** par `patchFrontmatter`. `triggers`/`actions` sont des listes : la ligne
+ * (ou le bloc `- …`) d'origine est laissé **verbatim** tant que les valeurs ne changent pas — la forme
+ * bloc du canon est donc préservée sur un round-trip sans édition.
+ */
+export function ritualFrontmatterPatch(r: Ritual): FrontmatterPatch {
+  return {
+    label: { kind: "scalar", value: r.label },
+    triggers: { kind: "list", value: [...r.triggers] },
+    actions: { kind: "list", value: [...r.actions] },
+    side: { kind: "scalar", value: r.side },
   };
 }

@@ -3,8 +3,9 @@
  * (chantier #3 Lot 2). Clone du pilote `principleKind` adapté aux champs réels de `Ritual`, branché
  * **sans toucher l'hôte** ni FeanorHead.
  *
- * Source = catalogue canonique vendoré `CATALOG_RITUALS` (étiqueté, honnête) ; édition = état local
- * de session (aucune écriture disque — Lot 5 différé). AUCUN contrat cœur touché.
+ * Source (Lot 5b) = `frame.rituals`, les `.md` RÉELS dérivés du disque (via `loadElements`) ;
+ * `CATALOG_RITUALS` (`fallback`) reste le repli hors-ligne. Édition/création persistées sur disque
+ * (`persistRitual` → `poolWrite`, patch non-destructif). AUCUN contrat cœur touché.
  */
 import { type Ritual } from "@iakaframe/core";
 import {
@@ -29,8 +30,8 @@ export const ritualKind: ElementKind<Ritual> = {
     <>
       Les <strong>gestes outillés</strong> de la méthode — chaque rituel est un{" "}
       <code>{"{ label · triggers · actions · side }"}</code>, tranché <code>forge</code> ou{" "}
-      <code>cockpit</code>. Ouvrez une fiche pour l'éditer. Source : le catalogue canonique (édition
-      locale de session).
+      <code>cockpit</code>. Ouvrez une fiche pour l'éditer. Source : les <code>.md</code> réels du
+      réservoir (persistés sur disque).
     </>
   ),
   sectionLabel: "Rituels",

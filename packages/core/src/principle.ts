@@ -10,6 +10,8 @@
  * NB de nommage : `label` (et non `name`) pour rester cohérent avec `Skill`/`Role`/`Guardrail`.
  */
 
+import type { FrontmatterPatch } from "./frontmatter";
+
 /** Un principe : politique nommée, avec son déclencheur. */
 export interface Principle {
   /** Id stable, référencé par `Method.principleIds` (ex. "qualite"). */
@@ -142,4 +144,21 @@ export function parsePrinciple(raw: unknown): Principle | null {
   const policy = typeof r.policy === "string" ? r.policy : "";
   const trigger = typeof r.trigger === "string" ? r.trigger : "";
   return { id, label, policy, trigger };
+}
+
+/**
+ * Construit le **patch de frontmatter** d'un principe pour une réécriture **non-destructive**
+ * (Lot 5b, C1) : uniquement les champs que l'éditeur modélise (`label, policy, trigger`).
+ * **Exclu volontairement** : `id` (verrouillé en édition, C-1 : jamais de renommage). Toute clé non
+ * modélisée (corps, clés inconnues) est **préservée à l'octet** par `patchFrontmatter` du seul fait
+ * de son absence du patch. Un patch dont toutes les valeurs sont inchangées ⇒ document byte-identique
+ * (round-trip). `policy`/`trigger` restent scalaires : `patchFrontmatter` ne réécrit la ligne que si
+ * la valeur change (préservant les quotes du canon quand elle ne change pas).
+ */
+export function principleFrontmatterPatch(p: Principle): FrontmatterPatch {
+  return {
+    label: { kind: "scalar", value: p.label },
+    policy: { kind: "scalar", value: p.policy },
+    trigger: { kind: "scalar", value: p.trigger },
+  };
 }

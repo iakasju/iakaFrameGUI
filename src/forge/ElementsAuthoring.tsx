@@ -22,6 +22,9 @@ import { guardrailKind } from "./guardrailKind";
 import { roleKind } from "./roleKind";
 import { scaffoldKind } from "./scaffoldKind";
 import { workflowKind } from "./workflowKind";
+import { loadPrinciplesReservoir, persistPrinciple } from "./principlePersist";
+import { loadRitualsReservoir, persistRitual } from "./ritualPersist";
+import { loadScaffoldsReservoir, persistScaffold } from "./scaffoldPersist";
 
 interface AuthorableEntry {
   /** Clé de type stable. */
@@ -48,7 +51,14 @@ const AUTHORABLE: AuthorableEntry[] = [
     type: "principle",
     label: "principes",
     icon: "⚖️",
-    render: () => <ElementReservoir key="principle" kind={principleKind} />,
+    render: () => (
+      <ElementReservoir
+        key="principle"
+        kind={principleKind}
+        loadElements={loadPrinciplesReservoir}
+        persist={persistPrinciple}
+      />
+    ),
   },
   {
     type: "skill",
@@ -60,7 +70,14 @@ const AUTHORABLE: AuthorableEntry[] = [
     type: "ritual",
     label: "rituels",
     icon: "🔁",
-    render: () => <ElementReservoir key="ritual" kind={ritualKind} />,
+    render: () => (
+      <ElementReservoir
+        key="ritual"
+        kind={ritualKind}
+        loadElements={loadRitualsReservoir}
+        persist={persistRitual}
+      />
+    ),
   },
   {
     type: "guardrail",
@@ -78,7 +95,14 @@ const AUTHORABLE: AuthorableEntry[] = [
     type: "scaffold",
     label: "scaffolds",
     icon: "🏗️",
-    render: () => <ElementReservoir key="scaffold" kind={scaffoldKind} />,
+    render: () => (
+      <ElementReservoir
+        key="scaffold"
+        kind={scaffoldKind}
+        loadElements={loadScaffoldsReservoir}
+        persist={persistScaffold}
+      />
+    ),
   },
   {
     type: "workflow",
