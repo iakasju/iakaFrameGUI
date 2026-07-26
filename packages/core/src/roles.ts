@@ -19,14 +19,27 @@
  * JAMAIS par un nom de code (le `name` d'une persona est une donnée éditable).
  */
 
-/** Un rôle canonique : clé stable + libellé d'affichage + index de casting. */
+import type { FrontmatterPatch } from "./frontmatter";
+
+/**
+ * Un rôle : clé stable + libellé d'affichage + index de casting. **Lot 5c** : `id` et `scope`
+ * sont **optionnels et additifs** — présents sur les rôles **réels parsés** du disque
+ * (`library/roles/<key>.md` porte `id, key, label, roleIndex, scope`), absents des entrées
+ * `CANONICAL_ROLES` (repli synthétique). Aucune signature existante n'est modifiée : les
+ * consommateurs historiques (`roleByKey`, `buildRoleCard`, …) n'utilisent que `key/label/roleIndex`.
+ */
 export interface Role {
-  /** Clé canonique, référencée par `Persona.roleKey` (ex. "coordination"). */
+  /** Id de fichier (== `key` au canon). Optionnel : absent du repli synthétique (Lot 5c). */
+  id?: string;
+  /** Clé canonique, référencée par `Persona.roleKey` (ex. "coordination") — **identité (C-1)**. */
   key: string;
-  /** Libellé d'affichage capitalisé (menus de l'éditeur). */
+  /** Libellé d'affichage capitalisé (menus de l'éditeur) — seul champ éditable au MVP. */
   label: string;
-  /** Index de rôle (0..8) = position dans la liste = clé de vignette. */
+  /** Index de rôle = position dans la liste = clé de vignette. **CHAMP DE FICHIER** en 5c (base
+   * bibliothèque 1) : préservé verbatim, **jamais recalculé** à l'écriture. */
   roleIndex: number;
+  /** Portée (`team`/…) — champ de fichier réel, préservé verbatim. Optionnel (repli synthétique). */
+  scope?: string;
 }
 
 /** Les 9 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→8). */
@@ -70,4 +83,45 @@ export function roleLabel(roleKey: string): string {
 /** `roleIndex` du rôle canonique d'une clé, ou `0` par défaut. */
 export function roleIndexOf(roleKey: string): number {
   return roleByKey(roleKey)?.roleIndex ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Lot 5c — persistance du pool `roles` (parseur + patch non-destructif). ADDITIONS PURES.
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse défensif d'UN rôle **réel** (`library/roles/<key>.md`, frontmatter `id, key, label,
+ * roleIndex, scope`) — Lot 5c, calqué sur `parsePrinciple`. **Identité = `key`** (repli `id`) :
+ * `null` si aucun des deux (record inutilisable). `roleIndex` est **lu tel quel** (champ de fichier,
+ * base bibliothèque 1) — jamais recalculé ; absent → repli sur le canon puis `0`. `scope`/`id`
+ * défensifs (repli `team`/`key`). `label` repli sur `key`. Jamais d'exception.
+ */
+export function parseRole(raw: unknown): Role | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const s = (v: unknown): string | null =>
+    typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+  const key = s(r.key) ?? s(r.id);
+  if (!key) return null;
+  const id = s(r.id) ?? key;
+  const label = s(r.label) ?? key;
+  const roleIndex =
+    typeof r.roleIndex === "number" && Number.isFinite(r.roleIndex)
+      ? r.roleIndex
+      : (roleByKey(key)?.roleIndex ?? 0);
+  const scope = s(r.scope) ?? "team";
+  return { id, key, label, roleIndex, scope };
+}
+
+/**
+ * **Patch de frontmatter** d'un rôle pour une réécriture **non-destructive** (Lot 5c, C-1) :
+ * uniquement le champ éditable `label`. **Exclus** : `id` ET `key` (verrou de non-renommage C-1),
+ * `roleIndex` (préservé verbatim, jamais recalculé) et `scope`. Toute clé hors patch + le corps sont
+ * **préservés à l'octet** par `patchFrontmatter`. Un patch au `label` inchangé ⇒ document
+ * byte-identique (round-trip AC3).
+ */
+export function roleFrontmatterPatch(r: Role): FrontmatterPatch {
+  return {
+    label: { kind: "scalar", value: r.label },
+  };
 }
