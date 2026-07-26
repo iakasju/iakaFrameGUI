@@ -114,14 +114,20 @@ export function parseRole(raw: unknown): Role | null {
 }
 
 /**
- * **Patch de frontmatter** d'un rôle pour une réécriture **non-destructive** (Lot 5c, C-1) :
- * uniquement le champ éditable `label`. **Exclus** : `id` ET `key` (verrou de non-renommage C-1),
- * `roleIndex` (préservé verbatim, jamais recalculé) et `scope`. Toute clé hors patch + le corps sont
- * **préservés à l'octet** par `patchFrontmatter`. Un patch au `label` inchangé ⇒ document
- * byte-identique (round-trip AC3).
+ * **Patch de frontmatter** d'un rôle pour une réécriture **non-destructive** (Lot 5c, C-1 ; `scope`
+ * ajouté au chantier #4 Lot B). Champs **éditables** modélisés : `label` et `scope` (scalaires).
+ * **Exclus** : `id` ET `key` (verrou de non-renommage C-1) et `roleIndex` (préservé verbatim, **jamais
+ * recalculé** — donc **verrouillé** à l'écran, jamais un contrôle fantôme). Toute clé hors patch + le
+ * corps sont **préservés à l'octet** par `patchFrontmatter`. `scope` est **toujours** présent au patch,
+ * mais `patchFrontmatter` ne réécrit sa ligne que si la valeur **change réellement** (sinon verbatim) :
+ * round-trip sans édition ⇒ document byte-identique (AC3). Tous les rôles réels du canon portent une
+ * ligne `scope:` (mesuré) — le patch la **remplace**, jamais ne l'ajoute. **Addition pure** au cœur :
+ * aucune signature retirée, aucun octet de fichier `.md` touché hors réécriture explicite (drift
+ * `vendor-check` 0 par construction).
  */
 export function roleFrontmatterPatch(r: Role): FrontmatterPatch {
   return {
     label: { kind: "scalar", value: r.label },
+    scope: { kind: "scalar", value: r.scope ?? "team" },
   };
 }

@@ -3,9 +3,9 @@
  * Calque de `principlePersist` (5b), avec un **adaptateur** : le disque porte l'atome plat
  * `GuardrailAtom {id,label,kind,hook,policy}`, tandis que l'hôte d'authoring (`guardrailKind`) parle
  * le type riche P3b `Guardrail {id,kind,label,scope,rendering}`. On mappe atome → riche pour la
- * grille (enrichissement `scope`/`rendering` depuis le catalogue par `kind`, pour l'affichage) ;
- * l'écriture, elle, ne touche que `label` (patch), préservant `kind`/`hook`/`policy` du disque à
- * l'octet. La richesse d'authoring (éditer `policy`) est différée (« champs riches », cf. instruction).
+ * grille (enrichissement `scope`/`rendering` depuis le catalogue par `kind` ; **`policy` porté depuis
+ * l'atome réel**, éditable au Lot B) ; l'écriture touche `label` **et `policy`** (patch), préservant
+ * `kind`/`hook` du disque à l'octet (load-bearing, verrouillés).
  */
 import {
   patchFrontmatter,
@@ -37,6 +37,7 @@ function atomToRich(a: {
     kind,
     scope: (cat?.scope ?? "persona") as GuardrailScope,
     rendering: cat?.rendering ?? {},
+    policy: a.policy, // champ de fichier réel — porté pour l'édition (Lot B), jamais fabriqué
   };
 }
 
@@ -51,20 +52,24 @@ export async function loadGuardrailsReservoir(api: Backend = backend): Promise<G
 
 /**
  * Persiste un garde-fou dans `<IAKAFRAME_HOME>/library/guardrails/<id>.md`. Édition → patch
- * **non-destructif** du seul `label` (relit l'atome réel, préserve `kind`/`hook`/`policy` + corps à
- * l'octet) ; création → `serializeGuardrailMd` (`hook`/`policy` vides pour un garde neuf, MVP).
+ * **non-destructif** de `label` **et `policy`** (relit l'atome réel, préserve `kind`/`hook` + corps à
+ * l'octet ; `policy` inchangée ⇒ ligne verbatim) ; création → `serializeGuardrailMd` (`hook` vide,
+ * `policy` = celle saisie ou vide, pour un garde neuf).
  */
 export async function persistGuardrail(g: Guardrail, api: Backend = backend): Promise<void> {
   const existing = await api.poolRead("guardrails", g.id);
   let md: string;
   if (existing != null) {
-    // Repart de l'atome réel du disque (préserve kind/hook/policy) ; applique le `label` voulu.
+    // Repart de l'atome réel du disque (préserve kind/hook) ; applique le `label` + la `policy` voulus.
     const atom = parseGuardrail(parseFrontmatter(existing).data) ?? {
-      id: g.id, label: g.label, kind: g.kind, hook: "", policy: "",
+      id: g.id, label: g.label, kind: g.kind, hook: "", policy: g.policy ?? "",
     };
-    md = patchFrontmatter(existing, guardrailFrontmatterPatch({ ...atom, label: g.label }));
+    md = patchFrontmatter(
+      existing,
+      guardrailFrontmatterPatch({ ...atom, label: g.label, policy: g.policy ?? atom.policy }),
+    );
   } else {
-    md = serializeGuardrailMd({ id: g.id, label: g.label, kind: g.kind, hook: "", policy: "" });
+    md = serializeGuardrailMd({ id: g.id, label: g.label, kind: g.kind, hook: "", policy: g.policy ?? "" });
   }
   await api.poolWrite("guardrails", g.id, md);
 }

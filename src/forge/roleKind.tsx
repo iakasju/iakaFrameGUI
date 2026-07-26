@@ -5,8 +5,8 @@
  *
  * Source = liste canonique vendorée `CANONICAL_ROLES` (étiquetée, honnête) ; édition **persistée sur
  * disque** via `persistRole` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat cœur touché.
- * NB : l'authoring de `scope` + la levée du contrôle fantôme `roleIndex` restent au **Lot B**
- * (chantier #4).
+ * Lot B (chantier #4) fait : `scope` **éditable** (`roleFrontmatterPatch` élargi) et `roleIndex`
+ * **verrouillé** (contrôle fantôme levé) dans `RoleEditor`.
  */
 import { type Role } from "@iakaframe/core";
 import {

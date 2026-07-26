@@ -6,8 +6,8 @@
  *
  * Source = catalogue canonique vendoré `CATALOG_GUARDRAILS` (étiqueté, honnête) ; édition **persistée
  * sur disque** via `persistGuardrail` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat cœur
- * touché. NB : l'authoring de `policy` + la levée des contrôles fantômes (`kind`/`scope`) restent au
- * **Lot B** (chantier #4).
+ * touché. Lot B (chantier #4) fait : `policy` **éditable** (`guardrailFrontmatterPatch` élargi),
+ * `kind` **verrouillé** (load-bearing) et le contrôle fantôme `scope` **retiré** dans `GuardrailEditor`.
  */
 import { type Guardrail } from "@iakaframe/core";
 import {

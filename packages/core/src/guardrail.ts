@@ -60,6 +60,13 @@ export interface Guardrail {
   scope: GuardrailScope;
   /** Rendus disponibles (au moins un). Les gardes de méthode fournissent `hook` **et** `prose`. */
   rendering: GuardrailRendering;
+  /**
+   * Politique (prose de la garde) — **champ de fichier réel** de l'atome disque, porté ici pour être
+   * **éditable** (chantier #4 Lot B). **Optionnel et additif** : absent du catalogue synthétique
+   * `CATALOG_GUARDRAILS` (repli d'affichage), peuplé par `atomToRich` depuis le `.md` réel. Aucune
+   * signature existante n'est modifiée ; les consommateurs historiques l'ignorent.
+   */
+  policy?: string;
 }
 
 /**
@@ -215,13 +222,19 @@ export function parseGuardrail(raw: unknown): GuardrailAtom | null {
 }
 
 /**
- * **Patch de frontmatter** d'un garde-fou (Lot 5c, C-1) : uniquement `label`. **Exclus** : `id`
- * (verrou C-1) et l'équivalent réel du « rendering non éditable » = `kind` + `hook` + `policy`
- * (préservés verbatim par `patchFrontmatter`, comme `scaffold.entries` au 5b). Éditer le `label`
- * inchangé ⇒ document byte-identique.
+ * **Patch de frontmatter** d'un garde-fou (Lot 5c, C-1 ; `policy` ajouté au chantier #4 Lot B).
+ * Champs **éditables** modélisés : `label` et `policy` (scalaires). **Exclus** : `id` (verrou C-1) et
+ * les champs **load-bearing** `kind` + `hook` (enum + spec de branchement couplés au code des hooks —
+ * **verrouillés** à l'écran, jamais des contrôles fantômes), préservés verbatim par `patchFrontmatter`.
+ * `policy` est **toujours** présent au patch, mais `patchFrontmatter` ne réécrit sa ligne que si la
+ * valeur **change réellement** (sinon verbatim) : round-trip sans édition ⇒ document byte-identique
+ * (AC3). Tous les gardes-fous réels du canon portent une ligne `policy:` (mesuré) — le patch la
+ * **remplace**, jamais ne l'ajoute. **Addition pure** au cœur : aucune signature retirée, aucun octet
+ * de fichier `.md` touché hors réécriture explicite (drift `vendor-check` 0 par construction).
  */
 export function guardrailFrontmatterPatch(g: GuardrailAtom): FrontmatterPatch {
   return {
     label: { kind: "scalar", value: g.label },
+    policy: { kind: "scalar", value: g.policy },
   };
 }
