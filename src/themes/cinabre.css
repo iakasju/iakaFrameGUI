@@ -6,16 +6,15 @@
    re-scopé en [data-theme] pour la commutation de charte, SANS réécrire la charte.
    Resynchro manuelle si la charte amont évolue (sync auto = hors MVP).
 
-   Charte de défaut de la forge : le sélecteur `:root` (sans data-theme) matche AUSSI
-   Cinabre → l'app est en Cinabre même si l'attribut n'est pas encore posé (anti-flash
-   de secours ; en pratique useCharte pose data-theme="cinabre" avant le 1er rendu).
+   Charte choisissable (plus le défaut) : scopée à son seul data-theme. Le repli
+   anti-flash `:root` (sans data-theme) porte désormais Studio clair, charte par défaut
+   du contexte dev logiciel (cf. studio-clair.css).
 
    Fonts (Q-2, MVP) : fallback système. Les Google Fonts (Inter/Spectral/JetBrains Mono)
    sont laissées EN TÊTE des piles mais restent optionnelles — absentes, on tombe
    proprement sur les polices système. AUCUNE requête réseau (CSP stricte).
    ========================================================================== */
 
-:root,
 :root[data-theme="cinabre"] {
   /* — Surfaces (gris / blanc) — */
   --bg-primary: #e8e8eb;     /* fond de page : gris clair calme */
