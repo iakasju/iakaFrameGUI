@@ -21,11 +21,12 @@
 
 import { toolsForPersona } from "../binding";
 import { serializeAgentContract } from "../frontmatter";
-import { DEFAULT_METHOD_ID } from "../method";
+import { DEFAULT_METHOD_ID, resolveWorkflow } from "../method";
 import type { Persona } from "../persona";
 import { personaBadge } from "../persona";
 import { roleLabel } from "../roles";
 import { CATALOG_SKILLS } from "../skill";
+import { renderWorkflowMarkdown } from "../workflow";
 import type { Team } from "../team";
 import { GUARD_SCRIPTS } from "./guardScripts.generated";
 import { buildClaudeSettings, buildGuardrailWiring } from "./guards";
@@ -158,6 +159,12 @@ function renderClaudeMd(team: Team, personas: Persona[], opts?: KitGenOptions): 
     opts?.methodInstructions && opts.methodInstructions.trim().length > 0
       ? opts.methodInstructions.trim()
       : `Méthode « ${methodId} » : chaque intervenant tient son rôle, s'identifie par sa\npastille à l'ouverture et à la clôture, et ne sort pas de son périmètre.`;
+  // Section phases/gates — MÊME rendu et MÊME ordre de résolution que `AGENTS.md` (I-2/I-3) :
+  // workflow injecté par la forge (P6b) d'abord, sinon celui de la Méthode du Kit (E2), sinon le
+  // canonique → **sans `method` ni `workflow`, la sortie reste celle du canonique**.
+  const workflowSection = renderWorkflowMarkdown(
+    opts?.workflow ?? resolveWorkflow(opts?.method),
+  );
   return `# ${team.name} — kit Claude Code
 
 > Fichier-contrat généré par la forge iakaFrameGUI depuis une **team PURE**.
@@ -168,6 +175,8 @@ function renderClaudeMd(team: Team, personas: Persona[], opts?: KitGenOptions): 
 - **Rôles présents** (${personas.length}) :
 
 ${rolesLines}
+
+${workflowSection}
 
 ## Méthode
 
