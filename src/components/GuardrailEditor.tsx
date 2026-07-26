@@ -2,28 +2,27 @@
  * GuardrailEditor — créer / éditer un **garde-fou** (contrainte de discipline de 1re classe) —
  * présentationnel, sœur de `PrincipleEditor` (chantier #3 Lot 2).
  *
- * Champs **essentiels** (`Guardrail` du cœur : `{id, kind, label, scope, rendering}`) : **libellé**
- * (libre), **nature** (`kind`) et **portée** (`scope`). L'**id** est dérivé du libellé à la création
- * (`slugify`) et **verrouillé** ensuite (C-1).
+ * Champs (`Guardrail` du cœur, vue d'affichage ; l'atome disque est `{id, label, kind, hook, policy}`) :
+ * **libellé** (libre) et **politique** (`policy`, prose de la garde) sont **éditables** (chantier #4
+ * Lot B : `policy` modélisé par `guardrailFrontmatterPatch`). L'**id** est dérivé du libellé à la
+ * création (`slugify`) et **verrouillé** ensuite (C-1).
  *
- * SIMPLIFICATION MVP (à remonter) : le champ **`rendering`** (hook/prose — descripteur de câblage +
- * prose comportementale) est une shape riche dont l'édition dépasse un formulaire de champs simples ;
- * il est **préservé tel quel en édition** et vaut **`{}` en création** (aucun rendu fabriqué). Son
- * authoring réel (éditer hook/prose) reste hors MVP. Ne persiste rien : remonte à `onSubmit`.
+ * **Honnêteté (Lot B, AC1)** :
+ * - **`kind`** est **load-bearing** (enum couplé au code des hooks) → **verrouillé** (affiché, non
+ *   éditable), préservé verbatim par `guardrailFrontmatterPatch`. Le rendre éditable induirait un faux
+ *   branchement de hook.
+ * - Le **`scope`** n'est **PAS un champ du disque plat** (méta d'affichage dérivée du catalogue) : son
+ *   contrôle éditable **était un fantôme** (valeur jetée au save) → **retiré**. `scope` reste porté par
+ *   le type d'affichage (préservé tel quel), sans contrôle trompeur.
+ *
+ * Le champ riche **`rendering`** (hook/prose — descripteur de câblage) reste **préservé tel quel** en
+ * édition et vaut **`{}`** en création (aucun rendu fabriqué). Ne persiste rien : remonte à `onSubmit`.
  */
 import { useState } from "react";
-import {
-  slugify,
-  type Guardrail,
-  type GuardrailKind,
-  type GuardrailScope,
-} from "@iakaframe/core";
+import { slugify, type Guardrail } from "@iakaframe/core";
 import type { ElementEditorProps } from "../forge/elementKind";
 
-const KINDS: GuardrailKind[] = ["identity", "perimeter", "delegation", "permission", "custom"];
-const SCOPES: GuardrailScope[] = ["team", "persona", "role"];
-
-const EMPTY: Guardrail = { id: "", kind: "custom", label: "", scope: "persona", rendering: {} };
+const EMPTY: Guardrail = { id: "", kind: "custom", label: "", scope: "persona", rendering: {}, policy: "" };
 
 export function GuardrailEditor({
   element,
@@ -43,12 +42,14 @@ export function GuardrailEditor({
     if (label.length === 0) return;
     const id = editing && draft.id ? draft.id : uniqueId(slugify(label) || "guardrail", existingIds);
     onSubmit({
+      ...draft,
       id,
       label,
-      kind: draft.kind,
-      scope: draft.scope,
-      // rendering préservé tel quel (édition) ou vide (création) — non éditable au MVP.
+      // kind : verrouillé (load-bearing) — préservé tel quel, jamais réattribué par l'édition.
+      // scope : méta d'affichage préservée telle quelle (plus aucun contrôle fantôme).
+      // rendering : préservé tel quel (édition) ou vide (création) — non éditable au MVP.
       rendering: draft.rendering ?? {},
+      policy: draft.policy ?? "",
     });
     if (!editing) setDraft({ ...EMPTY });
   }
@@ -78,25 +79,21 @@ export function GuardrailEditor({
       </div>
 
       <div className="field">
-        <label>Nature</label>
-        <select value={draft.kind} onChange={(e) => patch({ kind: e.target.value as GuardrailKind })}>
-          {KINDS.map((k) => (
-            <option key={k} value={k}>
-              {k}
-            </option>
-          ))}
-        </select>
+        <label>Nature (kind)</label>
+        <input className="locked" value={draft.kind} disabled />
+        <div className="lockhint">
+          🔒 nature load-bearing — enum couplé au câblage des hooks, préservé du disque (jamais réattribué)
+        </div>
       </div>
 
       <div className="field">
-        <label>Portée</label>
-        <select value={draft.scope} onChange={(e) => patch({ scope: e.target.value as GuardrailScope })}>
-          {SCOPES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <label>Politique (policy)</label>
+        <textarea
+          rows={4}
+          value={draft.policy ?? ""}
+          placeholder="Prose de la garde : ce qu'elle fait respecter…"
+          onChange={(e) => patch({ policy: e.target.value })}
+        />
       </div>
 
       {hasRendering && (
