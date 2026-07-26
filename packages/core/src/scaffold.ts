@@ -123,13 +123,27 @@ export function parseScaffold(raw: unknown): Scaffold | null {
 
 /**
  * Construit le **patch de frontmatter** d'un scaffold pour une réécriture **non-destructive**
- * (Lot 5b, C1) : au MVP le seul champ éditable est `level` (l'éditeur ne touche ni `entries` — tableau
- * riche préservé, cf. simplification MVP du Lot 2 — ni `nonDestructive`, invariant). **Exclus** : `id`
- * (verrouillé, C-1), `entries` et `nonDestructive` — **préservés à l'octet** par `patchFrontmatter` du
- * seul fait de leur absence du patch. Round-trip sans édition ⇒ document byte-identique.
+ * (Lot 5b, C1 ; `entries` ajoutées au chantier #4 Lot A). Champs modélisés : `level` (scalaire) et
+ * `entries` (séquence de blocs de maps inline `- { path, role, createIfAbsent }`, ordre canon
+ * `path, role, createIfAbsent`). **Exclus** : `id` (verrouillé, C-1) et `nonDestructive` (invariant)
+ * — **préservés à l'octet** par `patchFrontmatter` du seul fait de leur absence du patch.
+ *
+ * `entries` est **toujours** présent au patch, mais `patchFrontmatter` ne réécrit sa/ses ligne(s) que
+ * si la séquence **change réellement** (sinon la forme d'origine reste **verbatim**) : round-trip sans
+ * édition ⇒ document byte-identique (AC3) ; édition d'une seule entrée ⇒ diff minimal sur ce bloc.
+ * **Addition pure** au cœur : aucune signature retirée, aucun octet de fichier `.md` touché hors
+ * réécriture explicite (drift `vendor-check` 0 par construction).
  */
 export function scaffoldFrontmatterPatch(s: Scaffold): FrontmatterPatch {
   return {
     level: { kind: "scalar", value: s.level },
+    entries: {
+      kind: "blockmap",
+      value: s.entries.map((e) => ({
+        path: e.path,
+        role: e.role,
+        createIfAbsent: e.createIfAbsent,
+      })),
+    },
   };
 }
