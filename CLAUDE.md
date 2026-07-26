@@ -145,6 +145,12 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **Sous-lot B « cardinalité » — non commencé.** Le **lot A** (modèle de frame agnostique :
+  `kind` first-class, acteurs/conteneur unifiés) a été livré **par une autre session** le 2026-07-26
+  (`a6d9803`). Le **sous-lot B** de ce même cadrage reste dû : `coordinator` **optionnel** + N=1 dans
+  `assemble`. ⚠️ Son instruction vit **dans le dépôt canon**
+  (`iakaframe/specs/instructions/correction-biais-modele-frame.md`), pas ici — **verser le cadrage
+  avant de coder**, comme pour le chantier frames.
 - [ ] **Troisième sens de « réservoir » — non cadré.** L'onglet **Apprentissage** appelle
   « réservoir » son **stock de propositions** (`useForgeLearning.ts`, `LearningAtelier.tsx`,
   `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne

@@ -31,10 +31,45 @@
 
 ## Reprise du travail (a completer par Cowork)
 
-- **Ce qui vient d'etre fait** : <!-- ... -->
-- **En cours / a reprendre** : <!-- ... -->
-- **Prochaine etape concrete** : <!-- premiere action a faire en reprenant -->
-- **Pieges connus** : <!-- ... -->
+- **Ce qui vient d'etre fait (session du 25-26/07)** — menage d'abord : 3 branches obsoletes
+  supprimees (local + origin) apres archivage par tags `archive/feat/*`, backlog de `CLAUDE.md`
+  reecrit sur l'etat MESURE (4 items qui mentaient sur le code, 4 dettes en fait deja closes), CLI
+  `iakaframe` mis dans le PATH via un wrapper `~/.local/bin/iakaframe`. Puis **6 lots livres**,
+  chacun merge `--no-ff` avec gate cite :
+  1. **Renommage `reservoir` -> `element pool`** (AR-2/A13) acheve : symboles, fichiers, doc. Le
+     mot portait TROIS sens (le 1er inventaire, `grep -i reservoir`, etait aveugle aux accents).
+  2. **Libelles « Briques »** (arbitrage decideur) : « outils » ecarte car deja pris par
+     `Binding.tools`/`toolKinds`, et emis verbatim dans les contrats generes.
+  3. **Feanor = le copilote du GUI** : identite DERIVEE du canon (fiche du role `frame` lue par
+     `poolReadAll`, recherche par ROLE), `buildSystemPrompt(identity?)` injecte, badge pose par
+     l'UI (schema JSON intact), repli explicite sans identite inventee.
+  4. **Garde de montage** du copilote sur backend partiel (`api.authoringModel?.()`).
+  5. **Pointeur de frame active** dans `<projet>/iakaframe.json` (cle `frame`), projet regle dans
+     les Settings ; ecriture non destructive qui REFUSE d'ecrire sur un JSON illisible.
+  6. **Section phases/workflow dans le kit Claude Code** ; Open WebUI ECARTE avec sa raison.
+- **⚠️ Lot livre EN PARALLELE par une autre session** (Opus 4.8, commit `a6d9803`, 01:43) :
+  « modele de frame agnostique — kind first-class + acteurs/conteneur unifies (**lot A**) ».
+  Il touche `workflow.ts`, `frame.ts`, `frontmatter.ts` et les fixtures. **Aucun conflit** avec les
+  lots ci-dessus (merges passes, suites vertes), mais c'est ce qui explique le compte de tests qui
+  a bouge sans ajout de ma part. **Son instruction vit dans le depot canon**
+  (`iakaframe/specs/instructions/correction-biais-modele-frame.md`), pas ici.
+- **Prochaine etape concrete** : le **sous-lot B (cardinalite)** de ce meme cadrage reste A FAIRE —
+  `coordinator` optionnel + N=1 dans `assemble`. Verifier son volet GUI et, comme pour le chantier
+  frames, **verser le cadrage ici** plutot que de coder sur une instruction qui vit ailleurs.
+- **Aussi ouvert, sans blocage** : confirmer au depot canon le **nom de cle `frame`** du pointeur
+  (avant que le CLI ne s'y branche) ; trancher le **3e sens de « reservoir »** (stock de
+  propositions de l'onglet Apprentissage, non cadre) ; arbitrer **« que doit produire New ? »**.
+- **Pieges connus** :
+  1. **`iakaframe update` DETRUIT ce recit** — `cli/src/commands/snapshot.js:106-109` reecrit le
+     fichier avec les placeholders vides. Sauvegarder cette section AVANT tout snapshot, la
+     reinjecter apres. Dette a remonter au depot canon.
+  2. **Les messages de commit passent par un FICHIER** (`git commit -F`) : un backtick non echappe
+     est substitue par zsh et **mange le mot** (deux messages de cette session en portent la trace).
+  3. **`vitest` ne type-checke pas.** Deux erreurs de typage d'un test sont passees vertes avant
+     d'etre attrapees par `lint:all`. Le gate est `lint:all` ET `test:all` — jamais l'un seul.
+  4. **`cargo test` est hors de `test:all`** par conception : le mesurer des qu'un lot touche Rust.
+  5. Le **decideur travaille parfois en parallele** sur ce depot : verifier `git log` avant de
+     supposer que l'arbre n'a bouge que de son propre fait.
 
 ## Journal (versions & pauses)
 
