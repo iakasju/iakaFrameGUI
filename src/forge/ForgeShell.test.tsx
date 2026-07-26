@@ -38,14 +38,19 @@ describe("ForgeShell — nav à 9 entrées (Lot 2, Fork B)", () => {
     expect(await screen.findByText(/Stock — atelier Kit · assemblage total/)).toBeTruthy();
   });
 
-  it("les entrées encore sans écran (persona, models) rendent un placeholder « à venir »", async () => {
+  it("l'entrée « models » (encore sans écran) rend un placeholder « à venir »", async () => {
     render(<ForgeShell />);
-
-    fireEvent.click(screen.getByRole("tab", { name: "persona" }));
-    expect(await screen.findByText(/à venir · Lot 3/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("tab", { name: "models" }));
     expect(await screen.findByText(/à venir · Lot 4/)).toBeTruthy();
+  });
+
+  it("l'entrée « persona » ouvre le réservoir de personas du Lot 3 (fiches à vignettes)", async () => {
+    render(<ForgeShell />);
+    fireEvent.click(screen.getByRole("tab", { name: "persona" }));
+    // Le réservoir monte sa grille de 9 fiches (les personas vendorées).
+    expect(await screen.findByText("Le réservoir de personas")).toBeTruthy();
+    expect(screen.getByLabelText("Ouvrir la fiche de Gimli")).toBeTruthy();
   });
 
   it("l'entrée « assemblage » ouvre l'écran d'assemblage du Lot 1", async () => {
@@ -65,7 +70,7 @@ describe("ForgeShell — nav à 9 entrées (Lot 2, Fork B)", () => {
 
   it("le bouton « New » est désactivé sur une entrée sans entité créable (placeholder)", async () => {
     render(<ForgeShell />);
-    fireEvent.click(screen.getByRole("tab", { name: "persona" }));
+    fireEvent.click(screen.getByRole("tab", { name: "models" }));
     const newBtn = screen.getByRole("button", { name: "Nouvelle entité" });
     expect((newBtn as HTMLButtonElement).disabled).toBe(true);
   });
