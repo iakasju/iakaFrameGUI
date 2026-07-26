@@ -8,8 +8,10 @@
  * Lot 1 : un pilote (le principe). **Lot 2** : les 5 pools de catalogue restants deviennent
  * authorables — **skill, rituel, garde-fou, rôle, scaffold** (sources `CATALOG_SKILLS`,
  * `CATALOG_RITUALS`, `CATALOG_GUARDRAILS`, `CANONICAL_ROLES`, `CATALOG_SCAFFOLDS`), édition locale de
- * session. Seul **workflow** reste « à venir » (Lot 3, cas riche à part). Brancher un pool = ajouter
- * une entrée à `AUTHORABLE` avec son `ElementKind` (rien d'autre à toucher ici : l'hôte est agnostique).
+ * session. **Lot 3** : le dernier type — **workflow** (cas riche, source `WORKFLOW_CATALOG`) — devient
+ * authorable en réutilisant l'éditeur existant `WorkflowAtelier` comme `Editor` injecté ; plus aucun
+ * pool « à venir ». Brancher un pool = ajouter une entrée à `AUTHORABLE` avec son `ElementKind` (rien
+ * d'autre à toucher ici : l'hôte est agnostique).
  */
 import { useState, type ReactNode } from "react";
 import { ElementReservoir } from "./ElementReservoir";
@@ -19,6 +21,7 @@ import { ritualKind } from "./ritualKind";
 import { guardrailKind } from "./guardrailKind";
 import { roleKind } from "./roleKind";
 import { scaffoldKind } from "./scaffoldKind";
+import { workflowKind } from "./workflowKind";
 
 interface AuthorableEntry {
   /** Clé de type stable. */
@@ -32,7 +35,7 @@ interface AuthorableEntry {
 }
 
 /**
- * Les pools **authorables** (pilote principe + les 5 pools de catalogue du Lot 2).
+ * Les pools **authorables** (pilote principe + les 5 pools de catalogue du Lot 2 + workflow au Lot 3).
  *
  * Chaque réservoir porte un **`key` = son type** : les pools se rendent à la même position dans
  * `ea-main`, or un `ElementReservoir` porte son propre état de session (`items`). Sans `key`, changer
@@ -77,12 +80,16 @@ const AUTHORABLE: AuthorableEntry[] = [
     icon: "🏗️",
     render: () => <ElementReservoir key="scaffold" kind={scaffoldKind} />,
   },
+  {
+    type: "workflow",
+    label: "workflows",
+    icon: "🧭",
+    render: () => <ElementReservoir key="workflow" kind={workflowKind} />,
+  },
 ];
 
-/** Les pools **à venir** (Lot 3) — listés en repère honnête, non sélectionnables. */
-const UPCOMING: { label: string; icon: string }[] = [
-  { label: "workflows", icon: "🧭" },
-];
+/** Plus aucun pool « à venir » : les 7 types de 1er ordre sont authorables (Lots 1→3 complets). */
+const UPCOMING: { label: string; icon: string }[] = [];
 
 export function ElementsAuthoring() {
   const [selected, setSelected] = useState<string>(AUTHORABLE[0].type);
@@ -107,15 +114,19 @@ export function ElementsAuthoring() {
           </button>
         ))}
 
-        <div className="ea-rail-h upcoming">À venir (Lots 2–4)</div>
-        {UPCOMING.map((e) => (
-          <span key={e.label} className="ea-pool disabled" aria-disabled="true">
-            <span className="ea-icon" aria-hidden="true">
-              {e.icon}
-            </span>
-            {e.label}
-          </span>
-        ))}
+        {UPCOMING.length > 0 && (
+          <>
+            <div className="ea-rail-h upcoming">À venir</div>
+            {UPCOMING.map((e) => (
+              <span key={e.label} className="ea-pool disabled" aria-disabled="true">
+                <span className="ea-icon" aria-hidden="true">
+                  {e.icon}
+                </span>
+                {e.label}
+              </span>
+            ))}
+          </>
+        )}
       </aside>
 
       <div className="ea-main">{active.render()}</div>
