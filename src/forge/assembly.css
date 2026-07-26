@@ -1,0 +1,447 @@
+/* ============================================================================
+   assembly.css — l'écran d'ASSEMBLAGE « frame = méthode + team (frères) + binding ».
+   Porté au pixel de la maquette validée specs/mock/gui/03-assemblage.html (Lot 1).
+
+   CHARTE : Studio clair, imposée LOCALEMENT (tokens re-déclarés sur .assembly-view),
+   indépendante de la charte globale (Fork E — bascule globale hors périmètre du pilote).
+   Les valeurs sont celles de la maquette (= tokens studio-clair). Aucun asset distant.
+   ========================================================================== */
+
+.assembly-view {
+  /* — Tokens Studio clair (locaux à cet écran) — */
+  --bg-primary: #fbfbfc;
+  --bg-card: #ffffff;
+  --bg-deep: #f0f1f4;
+  --line: #e7e8ec;
+  --line-soft: #eef0f3;
+  --text-primary: #16181d;
+  --text-secondary: #5b6270;
+  --text-muted: #9aa0ad;
+  --accent: #5b5bd6;
+  --accent-rgb: 91, 91, 214;
+  --grad: linear-gradient(135deg, #5b5bd6, #7a78ff);
+  --flame: linear-gradient(135deg, #c2410c, #7c2d12);
+  --flame-rgb: 194, 64, 12;
+  --green: #30a46c;
+  --radius: 13px;
+  --shadow: 0 4px 14px rgba(20, 22, 28, 0.08);
+
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 1.7rem 1.6rem 3rem;
+  line-height: 1.55;
+}
+
+.assembly-view .crumb {
+  font: 600 0.72rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.assembly-view .h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.assembly-view .sub {
+  color: var(--text-secondary);
+  margin-top: 0.35rem;
+  font-size: 0.96rem;
+  max-width: 72ch;
+}
+.assembly-view .sub strong {
+  color: var(--text-primary);
+}
+
+/* — Sélecteur de frame active (réservoir) — */
+.assembly-view .frame-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.assembly-view .frame-picker .lab {
+  font: 600 0.62rem ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.assembly-view .frame-picker button {
+  border: 1px solid var(--line);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: 600 0.78rem inherit;
+  padding: 0.32rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.assembly-view .frame-picker button[aria-pressed="true"] {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  color: var(--accent);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.07), rgba(var(--accent-rgb), 0.01));
+}
+.assembly-view .frame-picker button:disabled {
+  cursor: default;
+}
+
+.assembly-view .dangling,
+.assembly-view .load-err {
+  margin-top: 0.8rem;
+  color: #b42318;
+  font-size: 0.84rem;
+}
+
+/* ===== Tree ===== */
+.assembly-view .tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.8rem;
+}
+.assembly-view .node-frame {
+  border: 1.5px solid rgba(var(--accent-rgb), 0.4);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.07), rgba(var(--accent-rgb), 0.01));
+  border-radius: var(--radius);
+  padding: 0.9rem 1.4rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  min-width: 340px;
+}
+.assembly-view .node-frame .lab {
+  font: 700 0.66rem ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+.assembly-view .node-frame .ttl {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-top: 0.15rem;
+}
+.assembly-view .node-frame .path {
+  font: 500 0.74rem ui-monospace, monospace;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+.assembly-view .node-frame .path b {
+  color: var(--accent);
+  font-weight: 700;
+}
+.assembly-view .drop {
+  width: 2px;
+  height: 26px;
+  background: var(--line);
+}
+.assembly-view .brothers {
+  display: flex;
+  gap: 2.2rem;
+  position: relative;
+  align-items: stretch;
+}
+.assembly-view .brothers::before {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: var(--line);
+}
+.assembly-view .bcol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.assembly-view .bcol .dropv {
+  width: 2px;
+  height: 14px;
+  background: var(--line);
+}
+.assembly-view .frere {
+  font: 700 0.6rem ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.assembly-view .box {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 388px;
+  overflow: hidden;
+}
+.assembly-view .box.method {
+  border-top: 3px solid var(--accent);
+}
+.assembly-view .box.team {
+  border-top: 3px solid var(--green);
+}
+.assembly-view .box .bh {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.assembly-view .box .bh .em {
+  font-size: 1.05rem;
+}
+.assembly-view .box .bh .t {
+  font-weight: 750;
+  font-size: 0.98rem;
+}
+.assembly-view .box .bh .p {
+  font: 500 0.72rem ui-monospace, monospace;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.assembly-view .box .bb {
+  padding: 0.85rem 1rem;
+}
+.assembly-view .row {
+  margin: 0.5rem 0;
+}
+.assembly-view .row .k {
+  font: 600 0.62rem ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+.assembly-view .refchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+.assembly-view .ref {
+  font: 600 0.68rem ui-monospace, monospace;
+  padding: 0.16rem 0.5rem;
+  border-radius: 7px;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+}
+.assembly-view .ref.wf {
+  background: rgba(59, 130, 246, 0.09);
+  color: #2563eb;
+  border-color: transparent;
+}
+.assembly-view .ref.pr {
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+  border-color: transparent;
+}
+.assembly-view .ref.gd {
+  background: rgba(48, 164, 108, 0.1);
+  color: #1f7a4d;
+  border-color: transparent;
+}
+.assembly-view .ref.rk {
+  background: rgba(142, 78, 198, 0.1);
+  color: #7a3ba8;
+  border-color: transparent;
+}
+.assembly-view .ref.rt {
+  background: rgba(245, 166, 35, 0.13);
+  color: #b5730a;
+  border-color: transparent;
+}
+.assembly-view .ref.sc {
+  background: var(--bg-deep);
+  color: var(--text-secondary);
+}
+.assembly-view .abstract-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+.assembly-view .empty-ref {
+  font: 500 0.72rem ui-monospace, monospace;
+  color: var(--text-muted);
+}
+
+.assembly-view .tmembers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.assembly-view .mem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.32rem 0.55rem 0.32rem 0.35rem;
+}
+.assembly-view .mem.coord {
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+.assembly-view .mvg {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font: 800 0.68rem ui-monospace, monospace;
+  flex: none;
+}
+.assembly-view .mem .mn {
+  font-weight: 650;
+  font-size: 0.8rem;
+}
+.assembly-view .mem .mr {
+  font: 500 0.6rem ui-monospace, monospace;
+  color: var(--text-muted);
+}
+
+/* ===== Binding ===== */
+.assembly-view .binding {
+  margin-top: 1.5rem;
+  border: 1.5px dashed rgba(var(--flame-rgb), 0.32);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(var(--flame-rgb), 0.04), transparent);
+  overflow: hidden;
+}
+.assembly-view .binding .bh {
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid rgba(var(--flame-rgb), 0.14);
+}
+.assembly-view .binding .bh .marker {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--flame);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font: 800 0.62rem ui-monospace, monospace;
+}
+.assembly-view .binding .bh .t {
+  font-weight: 750;
+  font-size: 0.95rem;
+}
+.assembly-view .binding .bh .sub2 {
+  font: 500 0.74rem ui-monospace, monospace;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.assembly-view .mtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.assembly-view .mtable th {
+  font: 600 0.62rem ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 0.5rem 1rem;
+  background: var(--bg-deep);
+}
+.assembly-view .mtable td {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.assembly-view .mtable .rkcell {
+  font: 600 0.74rem ui-monospace, monospace;
+  color: #7a3ba8;
+}
+.assembly-view .mtable .marry {
+  color: #b5591f;
+  text-align: center;
+  font-weight: 800;
+}
+.assembly-view .pcell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.assembly-view .pcell .mvg {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 0.62rem;
+}
+.assembly-view .pcell .pn {
+  font-weight: 650;
+}
+.assembly-view .runner {
+  font: 600 0.68rem ui-monospace, monospace;
+  color: var(--text-secondary);
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.1rem 0.45rem;
+}
+
+/* ===== Notes d'intégrité / couverture ===== */
+.assembly-view .note {
+  display: flex;
+  gap: 0.7rem;
+  background: rgba(var(--accent-rgb), 0.05);
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+  margin-top: 1.5rem;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+.assembly-view .note b {
+  color: var(--accent);
+}
+.assembly-view .orphan {
+  border-color: rgba(245, 166, 35, 0.4);
+  background: rgba(245, 166, 35, 0.07);
+}
+.assembly-view .orphan b {
+  color: #b5730a;
+}
+.assembly-view .integrity.ok {
+  border-color: rgba(48, 164, 108, 0.3);
+  background: rgba(48, 164, 108, 0.06);
+}
+.assembly-view .integrity.ok b {
+  color: #1f7a4d;
+}
+.assembly-view .integrity.err {
+  border-color: rgba(229, 72, 77, 0.35);
+  background: rgba(229, 72, 77, 0.06);
+}
+.assembly-view .integrity.err b {
+  color: #b42318;
+}
+
+.assembly-view .placeholder {
+  margin-top: 2rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 820px) {
+  .assembly-view .brothers {
+    flex-direction: column;
+    gap: 1.3rem;
+  }
+  .assembly-view .brothers::before {
+    display: none;
+  }
+  .assembly-view .box {
+    width: 100%;
+    max-width: 420px;
+  }
+}
