@@ -4,8 +4,10 @@
  * **sans toucher l'hôte** ni FeanorHead. Le champ riche `rendering` est simplifié au MVP (cf.
  * `GuardrailEditor`, simplification remontée).
  *
- * Source = catalogue canonique vendoré `CATALOG_GUARDRAILS` (étiqueté, honnête) ; édition = état local
- * de session (aucune écriture disque — Lot 5 différé). AUCUN contrat cœur touché.
+ * Source = catalogue canonique vendoré `CATALOG_GUARDRAILS` (étiqueté, honnête) ; édition **persistée
+ * sur disque** via `persistGuardrail` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat cœur
+ * touché. NB : l'authoring de `policy` + la levée des contrôles fantômes (`kind`/`scope`) restent au
+ * **Lot B** (chantier #4).
  */
 import { type Guardrail } from "@iakaframe/core";
 import {

@@ -3,8 +3,10 @@
  * #3 Lot 2). Clone du pilote `principleKind` adapté aux champs réels de `Role`, branché **sans toucher
  * l'hôte** ni FeanorHead. PARTICULARITÉ : `idOf` renvoie **`key`** (la clé stable d'un rôle, pas `id`).
  *
- * Source = liste canonique vendorée `CANONICAL_ROLES` (étiquetée, honnête) ; édition = état local de
- * session (aucune écriture disque — Lot 5 différé). AUCUN contrat cœur touché.
+ * Source = liste canonique vendorée `CANONICAL_ROLES` (étiquetée, honnête) ; édition **persistée sur
+ * disque** via `persistRole` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat cœur touché.
+ * NB : l'authoring de `scope` + la levée du contrôle fantôme `roleIndex` restent au **Lot B**
+ * (chantier #4).
  */
 import { type Role } from "@iakaframe/core";
 import {
