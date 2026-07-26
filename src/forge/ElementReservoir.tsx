@@ -11,8 +11,13 @@
  * L'hôte ne connaît AUCUN type concret — un lot suivant branche un nouveau pool en fournissant son
  * `ElementKind` (un `buildCards` + un `Editor` + un `toAuthoredEntity`), **sans toucher ce fichier**.
  *
- * Édition = **état local de session** (MVP, aucune écriture disque — la persistance est le Lot 5
- * différé, cross-repo). Fëanor reste **honnête** (aucun appel LLM au montage ; repli/aveu du #1).
+ * Persistance (Lot 5a, persistance-disque-authoring-elements.md) : la prop **optionnelle** `persist`
+ * bascule l'`onSubmit` de l'état de session vers l'**écriture disque non-destructive** (persona
+ * pilote — `PersonaReservoir` la fournit). Le save reste **optimiste** (la session reflète l'édition
+ * immédiatement), écrit sur disque en arrière-plan, puis **réconcilie** depuis le disque (relecture).
+ * Un échec (hors Tauri, racine non résolue…) **dégrade proprement** : l'édition reste en session +
+ * un message clair (jamais une stack). Les pools **sans** `persist` gardent l'état de session (MVP,
+ * 5b/5c différés). Fëanor reste **honnête** (aucun appel LLM au montage ; repli/aveu du #1).
  */
 import { useEffect, useState } from "react";
 import type { Persona } from "@iakaframe/core";
@@ -22,20 +27,40 @@ import type { ElementCardVM, ElementKind } from "./elementKind";
 
 type Mode = "grid" | "edit" | "create";
 
+/** Upsert par id dans une liste de session (édition en place, sinon ajout). */
+function upsertById<T>(prev: T[], next: T, idOf: (e: T) => string): T[] {
+  const id = idOf(next);
+  const idx = prev.findIndex((x) => idOf(x) === id);
+  if (idx >= 0) {
+    const copy = [...prev];
+    copy[idx] = next;
+    return copy;
+  }
+  return [...prev, next];
+}
+
 export function ElementReservoir<T>({
   kind,
   loadElements,
+  persist,
 }: {
   /** Le contrat du pool authorable (persona, principe, …). */
   kind: ElementKind<T>;
   /** Chargeur des éléments réels (injectable en test). Défaut : le repli hors-ligne du type. */
   loadElements?: () => Promise<T[]>;
+  /**
+   * Écriture disque non-destructive d'un élément (Lot 5a). **Absente** ⇒ édition en état de session
+   * (comportement historique, pools 5b/5c différés). **Présente** (persona) ⇒ save optimiste +
+   * écriture disque + réconciliation ; un échec dégrade en session + message (jamais une stack).
+   */
+  persist?: (element: T) => Promise<void>;
 }) {
   // État éditable de session. Amorcé sur le repli hors-ligne (rendu synchrone immédiat), REMPLACÉ
-  // par les éléments réels dès qu'ils sont chargés. Aucune écriture disque (MVP, § 4.3).
+  // par les éléments réels dès qu'ils sont chargés.
   const [items, setItems] = useState<T[]>(() => kind.fallback());
   const [mode, setMode] = useState<Mode>("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loadElements) return;
@@ -58,17 +83,20 @@ export function ElementReservoir<T>({
   };
 
   const onSubmit = (next: T) => {
-    setItems((prev) => {
-      const id = kind.idOf(next);
-      const idx = prev.findIndex((x) => kind.idOf(x) === id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = next;
-        return copy;
-      }
-      return [...prev, next];
-    });
+    // Optimiste : la session reflète l'édition immédiatement (rendu synchrone, non-régression).
+    setItems((prev) => upsertById(prev, next, kind.idOf));
+    setSaveError(null);
     backToGrid();
+    if (!persist) return; // pool sans persistance disque (MVP) → état de session seul.
+    // Écriture disque non-destructive, puis réconciliation depuis le disque (relecture).
+    void persist(next)
+      .then(() => loadElements?.())
+      .then((real) => {
+        if (real && real.length > 0) setItems(real);
+      })
+      .catch((e: unknown) => {
+        setSaveError(e instanceof Error ? e.message : String(e));
+      });
   };
 
   // --- Fiche : élément sélectionné (édition) OU nouvel élément (création) ---
@@ -124,6 +152,12 @@ export function ElementReservoir<T>({
       <div className="crumb">{kind.crumb}</div>
       <div className="h1">{kind.title}</div>
       <p className="sub">{kind.subtitle}</p>
+
+      {saveError && (
+        <p className="save-error" role="alert">
+          {saveError}
+        </p>
+      )}
 
       <div className="rvhead">
         <span className="seclabel">
