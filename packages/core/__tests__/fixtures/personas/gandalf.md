@@ -5,7 +5,7 @@ description: Architecte-cadreur de la méthode iakaframe (P1 - Cadrage). À déc
 roleKey: cadrage
 royaume: IAKAFRAME
 pastille: "🔵"
-skills: [iakaframe-cadrage]
+skills: [iakaframe-cadrage, iakaframe-lecture-maquettes]
 guardrails: [identity, perimeter]
 vignette: none
 ---
