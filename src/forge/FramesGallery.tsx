@@ -1,67 +1,37 @@
 /**
  * FramesGallery — l'écran **galerie `models`** de 1er ordre (Lot 4,
- * alignement-gui-modele-de-frame.md § A4, Fork D). Remplace le placeholder `models` posé au Lot 2.
- * `models` est une **page dédiée** qui **parcourt** les frames du réservoir (les 8 modèles
- * instanciables : iakaframe, scrum, kanban, shapeup, design-thinking, lean-startup, waterfall, gtd)
- * — rendue comme la maquette validée `specs/mock/gui/01-library.html` (grille de **cartes à
- * vignettes**, même pattern que le réservoir de personas du Lot 3, pour la cohérence Studio clair).
+ * alignement-gui-modele-de-frame.md § A4, Fork D), rendu **ACTIONNABLE**
+ * (galerie-models-actionnable.md, Lot 1). Les cartes des frames du réservoir sont désormais
+ * **cliquables** : cliquer une carte non active **pose cette frame comme active** (pointeur
+ * `<projet>/iakaframe.json`, clé `frame`, écriture non destructive côté Rust) puis **re-résout**
+ * l'assemblage affiché — la carte active bascule. Rendu comme la maquette validée
+ * `specs/mock/gui/01-library.html` (grille de cartes à vignettes, Studio clair).
  *
- * DONNÉES — la vérité DÉRIVE des descripteurs `frames/*.md` (AR-1) : la galerie est alimentée par
- * le **réservoir de frames RÉEL** du frame chargé (`frame.frames`, `FrameDescriptor[]`), et la
- * carte de la frame **active** (`frame.assembly.frame`, défaut = frame `default` du réservoir) est
- * **distinguée** par un marqueur « actif ». Aucun contrat de `packages/core` n'est touché :
- * projection pure via `buildFramesGallery`, sélection via `galleryFromFrame`.
+ * GESTE PARTAGÉ (D-2) : la bascule passe par le hook `useFrameSwitch(api)` — le MÊME que
+ * `OpenFramePanel` : `setActiveFrameId` → **recharge-depuis-disque** → dangling (I-4) → erreur.
+ * Zéro état local optimiste (R5), zéro divergence de comportement (R4).
  *
- * PÉRIMÈTRE MVP — **affichage + marqueur seulement**. Le **changement de frame active** est un
- * chantier séparé (backlog) : les cartes sont read-only (pas de bascule ici). Sans réservoir chargé
- * (hors-ligne / racine introuvable), la galerie affiche un état vide explicite — aucune table
- * synthétique de frames n'est fabriquée (fidèle au geste « la vérité dérive des .md » du Lot 3).
+ * DONNÉES — la vérité DÉRIVE des descripteurs `frames/*.md` (AR-1) : la galerie projette
+ * `frame.frames` (réservoir) + `frame.assembly.frame` (active) via `galleryFromFrame`. Aucun contrat
+ * de `packages/core` n'est touché : projection pure au-dessus du modèle (parité par construction).
+ *
+ * NO-OP (D-3, A2) : la carte de la frame active est **désactivée** — re-sélectionner l'active
+ * n'écrit rien. Pas de modale de confirmation au MVP : le geste est non destructif et réversible ;
+ * l'assemblage re-résolu + la notice inline donnent le retour visuel immédiat.
  */
-import { useEffect, useState } from "react";
-import type { FrameDescriptor } from "@iakaframe/core";
+import { backend, type Backend } from "../api/backend";
 import { buildFramesGallery, galleryFromFrame } from "./frameCards";
-import { loadFrame } from "./frame";
+import { useFrameSwitch, DANGLING_FRAME_HINT } from "./useFrameSwitch";
 
-/** Réservoir de frames + id de la frame active, projeté d'un `Frame` chargé (injectable en test). */
-export interface GallerySource {
-  frames: FrameDescriptor[];
-  activeId: string | null;
-}
+export function FramesGallery({ api = backend }: { api?: Backend } = {}) {
+  // Geste PARTAGÉ avec OpenFramePanel : chargement au montage (autoLoad) + bascule (switchTo).
+  const { frame, busy, error, dangling, switchTo } = useFrameSwitch(api, { autoLoad: true });
 
-/**
- * Source par défaut : charge le frame et en dérive le réservoir + l'active. Repli sur galerie vide
- * (jamais d'exception) → le composant affiche alors l'état vide (aucune frame inventée).
- */
-async function defaultLoadGallery(): Promise<GallerySource> {
-  try {
-    return galleryFromFrame(await loadFrame());
-  } catch {
-    return { frames: [], activeId: null };
-  }
-}
-
-export function FramesGallery({
-  loadGallery = defaultLoadGallery,
-}: {
-  /** Chargeur du réservoir de frames (injectable en test). Défaut : `frame.frames` via `loadFrame`. */
-  loadGallery?: () => Promise<GallerySource>;
-} = {}) {
-  const [frames, setFrames] = useState<FrameDescriptor[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void loadGallery().then((src) => {
-      if (cancelled) return;
-      setFrames(src.frames);
-      setActiveId(src.activeId);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadGallery]);
-
+  const { frames, activeId } = frame
+    ? galleryFromFrame(frame)
+    : { frames: [], activeId: null };
   const cards = buildFramesGallery(frames, activeId);
+  const activeName = cards.find((c) => c.isActive)?.name ?? null;
 
   return (
     <section className="models-gallery" aria-label="Catalogue des frames">
@@ -70,7 +40,8 @@ export function FramesGallery({
       <p className="sub">
         Les <strong>frames instanciables</strong> du réservoir — {cards.length} modèle
         {cards.length > 1 ? "s" : ""}, chacun un assemblage nommé <strong>méthode + team</strong>
-        {" "}(frères) marié par un binding. La frame <strong>active</strong> est marquée.
+        {" "}(frères) marié par un binding. <strong>Clique une carte</strong> pour poser cette frame
+        comme active.
       </p>
 
       <div className="rvhead">
@@ -78,6 +49,23 @@ export function FramesGallery({
           Frames <span className="n">— les modèles du réservoir · {cards.length}</span>
         </span>
       </div>
+
+      {/* Notice inline (D-3) : la frame active courante + assemblage re-résolu (retour visuel). */}
+      {activeName && (
+        <p className="models-notice" role="status">
+          Frame active : <strong>{activeName}</strong> — assemblage re-résolu.
+        </p>
+      )}
+      {dangling && (
+        <p className="models-notice err" role="alert">
+          {DANGLING_FRAME_HINT}
+        </p>
+      )}
+      {error && (
+        <p className="models-notice err" role="alert">
+          {error}
+        </p>
+      )}
 
       {cards.length === 0 ? (
         <p className="models-empty">
@@ -87,10 +75,20 @@ export function FramesGallery({
       ) : (
         <div className="pgrid">
           {cards.map((c) => (
-            <article
+            <button
               key={c.id}
+              type="button"
               className={`fcard${c.isActive ? " active" : ""}`}
+              // No-op sur l'active (A2) : désactivée + aria-pressed ; busy verrouille pendant l'I/O.
+              disabled={busy || c.isActive}
+              aria-pressed={c.isActive}
               aria-label={`Frame ${c.name}${c.isActive ? " (active)" : ""}`}
+              title={
+                c.isActive
+                  ? `${c.name} — frame active`
+                  : `Poser ${c.name} comme frame active (méthode ${c.methodId} · team ${c.teamId})`
+              }
+              onClick={() => void switchTo(c.id)}
             >
               {c.isActive && (
                 <span className="active-badge" aria-label="Frame active">
@@ -126,7 +124,7 @@ export function FramesGallery({
                   team · {c.teamId}
                 </span>
               </div>
-            </article>
+            </button>
           ))}
         </div>
       )}
