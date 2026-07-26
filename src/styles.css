@@ -21,8 +21,8 @@
 /* Écran d'assemblage « frame = méthode + team (frères) », scopé .assembly-view (Studio clair local) */
 @import "./forge/assembly.css";
 
-/* Réservoir de personas (fiches à vignettes) + fiche d'édition, scopé .persona-reservoir (Studio clair local) */
-@import "./forge/persona.css";
+/* Hôte générique des réservoirs d'éléments (fiches à vignettes) + fiche d'édition, scopé .element-reservoir (Studio clair local) */
+@import "./forge/element.css";
 
 /* Galerie des frames (cartes à vignettes + marqueur actif), scopé .models-gallery (Studio clair local) */
 @import "./forge/models.css";

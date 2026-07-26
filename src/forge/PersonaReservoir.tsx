@@ -1,38 +1,25 @@
 /**
  * PersonaReservoir — l'écran **réservoir de personas** de 1er ordre (Lot 3,
- * alignement-gui-modele-de-frame.md § A3, Fork F). Remplace le placeholder `persona` posé au
- * Lot 2. La persona devient un **élément de 1er ordre** (`library/personas/`), édité **hors team**,
- * rendu comme la maquette validée `specs/mock/gui/01-library.html` (grille de **fiches à
- * vignettes**) et `02-feanor-prompt-element.html` (la **fiche** en mode ✎ édition).
+ * alignement-gui-modele-de-frame.md § A3). **Rebasculé** sur l'hôte générique `ElementReservoir`
+ * (chantier #3 Lot 1, extension-feanor-en-tete-pages-elements.md § 4.2) : ce fichier n'est plus
+ * qu'un **adaptateur mince** qui branche le pool `personaKind` et fournit la source (personas
+ * réelles du frame). Tout le montage (grille + fiche + ✚/✎ + **Fëanor-en-tête**) vit désormais dans
+ * l'hôte, écrit **une seule fois** — plus aucune duplication.
  *
- * DONNÉES — la vérité DÉRIVE des `.md` (AR-2, enrichissement-modele-persona.md) : le réservoir est
- * alimenté par les **personas RÉELLES parsées** du frame chargé (`frame.personas`, casting de la team
- * active `[odin…feanor]`) — royaume réel (IAKAFRAME/PORTEFEUILLE/FRAME, jamais `DEV`), pastille,
- * skills/guardrails et **ligne de mission** viennent des `.md`, plus d'une table synthétique. Le
- * gabarit `cloneCanonicalRoster()` ne sert plus que de **repli hors-ligne** (racine introuvable). La
- * **vignette** reste un rendu dérivé des champs EXISTANTS (initiales + dégradé casté par `roleIndex`)
- * — aucun asset ni champ canon neuf. Aucun contrat de `packages/core` n'est touché : projection pure
- * via `buildPersonaReservoir`, sélection via `reservoirPersonasFromFrame`.
- *
- * SÉLECTION → ÉDITION : cliquer une fiche l'ouvre en **mode édition** (pastille ✎ édition,
- * cohérente avec le pattern « élément sélectionné → mode édition » du Lot 2), et **New** ouvre le
- * **même composant** (`PersonaEditor`) en **création** (✚ création). Les modifications restent en
- * **état local** de session (MVP — aucune écriture disque : la persistance `library/personas/`
- * relève d'un chantier I/O ultérieur ; Fëanor-en-tête = Lot 6, NON implémenté ici).
+ * DONNÉES (inchangées, AR-2) : la vérité DÉRIVE des `.md` — le réservoir est alimenté par les
+ * personas RÉELLES parsées du frame (`frame.personas`, casting de la team active), repli hors-ligne
+ * `cloneCanonicalRoster()`. Édition = **état local de session** (MVP, aucune écriture disque).
  */
-import { useEffect, useState } from "react";
-import { cloneCanonicalRoster, type Persona } from "@iakaframe/core";
-import { buildPersonaReservoir, reservoirPersonasFromFrame } from "./personaCards";
+import { type Persona } from "@iakaframe/core";
+import { reservoirPersonasFromFrame } from "./personaCards";
 import { loadFrame } from "./frame";
-import { PersonaEditor } from "../components/PersonaEditor";
-import { FeanorHead } from "./FeanorHead";
-
-type Mode = "grid" | "edit" | "create";
+import { ElementReservoir } from "./ElementReservoir";
+import { personaKind } from "./personaKind";
 
 /**
  * Source du réservoir : les personas RÉELLES parsées du frame chargé (AR-2). Injectable pour les
  * tests ; par défaut, charge le frame et en dérive le casting de la team active. Repli sur `[]`
- * (jamais d'exception) → le composant garde alors le gabarit canonique hors-ligne.
+ * (jamais d'exception) → l'hôte garde alors le gabarit canonique hors-ligne.
  */
 async function defaultLoadReservoir(): Promise<Persona[]> {
   try {
@@ -48,204 +35,5 @@ export function PersonaReservoir({
   /** Chargeur des personas réelles (injectable en test). Défaut : `frame.personas` via `loadFrame`. */
   loadReservoir?: () => Promise<Persona[]>;
 } = {}) {
-  // État éditable de session. Amorcé sur le gabarit canonique (repli hors-ligne + rendu synchrone
-  // immédiat), REMPLACÉ par les personas réelles du frame dès qu'elles sont chargées. Aucune écriture disque.
-  const [personas, setPersonas] = useState<Persona[]>(() => cloneCanonicalRoster());
-  const [mode, setMode] = useState<Mode>("grid");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void loadReservoir().then((real) => {
-      // Personas réelles disponibles → elles font foi ; sinon on garde le gabarit (repli hors-ligne).
-      if (!cancelled && real.length > 0) setPersonas(real);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadReservoir]);
-
-  const cards = buildPersonaReservoir(personas);
-  const selected = personas.find((p) => p.id === selectedId) ?? null;
-
-  const backToGrid = () => {
-    setMode("grid");
-    setSelectedId(null);
-  };
-
-  const onSubmit = (p: Persona) => {
-    setPersonas((prev) => {
-      const idx = prev.findIndex((x) => x.id === p.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = p;
-        return next;
-      }
-      return [...prev, p];
-    });
-    backToGrid();
-  };
-
-  // --- Fiche : élément sélectionné (édition) OU nouvelle persona (création) ---
-  // Fëanor-en-tête (Lot 6, Fork C) : monté SEULEMENT dans ces deux modes d'authoring (jamais sur la
-  // grille), fidèle au décideur (« en création… et si on passe en mode édition, Fëanor se glisse en
-  // tête »). `feanorSource` = les personas réelles chargées (source de la vignette Fëanor).
-  if (mode === "edit" && selected) {
-    return (
-      <PersonaFiche
-        mode="edit"
-        label={selected.id}
-        entity={selected}
-        feanorSource={personas}
-        onBack={backToGrid}
-      >
-        <PersonaEditor
-          persona={selected}
-          existingIds={personas.filter((p) => p.id !== selected.id).map((p) => p.id)}
-          onSubmit={onSubmit}
-          onCancel={backToGrid}
-        />
-      </PersonaFiche>
-    );
-  }
-  if (mode === "create") {
-    return (
-      <PersonaFiche
-        mode="create"
-        label="nouvelle"
-        entity={null}
-        feanorSource={personas}
-        onBack={backToGrid}
-      >
-        <PersonaEditor
-          existingIds={personas.map((p) => p.id)}
-          onSubmit={onSubmit}
-          onCancel={backToGrid}
-        />
-      </PersonaFiche>
-    );
-  }
-
-  // --- Grille de fiches à vignettes (le réservoir) ---
-  return (
-    <section className="persona-reservoir" aria-label="Réservoir de personas">
-      <div className="crumb">LIBRARY / PERSONAS</div>
-      <div className="h1">Le réservoir de personas</div>
-      <p className="sub">
-        Le <strong>casting du réservoir</strong> — {cards.length} personas de 1er ordre,
-        réutilisables et référencées (jamais copiées) par les teams. Ouvrez une fiche pour l'éditer.
-      </p>
-
-      <div className="rvhead">
-        <span className="seclabel">
-          Personas <span className="n">— le casting · {cards.length}</span>
-        </span>
-        <button
-          type="button"
-          className="newpersona"
-          onClick={() => {
-            setSelectedId(null);
-            setMode("create");
-          }}
-        >
-          <span className="plus" aria-hidden="true">
-            +
-          </span>{" "}
-          Nouvelle persona
-        </button>
-      </div>
-
-      <div className="pgrid">
-        {cards.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className="pcard"
-            aria-label={`Ouvrir la fiche de ${c.name}`}
-            onClick={() => {
-              setSelectedId(c.id);
-              setMode("edit");
-            }}
-          >
-            <span className="royaume">{c.royaume}</span>
-            <div className="top">
-              <span
-                className="vg"
-                style={{ background: `linear-gradient(135deg, ${c.gradient[0]}, ${c.gradient[1]})` }}
-                aria-hidden="true"
-              >
-                {c.initials}
-              </span>
-              <div>
-                <div className="nm">
-                  {c.pastille ? `${c.pastille} ` : ""}
-                  {c.name}
-                </div>
-                <div className="ref">{c.badge}</div>
-              </div>
-            </div>
-            <div className="role">
-              {c.roleLabel} <span className="ri">· index {c.roleIndex}</span>
-            </div>
-            {c.mission && <div className="mission">{c.mission}</div>}
-            <div className="chips">
-              {c.skills.map((s) => (
-                <span key={s} className="chip sk">
-                  {s}
-                </span>
-              ))}
-              {c.guardrails.map((g) => (
-                <span key={g} className="chip gd">
-                  ⛨ {g}
-                </span>
-              ))}
-              {c.skills.length === 0 && c.guardrails.length === 0 && (
-                <span className="chip muted">aucune skill déclarée</span>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/**
- * PersonaFiche — coquille de la **fiche** (mode édition/création) : fil d'Ariane + pastille de
- * mode (✎ édition / ✚ création, cohérente avec le Lot 2), le **Fëanor-en-tête** (Lot 6, Fork C —
- * coquille inerte, monté en création ET édition), puis le formulaire d'édition (l'éditeur de persona
- * existant, réutilisé — pattern d'ouverture/édition déjà en place).
- */
-function PersonaFiche({
-  mode,
-  label,
-  entity,
-  feanorSource,
-  onBack,
-  children,
-}: {
-  mode: "edit" | "create";
-  label: string;
-  /** L'entité en cours d'authoring (persona réelle en édition ; `null` en création vierge). */
-  entity: Persona | null;
-  /** Personas réelles (source de la vignette Fëanor). */
-  feanorSource?: readonly Persona[];
-  onBack: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="persona-reservoir persona-fiche" aria-label="Fiche persona">
-      <div className="crumb">
-        <button type="button" className="crumblink" onClick={onBack}>
-          library
-        </button>{" "}
-        / personas / <span className="cur">{label}</span>
-        <span className={`mode-pill ${mode}`}>
-          {mode === "edit" ? "✎ édition" : "✚ création"}
-        </span>
-      </div>
-      <FeanorHead mode={mode} entity={entity} feanorSource={feanorSource} />
-      {children}
-    </section>
-  );
+  return <ElementReservoir kind={personaKind} loadElements={loadReservoir} />;
 }
