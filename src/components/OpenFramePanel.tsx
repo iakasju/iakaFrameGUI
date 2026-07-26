@@ -11,88 +11,28 @@
  * `portfolio`, persona du rôle `portefeuille`, backlog transverse) + l'**assemblage résolu**
  * (méthode · team · binding). Read-only : on charge/affiche, on n'édite pas. Backend injectable (tests).
  */
-import { useCallback, useState } from "react";
 import { backend, type Backend } from "../api/backend";
-import {
-  FRAME_TYPES,
-  FRAME_TYPE_LABELS,
-  loadFrame,
-  type Frame,
-} from "../forge/frame";
-import { activeFrameIsDangling } from "@iakaframe/core";
+import { FRAME_TYPES, FRAME_TYPE_LABELS } from "../forge/frame";
+import { useFrameSwitch, DANGLING_FRAME_HINT } from "../forge/useFrameSwitch";
 
-/** Le pointeur désigne une frame qui n'existe plus : on retombe sur `default`, mais on le DIT. */
-export const DANGLING_FRAME_HINT =
-  "pointeur de frame active cassé (frame introuvable dans le réservoir) — repli sur « default »";
+// Le geste de bascule (setActiveFrameId → recharge-depuis-disque → dangling → no-op) vit désormais
+// dans le hook PARTAGÉ `useFrameSwitch`, consommé aussi par `FramesGallery` (D-2, zéro divergence).
+// On re-exporte `DANGLING_FRAME_HINT` pour les consommateurs historiques (FrameActiveSelector.test).
+export { DANGLING_FRAME_HINT };
 
 export function OpenFramePanel({ api = backend }: { api?: Backend }) {
-  const [frame, setFrame] = useState<Frame | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  /** Pointeur lu à côté du frame — sert à détecter le cas « pointeur mort » (I-4). */
-  const [pointer, setPointer] = useState<string | null>(null);
-
-  /** Charge le frame de la racine courante (sans re-sélectionner de dossier). */
-  const load = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      setFrame(await loadFrame(api));
-      setPointer(await api.activeFrameId?.().catch(() => null) ?? null);
-    } catch {
-      setError("Chargement du frame impossible (racine introuvable ?).");
-    } finally {
-      setBusy(false);
-    }
-  }, [api]);
-
-  /** « Open frame » : choisir un dossier → le fixer comme racine → charger le frame. */
-  const openFrame = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const dir = await api.pickDirectory();
-      if (!dir) return; // annulation utilisateur : on ne change rien.
-      await api.setIakaframeHome(dir);
-      setFrame(await loadFrame(api));
-      // Le pointeur suit le PROJET, pas la racine : il reste valable après changement de racine,
-      // mais il faut le (re)lire ici aussi — sans quoi l'alerte de pointeur mort ne s'afficherait
-      // jamais sur le chemin « Ouvrir un frame ».
-      setPointer(await api.activeFrameId?.().catch(() => null) ?? null);
-    } catch {
-      setError("Ouverture du frame impossible.");
-    } finally {
-      setBusy(false);
-    }
-  }, [api]);
-
-  /**
-   * Bascule la frame active : écrit le pointeur dans `<projet>/iakaframe.json` (non destructif,
-   * côté Rust) puis **recharge** — l'assemblage affiché est celui que le disque porte, jamais un
-   * état local optimiste qui mentirait si l'écriture avait échoué.
-   */
-  const selectFrame = useCallback(
-    async (frameId: string) => {
-      setBusy(true);
-      setError(null);
-      try {
-        await api.setActiveFrameId(frameId);
-        setFrame(await loadFrame(api));
-        setPointer(await api.activeFrameId?.().catch(() => null) ?? null);
-      } catch {
-        setError(
-          "Bascule impossible : aucun dossier de projet réglé, ou iakaframe.json illisible " +
-            "(l'écriture est refusée plutôt que d'écraser les clés du CLI).",
-        );
-      } finally {
-        setBusy(false);
-      }
-    },
-    [api],
-  );
+  // `load`=reload (racine courante), `openFrame`=pickAndLoad (choix de dossier), `selectFrame`=switchTo.
+  const {
+    frame,
+    busy,
+    error,
+    dangling,
+    reload: load,
+    switchTo: selectFrame,
+    pickAndLoad: openFrame,
+  } = useFrameSwitch(api);
 
   const integrity = frame?.integrity;
-  const dangling = frame ? activeFrameIsDangling(frame.frames, pointer) : false;
 
   return (
     <section className="open-frame" aria-label="Ouvrir un frame iakaframe">
