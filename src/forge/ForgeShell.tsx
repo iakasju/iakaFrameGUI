@@ -4,10 +4,10 @@
  * (`frame · méthode · team · persona · éléments · assemblage · models · kit · apprentissage`,
  * Fork B) qui remplace l'ancienne coquille à 5 onglets-documents (Team·Méthode·Workflow·Kit·
  * Apprentissage). Migration **PROGRESSIVE** (Fork A) : les ateliers existants sont **conservés
- * comme surfaces d'édition** derrière les entrées correspondantes ; les entrées encore sans écran
- * (`persona`, `models`) pointent vers un **placeholder « à venir »** (Lots 3/4) et les entrées
- * `frame`/`éléments`/`assemblage` réutilisent l'écran existant le plus proche (`OpenFramePanel`,
- * `ElementPoolPanel`, `AssemblyView` du Lot 1).
+ * comme surfaces d'édition** derrière les entrées correspondantes ; l'entrée `models` encore sans
+ * écran pointe vers un **placeholder « à venir »** (Lot 4) et les entrées
+ * `frame`/`éléments`/`assemblage`/`persona` réutilisent l'écran dédié (`OpenFramePanel`,
+ * `ElementPoolPanel`, `AssemblyView` du Lot 1, `PersonaReservoir` du Lot 3).
  *
  * Chrome : la marque, la nav, un bouton **New** (crée une nouvelle entité du type courant, comme la
  * maquette), puis les utilitaires conservés (charte, Réglages, « Livrer au Cockpit → »). Les entrées
@@ -53,6 +53,7 @@ import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
 import { OpenFramePanel } from "../components/OpenFramePanel";
 import { AssemblyView } from "./AssemblyView";
+import { PersonaReservoir } from "./PersonaReservoir";
 import { ElementPoolPanel } from "./ElementPoolPanel";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
@@ -380,6 +381,10 @@ export function ForgeShell() {
         <div className="nav-surface">
           <AssemblyView />
         </div>
+      ) : nav === "persona" ? (
+        <div className="nav-surface">
+          <PersonaReservoir />
+        </div>
       ) : nav === "frame" ? (
         <div className="settings-panel">
           <OpenFramePanel />
@@ -414,16 +419,10 @@ export function ForgeShell() {
 
 /**
  * NavPlaceholder — surface « à venir » des entrées dont l'écran complet relève d'un lot ultérieur
- * (`persona` → Lot 3, `models` → Lot 4). Lot 2 pose la nav + le câblage, PAS ces écrans (§ 4).
+ * (`models` → Lot 4). Lot 2 pose la nav + le câblage, PAS cet écran (§ 4).
  */
 function NavPlaceholder({ navKey }: { navKey: NavKey }) {
   const COPY: Partial<Record<NavKey, { title: string; lot: string; note: string }>> = {
-    persona: {
-      title: "Fiches persona",
-      lot: "à venir · Lot 3",
-      note:
-        "La persona deviendra un élément de 1er ordre (library/personas/) éditable hors team, avec fiches à vignettes. Pour l'instant, les personas se travaillent depuis l'entrée « team ».",
-    },
     models: {
       title: "Catalogue des frames",
       lot: "à venir · Lot 4",
