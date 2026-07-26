@@ -59,6 +59,38 @@ describe("PersonaReservoir — écran réservoir + fiche (Lot 3, A3)", () => {
     expect(within(card).getByText("Loki le Malin")).toBeTruthy();
   });
 
+  it("Fëanor-en-tête (Lot 6) : ABSENT sur la grille, PRÉSENT en édition ET en création", () => {
+    render(<PersonaReservoir loadReservoir={offline} />);
+    // Sur la grille (ni création ni édition) → pas de Fëanor-en-tête.
+    expect(document.querySelector(".feanor-head")).toBeNull();
+
+    // Sélection d'une fiche → mode édition → Fëanor se glisse en tête.
+    fireEvent.click(screen.getByLabelText("Ouvrir la fiche de Gandalf"));
+    const headEdit = document.querySelector(".feanor-head") as HTMLElement;
+    expect(headEdit).not.toBeNull();
+    expect(within(headEdit).getByText(/Fëanor édite cet élément/)).toBeTruthy();
+    // L'entité éditée est bien Gandalf (vignette GA).
+    expect(headEdit.querySelector(".fh-vg")?.textContent).toBe("GA");
+
+    // Retour grille → Fëanor disparaît (jamais en lecture seule).
+    fireEvent.click(screen.getByRole("button", { name: "library" }));
+    expect(document.querySelector(".feanor-head")).toBeNull();
+
+    // « Nouvelle persona » → mode création → Fëanor présent (placeholder honnête).
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle persona/ }));
+    const headCreate = document.querySelector(".feanor-head") as HTMLElement;
+    expect(headCreate).not.toBeNull();
+    expect(within(headCreate).getByText(/Fëanor façonne cet élément/)).toBeTruthy();
+    expect(within(headCreate).getByText("Nouvelle persona")).toBeTruthy();
+  });
+
+  it("Fëanor-en-tête : coquille INERTE — « envoyer » n'invente aucune réponse d'IA", () => {
+    render(<PersonaReservoir loadReservoir={offline} />);
+    fireEvent.click(screen.getByLabelText("Ouvrir la fiche de Gimli"));
+    fireEvent.click(screen.getByLabelText(/Envoyer à Fëanor/));
+    expect(screen.getByText(/Ta demande n'a pas été envoyée à un modèle/)).toBeTruthy();
+  });
+
   it("consomme les personas RÉELLES du frame : royaume IAKAFRAME (pas DEV) + ligne de mission", async () => {
     const real: Persona[] = [
       parsePersona({

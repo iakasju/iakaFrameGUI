@@ -265,3 +265,180 @@
   margin-top: 0.9rem;
   max-width: 900px;
 }
+
+/* ============================================================================
+   Fëanor EN TÊTE — composant partagé création / édition (Lot 6, Fork C).
+   Porté au style de la maquette validée specs/mock/gui/02-feanor-prompt-element.html
+   (Studio clair). Les tokens flamme (--flame, --flame-rgb, --flame-ink) sont déjà
+   déclarés sur .persona-reservoir. COQUILLE MVP : présent mais fonctionnellement INERTE.
+   ========================================================================== */
+.persona-reservoir .feanor-head {
+  display: flex;
+  gap: 1.1rem;
+  align-items: stretch;
+  border: 1.5px solid rgba(var(--flame-rgb), 0.3);
+  border-radius: var(--radius);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--flame-rgb), 0.06),
+    rgba(var(--flame-rgb), 0.01)
+  );
+  padding: 1rem 1.1rem;
+  box-shadow: 0 6px 22px rgba(var(--flame-rgb), 0.09);
+  margin: 0.9rem 0 0;
+  max-width: 900px;
+}
+.persona-reservoir .fh-entity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex: none;
+  max-width: 250px;
+}
+.persona-reservoir .fh-vg {
+  width: 64px;
+  height: 64px;
+  border-radius: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font: 800 1.5rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  flex: none;
+  box-shadow: 0 5px 14px rgba(20, 22, 28, 0.2);
+}
+.persona-reservoir .fh-name {
+  font-weight: 750;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.persona-reservoir .fh-type {
+  font: 600 0.64rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+.persona-reservoir .fh-div {
+  width: 1px;
+  background: rgba(var(--flame-rgb), 0.16);
+  flex: none;
+}
+.persona-reservoir .fh-feanor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.persona-reservoir .fh-flabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--flame-ink);
+}
+.persona-reservoir .fh-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: #fff;
+  font: 800 0.62rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.persona-reservoir .fh-mode {
+  margin-left: auto;
+  font: 600 0.6rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--flame-ink);
+  background: rgba(var(--flame-rgb), 0.1);
+  border: 1px solid rgba(var(--flame-rgb), 0.25);
+  border-radius: 999px;
+  padding: 0.14rem 0.5rem;
+}
+.persona-reservoir .fh-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  border: 1px solid rgba(var(--flame-rgb), 0.28);
+  border-radius: 11px;
+  background: var(--bg-card);
+  padding: 0.5rem 0.65rem;
+  margin-top: 0.5rem;
+  box-shadow: var(--shadow);
+}
+.persona-reservoir .fh-field:focus-within {
+  border-color: rgba(var(--flame-rgb), 0.5);
+  box-shadow: 0 0 0 3px rgba(var(--flame-rgb), 0.1);
+}
+.persona-reservoir .fh-field textarea {
+  border: 0;
+  outline: 0;
+  resize: none;
+  flex: 1;
+  font: 500 0.9rem inherit;
+  color: var(--text-primary);
+  background: transparent;
+  line-height: 1.45;
+}
+.persona-reservoir .fh-field textarea::placeholder {
+  color: var(--text-muted);
+}
+.persona-reservoir .fh-send {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--flame);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  flex: none;
+}
+.persona-reservoir .fh-sugg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+.persona-reservoir .fh-sugg .s {
+  font: 600 0.72rem inherit;
+  color: var(--flame-ink);
+  background: rgba(var(--flame-rgb), 0.06);
+  border: 1px solid rgba(var(--flame-rgb), 0.2);
+  border-radius: 999px;
+  padding: 0.24rem 0.6rem;
+  cursor: pointer;
+}
+/* — État stub HONNÊTE : l'aveu d'inertie (jamais une fausse réponse d'IA) — */
+.persona-reservoir .fh-stub {
+  margin-top: 0.55rem;
+  font: 500 0.72rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--text-muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+.persona-reservoir .fh-stub.on {
+  color: var(--flame-ink);
+  font-weight: 600;
+}
+
+@media (max-width: 820px) {
+  .persona-reservoir .feanor-head {
+    flex-direction: column;
+  }
+  .persona-reservoir .fh-entity {
+    max-width: none;
+  }
+  .persona-reservoir .fh-div {
+    display: none;
+  }
+}
