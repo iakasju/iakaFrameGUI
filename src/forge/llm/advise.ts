@@ -20,6 +20,8 @@
  * Rust touché : le schéma `{reply}` et son parseur vivent ici, dans `src/`.
  */
 import type { LlmRequest, LlmTransport } from "@iakaframe/core";
+import type { LlmStreamTransport } from "./transport";
+import type { LlmStreamChunk } from "../../api/backend";
 import { NO_AUTHORING_MODEL_HINT } from "../mock/copilote";
 import {
   DEFAULT_AUTHORING_HOST,
@@ -232,6 +234,121 @@ export async function resolveAdvice(
 
   const reply = parseAdviceReply(raw);
   if (reply === null) {
+    return { reply: null, source: "mock", reason: FALLBACK_UNREADABLE };
+  }
+  return { reply, source: "live" };
+}
+
+// ============================================================================================
+// STREAMING du conseil (feanor-extensions-mvpb-streaming-web-live.md, brique STREAMING)
+// --------------------------------------------------------------------------------------------
+// Sœur streaming de `resolveAdvice` : MÊME discipline honnête (ne lève jamais, repli `null`+`reason`,
+// jamais une fausse réponse), MAIS le conseil s'affiche en **tokens progressifs** (AC-S1). Choix de
+// forme : le conseil étant du TEXTE LIBRE, le chemin streaming n'impose PAS le schéma JSON `{reply}`
+// (sinon on streamerait du JSON brut, illisible) — les deltas sont de la prose directe, et le texte
+// ACCUMULÉ est la réponse. La proposition B garde, elle, le transport bloquant + schéma structuré.
+// Confiné en `src/` : `@iakaframe/core` intouché.
+// ============================================================================================
+
+/**
+ * Contrat de conseil en **texte libre** (variante streaming). Identique à `ADVICE_CONTRACT` sauf la
+ * consigne de sortie : ici on veut de la prose directe (pas de JSON), pour que les tokens affichés au
+ * fil de l'eau soient lisibles. Aucune signature/notion d'exécution — pur conseil.
+ */
+const ADVICE_STREAM_CONTRACT: readonly string[] = [
+  "",
+  "Ton rôle ici : donner un CONSEIL en texte libre (français) sur l'élément décrit — proposer une",
+  "reformulation, un garde-fou, une variante, une clarification. Tu ne fais QUE conseiller.",
+  "Tu n'écris, ne matérialises et ne modifies RIEN toi-même : l'utilisateur décide et applique.",
+  "Ne te signe pas et n'ajoute aucun badge : l'interface pose ton identité autour de ta réponse.",
+  "",
+  "Réponds directement en texte libre (prose), SANS JSON, SANS balises et sans préambule.",
+];
+
+/** Prompt **système** du conseil en streaming : identité (ou anonyme) + contrat texte libre. */
+export function buildAdviceStreamSystemPrompt(identity?: CopiloteIdentity | null): string {
+  const head = identity ? adviceIdentityBlock(identity) : ADVICE_ANONYMOUS_HEAD;
+  return [...head, ...ADVICE_STREAM_CONTRACT].join("\n");
+}
+
+/** Prompt **utilisateur** du conseil en streaming (contexte de l'élément, réponse en prose). */
+export function buildAdviceStreamUserPrompt(prompt: string, ctx: FeanorContext): string {
+  const payload = {
+    demande: prompt,
+    element: {
+      type: ctx.entityType,
+      mode: ctx.mode,
+      nom: ctx.entityName ?? "(nouvel élément, non nommé)",
+      role: ctx.entityRole ?? null,
+    },
+  };
+  return [
+    "Demande de l'utilisateur et élément en cours d'authoring (JSON) :",
+    JSON.stringify(payload, null, 2),
+    "",
+    "Conseille en texte libre sur CET élément (prose directe, sans JSON).",
+  ].join("\n");
+}
+
+/** Dépendances du résolveur de conseil en streaming — comme `AdviceDeps` mais transport streaming. */
+export interface AdviceStreamDeps {
+  llm: LlmStreamTransport;
+  model?: string | null;
+  endpoint?: string | null;
+  timeoutMs?: number;
+  identity?: CopiloteIdentity | null;
+}
+
+/**
+ * Oriente vers le conseil **live en streaming** ou un **repli honnête**. **Ne lève jamais.** Les
+ * tokens progressifs sont relayés à `onChunk` (l'UI se remplit au fil de l'eau, AC-S1). Le résultat
+ * final porte la réponse COMPLÈTE (texte accumulé) ou `null`+`reason` — jamais un partiel passé pour
+ * complet (AC-S2) : sur modèle absent / provider ≠ ollama / flux coupé / illisible, `reply` = `null`.
+ */
+export async function resolveAdviceStream(
+  prompt: string,
+  ctx: FeanorContext,
+  deps: AdviceStreamDeps,
+  onChunk: (chunk: LlmStreamChunk) => void,
+): Promise<AdviceResult> {
+  const rawModel = typeof deps.model === "string" ? deps.model.trim() : "";
+
+  // 1. Modèle vide/absent → repli honnête AVANT tout flux (aucun token fabriqué).
+  if (rawModel.length === 0) {
+    return { reply: null, source: "mock", reason: NO_AUTHORING_MODEL_HINT };
+  }
+
+  // 2. Provider non supporté (ollama seul) → repli, aucun flux.
+  const { provider, model } = parseProviderModel(rawModel);
+  if (provider !== MVP_PROVIDER || model.length === 0) {
+    return { reply: null, source: "mock", reason: FALLBACK_UNSUPPORTED };
+  }
+
+  // 3. Chemin live en streaming — PAS de `format` (le conseil est de la prose, pas du JSON).
+  const host =
+    deps.endpoint && deps.endpoint.trim().length > 0
+      ? deps.endpoint.trim()
+      : DEFAULT_AUTHORING_HOST;
+  const req: LlmRequest = {
+    provider,
+    model,
+    host,
+    system: buildAdviceStreamSystemPrompt(deps.identity),
+    user: buildAdviceStreamUserPrompt(prompt, ctx),
+    timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
+  };
+
+  let full: string;
+  try {
+    full = await deps.llm.stream(req, onChunk);
+  } catch {
+    // Flux coupé / réseau KO / fin sans `done` → repli honnête (le partiel n'est PAS une réponse).
+    return { reply: null, source: "mock", reason: FALLBACK_UNAVAILABLE };
+  }
+
+  const reply = full.trim();
+  if (reply.length === 0) {
+    // Flux clos mais vide (aucun contenu) → aveu, aucune réponse fabriquée.
     return { reply: null, source: "mock", reason: FALLBACK_UNREADABLE };
   }
   return { reply, source: "live" };

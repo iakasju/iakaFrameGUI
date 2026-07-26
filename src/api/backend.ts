@@ -13,7 +13,7 @@
  * Sérialisation : les args passés à `call` reprennent les noms des paramètres Rust
  * (snake_case). `team_write(id, json)` → `{ id, json }`.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, Channel } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Command } from "@tauri-apps/plugin-shell";
 
@@ -302,6 +302,43 @@ export function llmComplete(args: LlmCompleteArgs): Promise<string> {
     user: args.user,
     timeoutMs: args.timeoutMs,
     format: args.format,
+  });
+}
+
+/**
+ * Un événement de STREAMING poussé par la commande Rust `llm_complete_stream` via le Channel
+ * Tauri v2 (canal Rust → JS). Union interne-tagged (`kind`), miroir EXACT de l'enum `StreamChunk`
+ * de `src-tauri/src/llm.rs` : `token` (fragment de texte), `done` (fin PROPRE), `error` (aveu
+ * honnête — le partiel n'est PAS complet, AC-S2).
+ */
+export type LlmStreamChunk =
+  | { kind: "token"; text: string }
+  | { kind: "done" }
+  | { kind: "error"; message: string };
+
+/**
+ * Appelle la commande Rust `llm_complete_stream` (Ollama `/api/chat`, `stream:true`, NDJSON). Ouvre
+ * un **Channel Tauri v2**, y branche `onEvent` (chaque delta/état poussé par Rust), et le passe à la
+ * commande. La `Promise` se résout quand la commande se termine (fin propre) et **rejette** sur toute
+ * rupture (hôte refusé / réseau / flux coupé / fin sans `done`) — le résolveur traduit tout rejet en
+ * repli honnête (jamais de stack à l'UI). SEULE voie de streaming du front (façade unique C-8, même
+ * hôte Ollama LAN allow-listé que `llmComplete` — aucun élargissement).
+ */
+export function llmCompleteStream(
+  args: LlmCompleteArgs,
+  onEvent: (chunk: LlmStreamChunk) => void,
+): Promise<void> {
+  const channel = new Channel<LlmStreamChunk>();
+  channel.onmessage = onEvent;
+  return call<void>("llm_complete_stream", {
+    provider: args.provider,
+    model: args.model,
+    host: args.host,
+    system: args.system,
+    user: args.user,
+    timeoutMs: args.timeoutMs,
+    format: args.format,
+    onEvent: channel,
   });
 }
 
@@ -679,6 +716,7 @@ export const backend = {
   setActiveFrameId,
   setAuthoringEndpoint,
   llmComplete,
+  llmCompleteStream,
   kitDeploy,
   handoffDeliver,
   nowMillis,

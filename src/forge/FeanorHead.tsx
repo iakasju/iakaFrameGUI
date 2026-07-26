@@ -21,7 +21,12 @@
 import { useEffect, useState } from "react";
 import type { LlmTransport, Persona } from "@iakaframe/core";
 import { buildFeanorVignette, buildEntityVignette, type AuthoredEntity } from "./feanorHeadModel";
-import { resolveAdvice, type AdviceResult, type FeanorContext } from "./llm/advise";
+import {
+  resolveAdvice,
+  resolveAdviceStream,
+  type AdviceResult,
+  type FeanorContext,
+} from "./llm/advise";
 import type { ElementProposeDeps } from "./elementKind";
 import {
   copiloteBadgeClose,
@@ -29,7 +34,7 @@ import {
   loadCopiloteIdentity,
   type CopiloteIdentity,
 } from "./llm/identity";
-import { realLlm } from "./llm/transport";
+import { realLlm, realStreamLlm, type LlmStreamTransport } from "./llm/transport";
 import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
 import { backend, type Backend } from "../api/backend";
 
@@ -39,6 +44,9 @@ export const FEANOR_READY_HINT =
 
 /** Préfixe honnête d'un repli : Fëanor n'a PAS répondu (jamais une fausse réponse d'IA). */
 export const FEANOR_NO_REPLY_PREFIX = "Fëanor n'a pas répondu";
+
+/** Marqueur d'un partiel EN COURS de streaming (AC-S2) : la réponse n'est pas encore complète. */
+export const FEANOR_STREAMING_HINT = "Fëanor écrit… (réponse en cours)";
 
 /** Confirmation d'une proposition acheminée : l'éditeur est pré-rempli, RIEN n'est encore écrit. */
 export const FEANOR_PROPOSAL_DONE =
@@ -73,6 +81,8 @@ export function FeanorHead({
   propose,
   api = backend,
   llm = realLlm(backend),
+  streamLlm = realStreamLlm(backend),
+  streaming = false,
   model,
 }: {
   /** Mode d'authoring de la page hôte : `create` (✚) ou `edit` (✎). */
@@ -94,6 +104,17 @@ export function FeanorHead({
   api?: Backend;
   /** Transport LLM injectable (tests : `fakeLlm`) — défaut = `realLlm(backend)` (commande Rust). */
   llm?: LlmTransport;
+  /**
+   * Transport de STREAMING injectable (tests : `fakeStreamLlm`) — défaut = `realStreamLlm(backend)`
+   * (commande Rust `llm_complete_stream`, Channel Tauri v2). Utilisé UNIQUEMENT si `streaming` est on.
+   */
+  streamLlm?: LlmStreamTransport;
+  /**
+   * Flag STREAMING du conseil/chat. `false` (défaut) ⇒ chemin bloquant historique (`resolveAdvice`)
+   * — non-régression MVP-A intacte. `true` ⇒ conseil en tokens progressifs (`resolveAdviceStream`).
+   * La proposition B (`propose`) reste TOUJOURS bloquante, quel que soit ce flag.
+   */
+  streaming?: boolean;
   /** Modèle d'authoring imposé (tests) — sinon lu depuis les Settings (`authoringModel`, PARTAGÉ). */
   model?: string;
 }) {
@@ -102,6 +123,9 @@ export function FeanorHead({
   const [prompt, setPrompt] = useState("");
   const [pending, setPending] = useState(false);
   const [answer, setAnswer] = useState<AdviceResult | null>(null);
+  // Texte PARTIEL accumulé pendant un streaming (AC-S1/S2) : affiché « en cours » tant que le flux
+  // n'est pas clos. `null` = aucun streaming en vol. Vidé dès qu'un résultat final (ou repli) tombe.
+  const [streamText, setStreamText] = useState<string | null>(null);
   // État de la dernière PROPOSITION (brique B) : succès (pré-remplissage acheminé) ou repli honnête
   // (aucune proposition fabriquée). `null` = aucune proposition demandée dans cette session de fiche.
   const [proposal, setProposal] = useState<{ ok: boolean; reason?: string } | null>(null);
@@ -182,9 +206,28 @@ export function FeanorHead({
     const trimmed = prompt.trim();
     if (trimmed.length === 0 || pending) return; // garde anti-double-appel (un seul appel en vol)
     setPending(true);
+    setProposal(null); // le conseil chasse l'état de proposition (deux registres distincts).
     try {
-      // Chemin de conseil : le résolveur oriente LIVE (transport injecté) ou repli honnête. Il NE
-      // lève jamais — modèle absent / réseau KO deviennent un aveu propre, jamais une fausse réponse.
+      if (streaming) {
+        // Chemin STREAMING : les tokens remplissent la zone au fil de l'eau (AC-S1). Le partiel est
+        // marqué « en cours » (AC-S2) ; une erreur en milieu de flux → repli honnête (le partiel
+        // n'est JAMAIS présenté comme une réponse complète), jamais une fausse réponse ni une stack.
+        setAnswer(null);
+        setStreamText(""); // ouvre la zone « en cours » (vide au départ)
+        const result = await resolveAdviceStream(
+          trimmed,
+          feanorContext(),
+          { llm: streamLlm, model: configuredModel, endpoint, identity },
+          (chunk) => {
+            if (chunk.kind === "token") setStreamText((prev) => (prev ?? "") + chunk.text);
+          },
+        );
+        setStreamText(null); // le flux est retombé (fin propre OU repli) : on quitte l'état « en cours »
+        setAnswer(result);
+        return;
+      }
+      // Chemin BLOQUANT (défaut) : le résolveur oriente LIVE (transport injecté) ou repli honnête. Il
+      // NE lève jamais — modèle absent / réseau KO deviennent un aveu propre, jamais une fausse réponse.
       const result = await resolveAdvice(trimmed, feanorContext(), {
         llm,
         model: configuredModel,
@@ -192,7 +235,6 @@ export function FeanorHead({
         identity,
       });
       setAnswer(result);
-      setProposal(null); // le conseil chasse l'état de proposition (deux registres distincts).
     } finally {
       setPending(false);
     }
@@ -319,7 +361,19 @@ export function FeanorHead({
         </div>
 
         {/* — Zone de réponse / d'état — jamais de fausse réponse d'IA. — */}
-        {answer ? (
+        {streamText !== null ? (
+          // Partiel EN COURS (AC-S1/S2) : la réponse se remplit token par token, marquée « en cours »
+          // tant que le flux n'est pas clos — jamais présentée comme une réponse complète/fiable.
+          <div className="fh-answer streaming" role="status" aria-busy="true" data-source="live">
+            {identity && (
+              <div className="fh-open" aria-label="Ouverture de Fëanor">
+                {copiloteBadgeOpen(identity)}
+              </div>
+            )}
+            <p className="fh-reply">{streamText}</p>
+            <div className="fh-prov">{FEANOR_STREAMING_HINT}</div>
+          </div>
+        ) : answer ? (
           answer.reply !== null ? (
             // Réponse RÉELLE du modèle : badge d'ouverture AVANT, clôture APRÈS (posés par l'UI).
             <div className="fh-answer" role="status" data-source={answer.source}>

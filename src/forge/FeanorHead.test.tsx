@@ -13,14 +13,19 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { parsePersona, type LlmTransport, type Persona } from "@iakaframe/core";
-import { FeanorHead, FEANOR_READY_HINT, FEANOR_NO_REPLY_PREFIX } from "./FeanorHead";
+import {
+  FeanorHead,
+  FEANOR_READY_HINT,
+  FEANOR_NO_REPLY_PREFIX,
+  FEANOR_STREAMING_HINT,
+} from "./FeanorHead";
 import {
   personaToAuthoredEntity,
   PERSONA_BLANK_ENTITY,
   type AuthoredEntity,
 } from "./feanorHeadModel";
 import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
-import { fakeLlm } from "./llm/transport";
+import { fakeLlm, fakeStreamLlm } from "./llm/transport";
 import type { Backend } from "../api/backend";
 import feanorMd from "./__fixtures__/persona.feanor.md?raw";
 
@@ -228,6 +233,80 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     // La réponse existe mais aucun badge « [FRAME][Fëanor] » n'est fabriqué sans fiche canon.
     expect(screen.queryByLabelText("Ouverture de Fëanor")).toBeNull();
     expect(document.querySelector(".fh-answer")?.textContent).not.toContain("[FRAME][Fëanor]");
+  });
+});
+
+describe("FeanorHead — STREAMING du conseil (brique streaming, AC-S1/S2)", () => {
+  it("AC-S1 : streaming ON → la zone se remplit (partiel « en cours »), puis réponse complète", async () => {
+    render(
+      <FeanorHead
+        mode="edit"
+        entity={gandalfEntity}
+        feanorSource={[feanorReal]}
+        api={api([feanorMd])}
+        streaming
+        streamLlm={fakeStreamLlm([
+          { kind: "token", text: "Rends la " },
+          { kind: "token", text: "mission active." },
+          { kind: "done" },
+        ])}
+        model="ollama:llama3"
+      />,
+    );
+    await waitFor(() => expect(screen.queryByText(NO_AUTHORING_MODEL_HINT)).toBeNull());
+    fireEvent.change(screen.getByLabelText(/Demander à Fëanor/), { target: { value: "raccourcis" } });
+    fireEvent.click(screen.getByLabelText(/Envoyer à Fëanor/));
+
+    // À la fin : réponse COMPLÈTE affichée (texte accumulé), source live, plus de marqueur « en cours ».
+    await waitFor(() => expect(screen.getByText("Rends la mission active.")).toBeTruthy());
+    expect(document.querySelector(".fh-answer")?.getAttribute("data-source")).toBe("live");
+    expect(screen.queryByText(FEANOR_STREAMING_HINT)).toBeNull();
+    expect(document.querySelector(".fh-answer.streaming")).toBeNull();
+  });
+
+  it("AC-S2 : erreur en MILIEU de flux → aveu honnête, le partiel n'est PAS présenté comme complet", async () => {
+    render(
+      <FeanorHead
+        mode="edit"
+        entity={gandalfEntity}
+        feanorSource={[feanorReal]}
+        api={api([feanorMd])}
+        streaming
+        streamLlm={fakeStreamLlm([
+          { kind: "token", text: "Début de rép" },
+          { kind: "error", message: "flux interrompu : reset" },
+        ])}
+        model="ollama:llama3"
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Demander à Fëanor/), { target: { value: "aide" } });
+    fireEvent.click(screen.getByLabelText(/Envoyer à Fëanor/));
+
+    // Repli honnête : aveu « Fëanor n'a pas répondu », AUCUN partiel gardé comme réponse complète.
+    await waitFor(() => expect(screen.getByText(new RegExp(FEANOR_NO_REPLY_PREFIX))).toBeTruthy());
+    expect(document.querySelector(".fh-answer.streaming")).toBeNull();
+    expect(document.querySelector(".fh-reply")).toBeNull();
+    expect(document.body.textContent).not.toContain("reset");
+  });
+
+  it("AC-S2 : modèle absent en streaming → aveu, aucun flux fabriqué (transport jamais appelé)", async () => {
+    const t = fakeStreamLlm([{ kind: "token", text: "x" }, { kind: "done" }]);
+    render(
+      <FeanorHead
+        mode="edit"
+        entity={gandalfEntity}
+        feanorSource={[feanorReal]}
+        api={api([feanorMd])}
+        streaming
+        streamLlm={t}
+        model=""
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Demander à Fëanor/), { target: { value: "aide" } });
+    fireEvent.click(screen.getByLabelText(/Envoyer à Fëanor/));
+    await waitFor(() => expect(screen.getByText(new RegExp(FEANOR_NO_REPLY_PREFIX))).toBeTruthy());
+    expect(t.calls).toHaveLength(0);
+    expect(document.querySelector(".fh-reply")).toBeNull();
   });
 });
 
