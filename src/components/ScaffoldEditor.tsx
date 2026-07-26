@@ -7,14 +7,15 @@
  * dérivé du nom saisi à la création (`slugify`) et **verrouillé** ensuite (C-1). `nonDestructive` est un
  * **invariant forcé à `true`** (jamais écraser l'existant).
  *
- * SIMPLIFICATION MVP (à remonter) : le champ **`entries`** (tableau `{path, role, createIfAbsent}`) est
- * une shape riche dont l'édition dépasse un formulaire simple ; il est **préservé tel quel en édition**
- * et vaut **`[]` en création**. Son authoring réel (ajouter/éditer des entrées) reste hors MVP. Ne
- * persiste rien : remonte à `onSubmit`.
+ * **Chantier #4 Lot A** : le champ **`entries`** (`{path, role, createIfAbsent}`) est désormais éditable
+ * via le socle réutilisable `<ListEditor>` (add/remove/reorder ↑↓, ligne structurée = 2 inputs + 1
+ * checkbox). Le cœur porte le round-trip : `scaffoldFrontmatterPatch` ré-émet `entries` **seulement si
+ * la séquence change** (sinon verbatim). Ne persiste rien : remonte le scaffold édité à `onSubmit`.
  */
 import { useState } from "react";
-import { slugify, type Scaffold, type ScaffoldLevel } from "@iakaframe/core";
+import { slugify, type Scaffold, type ScaffoldEntry, type ScaffoldLevel } from "@iakaframe/core";
 import type { ElementEditorProps } from "../forge/elementKind";
+import { ListEditor } from "./ListEditor";
 
 const LEVELS: ScaffoldLevel[] = ["portfolio", "project"];
 
@@ -44,8 +45,8 @@ export function ScaffoldEditor({
     onSubmit({
       id,
       level: draft.level,
-      // entries préservées (édition) ou vides (création) — non éditables au MVP.
-      entries: draft.entries,
+      // entries éditées via <ListEditor> (Lot A) — path vide filtré (ligne incomplète ignorée).
+      entries: draft.entries.filter((e) => e.path.trim().length > 0),
       nonDestructive: true, // invariant : jamais écraser l'existant.
     });
     if (!editing) {
@@ -88,13 +89,42 @@ export function ScaffoldEditor({
         </select>
       </div>
 
-      {editing && draft.entries.length > 0 && (
-        <div className="field">
-          <label>Entrées (chemins)</label>
-          <input className="locked" value={`${draft.entries.length} entrée(s) préservée(s)`} disabled />
-          <div className="lockhint">ⓘ entrées préservées — leur authoring (path/role) est hors MVP</div>
-        </div>
-      )}
+      <div className="field">
+        <label>Entrées (chemins d'échafaudage)</label>
+        <ListEditor<ScaffoldEntry>
+          items={draft.entries}
+          onChange={(entries) => patch({ entries })}
+          blankRow={() => ({ path: "", role: "", createIfAbsent: true })}
+          legend="Entrées d'échafaudage"
+          addLabel="Ajouter une entrée"
+          itemLabel={(e, i) => (e.path.trim() ? `entrée ${e.path}` : `entrée ${i + 1}`)}
+          emptyLabel="Aucune entrée — cet échafaudage ne pose aucun fichier/dossier."
+          renderRow={(entry, onRowChange) => (
+            <>
+              <input
+                aria-label="chemin"
+                placeholder="ex. specs/instructions/"
+                value={entry.path}
+                onChange={(e) => onRowChange({ ...entry, path: e.target.value })}
+              />
+              <input
+                aria-label="rôle"
+                placeholder="à quoi sert cette entrée"
+                value={entry.role}
+                onChange={(e) => onRowChange({ ...entry, role: e.target.value })}
+              />
+              <label className="list-editor-check">
+                <input
+                  type="checkbox"
+                  checked={entry.createIfAbsent}
+                  onChange={(e) => onRowChange({ ...entry, createIfAbsent: e.target.checked })}
+                />
+                créer si absent (non destructif)
+              </label>
+            </>
+          )}
+        />
+      </div>
 
       <div className="field">
         <label>Non destructif</label>

@@ -1189,10 +1189,18 @@ export function parseWorkflowMd(text: string | undefined | null): Workflow | nul
 // d'origine sont **préservés à l'octet**. Un patch qui ne change rien ⇒ document byte-identique
 // (invariant du round-trip AC3). Zéro dépendance : réutilise `parseFrontmatter`/`balance`/KEY_RE.
 
-/** Une valeur de patch : scalaire (`clé: valeur`) ou liste flow (`clé: [a, b, …]`). */
+/**
+ * Une valeur de patch : scalaire (`clé: valeur`), liste flow (`clé: [a, b, …]`), ou **séquence de
+ * blocs de maps inline** (`clé:` puis `  - { k: v, … }`, ex. `scaffold.entries`). Le `blockmap` est
+ * une **addition pure** (aucune signature existante retirée) : les patchs qui ne l'emploient pas sont
+ * inchangés. Il rend la forme bloc du canon (`library/scaffolds/*.md`) — chaînes toujours quotées,
+ * booléens/nombres nus — et n'est réécrit par {@link patchFrontmatter} que si la séquence **change**
+ * (sinon la valeur d'origine reste **verbatim**, round-trip byte-préservant, AC3).
+ */
 export type PatchField =
   | { kind: "scalar"; value: Scalar }
-  | { kind: "list"; value: readonly Scalar[] };
+  | { kind: "list"; value: readonly Scalar[] }
+  | { kind: "blockmap"; value: readonly Record<string, Scalar>[] };
 
 /** Un patch de frontmatter : par clé, la valeur voulue (les autres clés restent verbatim). */
 export type FrontmatterPatch = Record<string, PatchField>;
@@ -1269,11 +1277,36 @@ function frontmatterKeySpans(fmLines: string[]): KeySpan[] {
   return spans;
 }
 
-/** Rend UNE ligne de frontmatter pour une clé patchée (forme canonique, indent 0). */
+/**
+ * Rend une valeur scalaire DANS une map inline de séquence bloc (`- { k: v }`). Les **chaînes** sont
+ * TOUJOURS quotées `"…"` (forme du canon scaffold : `path`/`role` quotés même simples, ex. `"specs/"`)
+ * ; les **booléens/nombres** rendus nus (`createIfAbsent: true`). Byte-parité avec
+ * `library/scaffolds/*.md`.
+ */
+function renderBlockMapScalar(v: Scalar): string {
+  return typeof v === "string" ? `"${v}"` : String(v);
+}
+
+/**
+ * Rend une **séquence de blocs de maps inline** `clé:\n  - { k: v, … }` (indent 2), forme des
+ * `entries` de scaffold. Séquence vide → `clé: []` (forme flow canonique, cf. `serializeScaffoldMd`).
+ * L'ordre des paires suit l'ordre d'insertion de chaque map (l'appelant range `path, role, …` comme
+ * le canon).
+ */
+function renderBlockMapSeq(key: string, items: readonly Record<string, Scalar>[]): string {
+  if (items.length === 0) return `${key}: []`;
+  const rows = items.map((it) => {
+    const pairs = Object.entries(it).map(([k, v]) => `${k}: ${renderBlockMapScalar(v)}`);
+    return `  - { ${pairs.join(", ")} }`;
+  });
+  return [`${key}:`, ...rows].join("\n");
+}
+
+/** Rend UNE (ou plusieurs) ligne(s) de frontmatter pour une clé patchée (forme canonique). */
 function renderPatchLine(key: string, field: PatchField): string {
-  return field.kind === "list"
-    ? `${key}: ${renderFlowList(field.value)}`
-    : `${key}: ${renderScalar(field.value)}`;
+  if (field.kind === "list") return `${key}: ${renderFlowList(field.value)}`;
+  if (field.kind === "blockmap") return renderBlockMapSeq(key, field.value);
+  return `${key}: ${renderScalar(field.value)}`;
 }
 
 /** Deux valeurs de frontmatter sont-elles sémantiquement égales (⇒ ligne laissée verbatim) ? */
@@ -1282,6 +1315,17 @@ function sameFrontmatterValue(existing: FrontmatterValue | undefined, field: Pat
     if (!Array.isArray(existing)) return false;
     if (existing.length !== field.value.length) return false;
     return existing.every((e, i) => String(e) === String(field.value[i]));
+  }
+  if (field.kind === "blockmap") {
+    if (!Array.isArray(existing) || existing.length !== field.value.length) return false;
+    return existing.every((e, i) => {
+      if (typeof e !== "object" || e === null || Array.isArray(e)) return false;
+      const eRec = e as Record<string, FrontmatterValue>;
+      const want = field.value[i];
+      const wantKeys = Object.keys(want);
+      if (Object.keys(eRec).length !== wantKeys.length) return false;
+      return wantKeys.every((k) => String(eRec[k]) === String(want[k]));
+    });
   }
   if (existing == null || Array.isArray(existing) || typeof existing === "object") return false;
   return String(existing) === String(field.value);

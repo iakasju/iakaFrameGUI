@@ -2,10 +2,15 @@
  * PersonaEditor — créer / nommer librement / éditer une persona (présentationnel).
  *
  * Champs (§ 7.2 instruction) : **nom** (libre — AR-5), **rôle** (`<select>` des 7 rôles
- * canoniques par label), **royaume** (texte, MAJUSCULE), **roleIndex** (dérivé du rôle,
- * éditable), **skills** (catalogue + saisie libre tolérée), **gardes** (catalogue d'ids
- * d'intention ; MVP = déclaration). **AUCUN champ runner/modèle** (AR-1). Ne persiste rien
- * lui-même : remonte la persona construite à `onSubmit` (le parent appelle `upsertPersona`).
+ * canoniques par label), **royaume** (texte, MAJUSCULE), **mission** (ligne d'affichage courte) et
+ * **pastille** (emoji du badge) — champs de fichier modélisés par `personaFrontmatterPatch`, exposés
+ * au chantier #4 Lot A —, **skills** (catalogue + saisie libre tolérée), **gardes** (catalogue d'ids
+ * d'intention ; MVP = déclaration). **AUCUN champ runner/modèle** (AR-1).
+ *
+ * **Honnêteté (Lot A, AC1)** : `roleIndex` est **dérivé du rôle** — il n'est PAS un champ du fichier
+ * persona (`personaFrontmatterPatch` ne l'émet pas). Le rendre éditable serait un **contrôle fantôme**
+ * (valeur jetée au save) ; il est donc affiché **verrouillé** (`locked` + `lockhint`), comme `id`.
+ * Ne persiste rien lui-même : remonte la persona construite à `onSubmit` (le parent appelle `upsertPersona`).
  */
 import { useMemo, useState } from "react";
 import {
@@ -77,12 +82,21 @@ export function PersonaEditor({ persona, existingIds = [], onSubmit, onCancel }:
     if (name.length === 0) return;
     const id =
       editing && draft.id ? draft.id : uniqueId(slugify(name) || "persona", existingIds);
-    onSubmit({
+    // mission/pastille : émis seulement si déclarés (même politique que parsePersona /
+    // personaFrontmatterPatch — jamais de clé vide qui casserait un round-trip).
+    const mission = (draft.mission ?? "").trim();
+    const pastille = (draft.pastille ?? "").trim();
+    const next: Persona = {
       ...draft,
       id,
       name,
       royaume: (draft.royaume || draft.roleKey).toUpperCase(),
-    });
+    };
+    if (mission.length > 0) next.mission = mission;
+    else delete next.mission;
+    if (pastille.length > 0) next.pastille = pastille;
+    else delete next.pastille;
+    onSubmit(next);
     if (!editing) setDraft({ ...EMPTY });
   }
 
@@ -98,6 +112,15 @@ export function PersonaEditor({ persona, existingIds = [], onSubmit, onCancel }:
           value={draft.name}
           placeholder="ex. Aragorn, ou un nom choisi"
           onChange={(e) => patch({ name: e.target.value })}
+        />
+      </div>
+
+      <div className="field">
+        <label>Mission (ligne d'affichage courte)</label>
+        <input
+          value={draft.mission ?? ""}
+          placeholder="ex. Coordonne la compagnie, dispatche les instructions"
+          onChange={(e) => patch({ mission: e.target.value })}
         />
       </div>
 
@@ -120,13 +143,21 @@ export function PersonaEditor({ persona, existingIds = [], onSubmit, onCancel }:
           />
         </div>
         <div className="field">
-          <label>roleIndex</label>
+          <label>Pastille (emoji)</label>
           <input
-            type="number"
             style={{ width: 70 }}
-            value={draft.roleIndex}
-            onChange={(e) => patch({ roleIndex: Number(e.target.value) || 0 })}
+            value={draft.pastille ?? ""}
+            placeholder="🟠"
+            onChange={(e) => patch({ pastille: e.target.value })}
           />
+        </div>
+      </div>
+
+      <div className="field">
+        <label>roleIndex</label>
+        <input className="locked" style={{ width: 70 }} value={draft.roleIndex} disabled />
+        <div className="lockhint">
+          🔒 index de casting — dérivé du rôle, pas un champ du fichier persona (jamais persisté)
         </div>
       </div>
 

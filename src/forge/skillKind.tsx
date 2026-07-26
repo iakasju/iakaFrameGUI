@@ -4,8 +4,10 @@
  * `buildCards` + un `Editor` + un `toAuthoredEntity` propres à la skill, branchés **sans toucher
  * l'hôte** ni FeanorHead.
  *
- * Source = catalogue canonique vendoré `CATALOG_SKILLS` (étiqueté, honnête) ; édition = état local
- * de session (aucune écriture disque — Lot 5 différé). AUCUN contrat cœur touché.
+ * Source = catalogue canonique vendoré `CATALOG_SKILLS` (étiqueté, honnête) ; édition **persistée
+ * sur disque** via `persistSkill` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat cœur touché.
+ * NB : l'authoring des champs riches (`description`/`subskills`) + la levée des contrôles fantômes
+ * (`label`/`roleKey`) restent au **Lot C** (chantier #4).
  */
 import { type Skill } from "@iakaframe/core";
 import {
