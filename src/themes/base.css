@@ -183,6 +183,61 @@ button.btn.danger {
   font-size: 11px;
 }
 
+/* ListEditor — socle d'édition de liste réutilisable (chantier #4 Lot A). */
+.list-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-editor-empty {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.list-editor-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.list-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.list-editor-ctrls {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+button.list-editor-btn {
+  padding: 4px 8px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.list-editor-add {
+  align-self: flex-start;
+}
+
+.list-editor-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .checks {
   display: flex;
   flex-wrap: wrap;
