@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
-import { parsePersona, type Persona } from "@iakaframe/core";
+import { parseFrontmatter, parsePersona, type Persona } from "@iakaframe/core";
 import { PersonaReservoir } from "./PersonaReservoir";
+import { persistPersona } from "./personaPersist";
+import type { Backend } from "../api/backend";
+import { BACKEND_UNAVAILABLE_MSG } from "../api/backend";
 import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
 import { FEANOR_NO_REPLY_PREFIX } from "./FeanorHead";
 
@@ -138,5 +141,136 @@ describe("PersonaReservoir — écran réservoir + fiche (Lot 3, A3)", () => {
     // Royaume RÉEL hétérogène : Fëanor = FRAME (jamais roleKey.toUpperCase()).
     const feanor = screen.getByLabelText("Ouvrir la fiche de Fëanor");
     expect(within(feanor).getByText("[FRAME][Fëanor]")).toBeTruthy();
+  });
+});
+
+// --- Lot 5a : persistance disque du pilote persona (persistance-disque-authoring-elements.md) ---
+
+// Un `.md` persona réaliste PORTANT une `description` non modélisée (blurb de déclenchement du
+// sous-agent, load-bearing) + un corps — pour prouver la préservation à l'édition.
+const GIMLI_MD =
+  "---\n" +
+  "id: gimli\n" +
+  "name: Gimli\n" +
+  "description: Blurb load-bearing de déclenchement du sous-agent — NE DOIT PAS être jeté.\n" +
+  "mission: Implémente l'instruction validée.\n" +
+  "roleKey: dev\n" +
+  "royaume: IAKAFRAME\n" +
+  'pastille: "🔴"\n' +
+  "skills: [iakaframe-fabrication]\n" +
+  "guardrails: [identity, perimeter]\n" +
+  "vignette: none\n" +
+  "---\n\n# ⚒️ Gimli\n\n> le forgeron\n";
+
+describe("PersonaReservoir — persistance disque du pilote persona (Lot 5a)", () => {
+  it("ÉDITION : `persistPersona` patche NON-DESTRUCTIVEMENT (description/corps préservés) puis `poolWrite`", async () => {
+    let written: { poolType: string; id: string; text: string } | null = null;
+    const api = {
+      poolRead: async (poolType: string, id: string) =>
+        poolType === "personas" && id === "gimli" ? GIMLI_MD : null,
+      poolWrite: async (poolType: string, id: string, text: string) => {
+        written = { poolType, id, text };
+      },
+    } as unknown as Backend;
+
+    const persona = parsePersona(parseFrontmatter(GIMLI_MD).data)!;
+    await persistPersona({ ...persona, royaume: "NAINS" }, api);
+
+    expect(written).not.toBeNull();
+    const w = written!;
+    expect(w.poolType).toBe("personas");
+    expect(w.id).toBe("gimli"); // id verrouillé (C-1)
+    const after = parseFrontmatter(w.text).data;
+    // Le champ édité a bougé…
+    expect(after.royaume).toBe("NAINS");
+    // …mais la description non modélisée + vignette + corps sont préservés À L'OCTET.
+    expect(after.description).toBe(
+      "Blurb load-bearing de déclenchement du sous-agent — NE DOIT PAS être jeté.",
+    );
+    expect(after.vignette).toBe("none");
+    expect(w.text).toContain("# ⚒️ Gimli");
+    expect(w.text).toContain("> le forgeron");
+  });
+
+  it("CRÉATION : fichier absent → `serializePersonaMd` canonique via `poolWrite`", async () => {
+    let written: { id: string; text: string } | null = null;
+    const api = {
+      poolRead: async () => null, // aucun fichier existant → création
+      poolWrite: async (_poolType: string, id: string, text: string) => {
+        written = { id, text };
+      },
+    } as unknown as Backend;
+
+    const fresh: Persona = {
+      id: "samwise",
+      name: "Samwise",
+      roleKey: "dev",
+      royaume: "SHIRE",
+      roleIndex: 0,
+      skills: [],
+      guardrails: [],
+    };
+    await persistPersona(fresh, api);
+
+    expect(written).not.toBeNull();
+    expect(written!.id).toBe("samwise");
+    expect(written!.text).toContain("id: samwise");
+    expect(written!.text).toContain("royaume: SHIRE");
+    expect(written!.text).not.toContain("roleIndex");
+  });
+
+  it("Enregistrer → écrit via `persist` puis RÉCONCILIE depuis le disque (relecture)", async () => {
+    const calls: Persona[] = [];
+    // Après écriture, la relecture disque rend la persona ÉDITÉE (mission changée) → réconciliation.
+    const reloaded: Persona[] = [
+      parsePersona({
+        id: "loki",
+        name: "Loki",
+        roleKey: "design",
+        royaume: "IAKAFRAME",
+        skills: [],
+        guardrails: [],
+        mission: "Mission rechargée du disque.",
+      })!,
+    ];
+    let loadCount = 0;
+    const loadReservoir = () => {
+      loadCount += 1;
+      // 1er chargement = amorçage (repli []) ; après écriture = la vue disque réconciliée.
+      return Promise.resolve<Persona[]>(loadCount === 1 ? [] : reloaded);
+    };
+    const persist = async (p: Persona) => {
+      calls.push(p);
+    };
+
+    render(<PersonaReservoir loadReservoir={loadReservoir} persist={persist} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Nouvelle persona/ }));
+    fireEvent.change(screen.getByPlaceholderText(/Aragorn, ou un nom choisi/), {
+      target: { value: "Loki" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Créer la persona/ }));
+
+    // `persist` a été appelé (écriture disque), puis la grille reflète la RELECTURE disque.
+    await waitFor(() => expect(calls.length).toBe(1));
+    const card = await screen.findByLabelText("Ouvrir la fiche de Loki");
+    expect(within(card).getByText(/Mission rechargée du disque/)).toBeTruthy();
+  });
+
+  it("ÉCHEC de persistance (hors Tauri) → dégrade proprement : message clair + édition en session", async () => {
+    const offline = () => Promise.resolve<Persona[]>([]);
+    // `persist` par défaut = backend réel → hors Tauri, rejette avec BACKEND_UNAVAILABLE_MSG.
+    render(<PersonaReservoir loadReservoir={offline} />);
+    fireEvent.click(screen.getByLabelText("Ouvrir la fiche de Gimli"));
+    fireEvent.change(screen.getByPlaceholderText(/Aragorn, ou un nom choisi/), {
+      target: { value: "Gimli le Forgeron" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // L'édition optimiste survit (jamais perdue)…
+    expect(screen.getByLabelText("Ouvrir la fiche de Gimli le Forgeron")).toBeTruthy();
+    // …et l'échec est signalé par un message clair (jamais une stack).
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toContain(BACKEND_UNAVAILABLE_MSG),
+    );
   });
 });

@@ -161,6 +161,23 @@ export function poolRead(poolType: PoolType, id: string): Promise<string | null>
 }
 
 /**
+ * Écrit (ou remplace) l'atome de pool `<home>/library/<type>/<id>.md` (E2, Lot 5a — persistance de
+ * l'authoring). `text` = `.md` sérialisé (frontmatter). Calque de `libraryWrite`, réorienté sous
+ * `library/<pool>/` (symétrique de `poolRead`). Le cœur (`@iakaframe/core`) tient la **préservation
+ * non-destructive** (`patchFrontmatter` en édition, `serializePersonaMd` en création) ; Rust est un
+ * passe-plat. `skills` (dossier `<id>/SKILL.md`) est refusé côté Rust (hors périmètre 5a). Racine non
+ * résolue → rejet (via `call`) ; hors Tauri → `BACKEND_UNAVAILABLE_MSG` (jamais une stack).
+ */
+export function poolWrite(poolType: PoolType, id: string, text: string): Promise<void> {
+  return call<void>("pool_write", { poolType, id, text });
+}
+
+/** Indique si l'atome `library/<type>/<id>.md` existe (garde de création non destructive). */
+export function poolExists(poolType: PoolType, id: string): Promise<boolean> {
+  return call<boolean>("pool_exists", { poolType, id });
+}
+
+/**
  * Le pool `library/` existe-t-il sous la racine ? (Q-4 : pool absent → I1 non vérifiable →
  * avertissement NON bloquant, Save autorisé.)
  */
@@ -645,6 +662,8 @@ export const backend = {
   poolList,
   poolReadAll,
   poolRead,
+  poolWrite,
+  poolExists,
   poolPresent,
   iakaframeHome,
   setIakaframeHome,

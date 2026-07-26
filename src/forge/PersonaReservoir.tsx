@@ -8,13 +8,19 @@
  *
  * DONNÉES (inchangées, AR-2) : la vérité DÉRIVE des `.md` — le réservoir est alimenté par les
  * personas RÉELLES parsées du frame (`frame.personas`, casting de la team active), repli hors-ligne
- * `cloneCanonicalRoster()`. Édition = **état local de session** (MVP, aucune écriture disque).
+ * `cloneCanonicalRoster()`.
+ *
+ * PERSISTANCE (Lot 5a, persistance-disque-authoring-elements.md) : la persona est le **pilote**
+ * persisté bout-en-bout. `persistPersona` (module `personaPersist`) écrit dans
+ * `<IAKAFRAME_HOME>/library/personas/<id>.md` — édition = patch **non-destructif** (préserve
+ * `description`/`vignette`/clés inconnues + corps), création = `serializePersonaMd` canonique.
  */
 import { type Persona } from "@iakaframe/core";
 import { reservoirPersonasFromFrame } from "./personaCards";
 import { loadFrame } from "./frame";
 import { ElementReservoir } from "./ElementReservoir";
 import { personaKind } from "./personaKind";
+import { persistPersona } from "./personaPersist";
 
 /**
  * Source du réservoir : les personas RÉELLES parsées du frame chargé (AR-2). Injectable pour les
@@ -31,9 +37,12 @@ async function defaultLoadReservoir(): Promise<Persona[]> {
 
 export function PersonaReservoir({
   loadReservoir = defaultLoadReservoir,
+  persist = (p: Persona) => persistPersona(p),
 }: {
   /** Chargeur des personas réelles (injectable en test). Défaut : `frame.personas` via `loadFrame`. */
   loadReservoir?: () => Promise<Persona[]>;
+  /** Écriture disque non-destructive (injectable en test). Défaut : `persistPersona` (backend réel). */
+  persist?: (persona: Persona) => Promise<void>;
 } = {}) {
-  return <ElementReservoir kind={personaKind} loadElements={loadReservoir} />;
+  return <ElementReservoir kind={personaKind} loadElements={loadReservoir} persist={persist} />;
 }
