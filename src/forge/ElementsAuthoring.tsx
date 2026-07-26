@@ -5,14 +5,20 @@
  * → une **grille de fiches** → **New / sélection→édition** → **Fëanor-en-tête** (via l'hôte générique
  * `ElementReservoir`).
  *
- * MVP (Lot 1) : **un seul pool pilote authorable — le principe** (source `CATALOG_PRINCIPLES`, édition
- * locale de session). Les autres pools (skill, rituel, garde-fou, rôle, scaffold, workflow) sont
- * annoncés « à venir » (Lots 2–4) — honnête, pas de fausse surface. Brancher un pool suivant = ajouter
- * une entrée à `AUTHORABLE` avec son `ElementKind` (rien d'autre à toucher ici).
+ * Lot 1 : un pilote (le principe). **Lot 2** : les 5 pools de catalogue restants deviennent
+ * authorables — **skill, rituel, garde-fou, rôle, scaffold** (sources `CATALOG_SKILLS`,
+ * `CATALOG_RITUALS`, `CATALOG_GUARDRAILS`, `CANONICAL_ROLES`, `CATALOG_SCAFFOLDS`), édition locale de
+ * session. Seul **workflow** reste « à venir » (Lot 3, cas riche à part). Brancher un pool = ajouter
+ * une entrée à `AUTHORABLE` avec son `ElementKind` (rien d'autre à toucher ici : l'hôte est agnostique).
  */
 import { useState, type ReactNode } from "react";
 import { ElementReservoir } from "./ElementReservoir";
 import { principleKind } from "./principleKind";
+import { skillKind } from "./skillKind";
+import { ritualKind } from "./ritualKind";
+import { guardrailKind } from "./guardrailKind";
+import { roleKind } from "./roleKind";
+import { scaffoldKind } from "./scaffoldKind";
 
 interface AuthorableEntry {
   /** Clé de type stable. */
@@ -25,23 +31,56 @@ interface AuthorableEntry {
   render: () => ReactNode;
 }
 
-/** Les pools **authorables** au MVP (un seul pilote : le principe). */
+/**
+ * Les pools **authorables** (pilote principe + les 5 pools de catalogue du Lot 2).
+ *
+ * Chaque réservoir porte un **`key` = son type** : les pools se rendent à la même position dans
+ * `ea-main`, or un `ElementReservoir` porte son propre état de session (`items`). Sans `key`, changer
+ * de pool réutiliserait l'instance ET son état (les fiches du pool précédent projetées avec le mauvais
+ * `buildCards`). Le `key` force le remontage à chaque changement de type — l'hôte reste agnostique et
+ * **inchangé** (la réinitialisation est une responsabilité du site de montage, patron React idiomatique).
+ */
 const AUTHORABLE: AuthorableEntry[] = [
   {
     type: "principle",
     label: "principes",
     icon: "⚖️",
-    render: () => <ElementReservoir kind={principleKind} />,
+    render: () => <ElementReservoir key="principle" kind={principleKind} />,
+  },
+  {
+    type: "skill",
+    label: "skills",
+    icon: "🧩",
+    render: () => <ElementReservoir key="skill" kind={skillKind} />,
+  },
+  {
+    type: "ritual",
+    label: "rituels",
+    icon: "🔁",
+    render: () => <ElementReservoir key="ritual" kind={ritualKind} />,
+  },
+  {
+    type: "guardrail",
+    label: "gardes-fous",
+    icon: "🛡️",
+    render: () => <ElementReservoir key="guardrail" kind={guardrailKind} />,
+  },
+  {
+    type: "role",
+    label: "rôles",
+    icon: "🎯",
+    render: () => <ElementReservoir key="role" kind={roleKind} />,
+  },
+  {
+    type: "scaffold",
+    label: "scaffolds",
+    icon: "🏗️",
+    render: () => <ElementReservoir key="scaffold" kind={scaffoldKind} />,
   },
 ];
 
-/** Les pools **à venir** (Lots 2–4) — listés en repère honnête, non sélectionnables. */
+/** Les pools **à venir** (Lot 3) — listés en repère honnête, non sélectionnables. */
 const UPCOMING: { label: string; icon: string }[] = [
-  { label: "skills", icon: "🧩" },
-  { label: "rituels", icon: "🔁" },
-  { label: "gardes-fous", icon: "🛡️" },
-  { label: "rôles", icon: "🎯" },
-  { label: "scaffolds", icon: "🏗️" },
   { label: "workflows", icon: "🧭" },
 ];
 
