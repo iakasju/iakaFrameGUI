@@ -33,8 +33,17 @@ dirs = "5"
 # Lecture/ecriture du settings.json (override de la racine bibliotheque IAKAFRAME_HOME).
 # Deja present dans l'arbre de deps via Tauri ; passe-plat de texte (Rust n'y met aucun schema metier).
 serde_json = "1"
+# Derive Serialize pour l'enum de chunks du streaming (StreamChunk → Channel Tauri v2 → union TS).
+# Deja dans Cargo.lock (tire par Tauri) ; addition sans resolution reseau.
+serde = { version = "1", features = ["derive"] }
 # DEROGATION ASSUMEE ET BORNEE a l'invariant AR-1/AR-6 (copilote-inference-live.md, D1) : UN appel
 # HTTP d'authoring (Ollama /api/chat) borne en provider (ollama), hote (loopback + endpoint regle)
 # et temps (timeout). Authoring BUILD-TIME, JAMAIS un runner d'EXECUTION. HTTP seul (default-features
 # off) — pas de pile TLS a compiler hors-ligne ; endpoint LAN attendu en http (Ollama). Cf. src/llm.rs.
-reqwest = { version = "0.11", default-features = false, features = ["json"] }
+# Feature `stream` : lecture INCREMENTALE de la reponse NDJSON d'Ollama (`stream:true`, /api/chat) pour
+# le STREAMING d'authoring (llm_complete_stream). Additif ; toutes les deps transitives (tokio-util,
+# futures-core, bytes) sont deja dans Cargo.lock (aucune resolution reseau). Cf. src/llm.rs.
+reqwest = { version = "0.11", default-features = false, features = ["json", "stream"] }
+# Consommation du `bytes_stream()` de reqwest (StreamExt::next) pour la lecture NDJSON ligne par ligne.
+# Deja present dans Cargo.lock (tire par tokio/tauri) — addition sans resolution reseau.
+futures-util = "0.3"

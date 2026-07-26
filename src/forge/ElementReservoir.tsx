@@ -319,7 +319,7 @@ function ElementFiche<T>({
         / {kind.crumbCollection} / <span className="cur">{label}</span>
         <span className={`mode-pill ${mode}`}>{mode === "edit" ? "✎ édition" : "✚ création"}</span>
       </div>
-      <FeanorHead mode={mode} entity={entity} feanorSource={feanorSource} propose={propose} />
+      <FeanorHead mode={mode} entity={entity} feanorSource={feanorSource} propose={propose} streaming />
       {children}
     </section>
   );
