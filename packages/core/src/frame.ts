@@ -157,6 +157,12 @@ export interface SkillRefs {
 export interface WorkflowRefs {
   id: string;
   roleKeys: string[];
+  /**
+   * `soleActor` (Finding 3, D-6) : marque N=1 du modèle agnostique — une **réf persona** que rien
+   * ne contrôlait, exactement comme les `actorsRoleKeys` avant v0.26.0. `null` si absent. Vérifiée
+   * comme ref persona à l'intégrité (ferme le trou des deux côtés, parité CLI↔GUI).
+   */
+  soleActor: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -357,7 +363,7 @@ export function parseWorkflowRefs(md: string): WorkflowRefs | null {
       }
     }
   }
-  return { id, roleKeys };
+  return { id, roleKeys, soleActor: str(data.soleActor) };
 }
 
 /** Ajoute chaque id de `ids` absent de `set` à `missing`, étiqueté `source`/`field`. */
@@ -453,9 +459,12 @@ export function checkFrameRefs(
     needEach(missing, src, "guardrails", p.guardrails, guardrails);
   }
 
-  // T5 — workflow → agentsRoleKeys ⊆ roles.
+  // T5 — workflow → agentsRoleKeys ⊆ roles ; soleActor ∈ personas (Finding 3, D-6).
   for (const w of workflowRefs) {
     needEach(missing, `workflow:${w.id}`, "agentsRoleKeys", w.roleKeys, roles);
+    if (w.soleActor && !personas.has(w.soleActor)) {
+      missing.push({ source: `workflow:${w.id}`, field: "soleActor", id: w.soleActor });
+    }
   }
 
   // T3/B — skill → subskills ⊆ skills, anti-self-ref (id ∉ subskills).
