@@ -25,6 +25,7 @@ import { cloneCanonicalRoster, type Persona } from "@iakaframe/core";
 import { buildPersonaReservoir, reservoirPersonasFromFrame } from "./personaCards";
 import { loadFrame } from "./frame";
 import { PersonaEditor } from "../components/PersonaEditor";
+import { FeanorHead } from "./FeanorHead";
 
 type Mode = "grid" | "edit" | "create";
 
@@ -86,9 +87,18 @@ export function PersonaReservoir({
   };
 
   // --- Fiche : élément sélectionné (édition) OU nouvelle persona (création) ---
+  // Fëanor-en-tête (Lot 6, Fork C) : monté SEULEMENT dans ces deux modes d'authoring (jamais sur la
+  // grille), fidèle au décideur (« en création… et si on passe en mode édition, Fëanor se glisse en
+  // tête »). `feanorSource` = les personas réelles chargées (source de la vignette Fëanor).
   if (mode === "edit" && selected) {
     return (
-      <PersonaFiche mode="edit" label={selected.id} onBack={backToGrid}>
+      <PersonaFiche
+        mode="edit"
+        label={selected.id}
+        entity={selected}
+        feanorSource={personas}
+        onBack={backToGrid}
+      >
         <PersonaEditor
           persona={selected}
           existingIds={personas.filter((p) => p.id !== selected.id).map((p) => p.id)}
@@ -100,7 +110,13 @@ export function PersonaReservoir({
   }
   if (mode === "create") {
     return (
-      <PersonaFiche mode="create" label="nouvelle" onBack={backToGrid}>
+      <PersonaFiche
+        mode="create"
+        label="nouvelle"
+        entity={null}
+        feanorSource={personas}
+        onBack={backToGrid}
+      >
         <PersonaEditor
           existingIds={personas.map((p) => p.id)}
           onSubmit={onSubmit}
@@ -196,18 +212,24 @@ export function PersonaReservoir({
 
 /**
  * PersonaFiche — coquille de la **fiche** (mode édition/création) : fil d'Ariane + pastille de
- * mode (✎ édition / ✚ création, cohérente avec le Lot 2), puis le formulaire d'édition (l'éditeur
- * de persona existant, réutilisé — pattern d'ouverture/édition déjà en place). *Fëanor-en-tête =
- * Lot 6, NON monté ici.*
+ * mode (✎ édition / ✚ création, cohérente avec le Lot 2), le **Fëanor-en-tête** (Lot 6, Fork C —
+ * coquille inerte, monté en création ET édition), puis le formulaire d'édition (l'éditeur de persona
+ * existant, réutilisé — pattern d'ouverture/édition déjà en place).
  */
 function PersonaFiche({
   mode,
   label,
+  entity,
+  feanorSource,
   onBack,
   children,
 }: {
   mode: "edit" | "create";
   label: string;
+  /** L'entité en cours d'authoring (persona réelle en édition ; `null` en création vierge). */
+  entity: Persona | null;
+  /** Personas réelles (source de la vignette Fëanor). */
+  feanorSource?: readonly Persona[];
   onBack: () => void;
   children: React.ReactNode;
 }) {
@@ -222,6 +244,7 @@ function PersonaFiche({
           {mode === "edit" ? "✎ édition" : "✚ création"}
         </span>
       </div>
+      <FeanorHead mode={mode} entity={entity} feanorSource={feanorSource} />
       {children}
     </section>
   );
