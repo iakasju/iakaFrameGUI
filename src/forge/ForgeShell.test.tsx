@@ -38,11 +38,12 @@ describe("ForgeShell — nav à 9 entrées (Lot 2, Fork B)", () => {
     expect(await screen.findByText(/Stock — atelier Kit · assemblage total/)).toBeTruthy();
   });
 
-  it("l'entrée « models » (encore sans écran) rend un placeholder « à venir »", async () => {
+  it("l'entrée « models » ouvre la galerie des frames du Lot 4 (cartes à vignettes)", async () => {
     render(<ForgeShell />);
 
     fireEvent.click(screen.getByRole("tab", { name: "models" }));
-    expect(await screen.findByText(/à venir · Lot 4/)).toBeTruthy();
+    // La galerie monte son en-tête dédié (le réservoir réel est chargé de façon asynchrone).
+    expect(await screen.findByText("Le catalogue des frames")).toBeTruthy();
   });
 
   it("l'entrée « persona » ouvre le réservoir de personas du Lot 3 (fiches à vignettes)", async () => {
@@ -68,7 +69,7 @@ describe("ForgeShell — nav à 9 entrées (Lot 2, Fork B)", () => {
     expect((newBtn as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("le bouton « New » est désactivé sur une entrée sans entité créable (placeholder)", async () => {
+  it("le bouton « New » est désactivé sur une entrée sans entité créable (galerie models)", async () => {
     render(<ForgeShell />);
     fireEvent.click(screen.getByRole("tab", { name: "models" }));
     const newBtn = screen.getByRole("button", { name: "Nouvelle entité" });

@@ -1,0 +1,197 @@
+/* ============================================================================
+   models.css — l'écran GALERIE DES FRAMES (`models`, cartes à vignettes).
+   Porté au style de la maquette validée specs/mock/gui/01-library.html (grille de
+   cartes) — même pattern que persona.css (Lot 3) pour la cohérence Studio clair — Lot 4.
+
+   CHARTE : Studio clair, imposée LOCALEMENT (tokens re-déclarés sur .models-gallery),
+   même geste que persona.css / assembly.css. Les valeurs sont celles de la maquette
+   (= tokens studio-clair). Aucun asset distant.
+   ========================================================================== */
+
+.models-gallery {
+  /* — Tokens Studio clair (locaux à cet écran) — */
+  --bg-primary: #fbfbfc;
+  --bg-card: #ffffff;
+  --bg-deep: #f0f1f4;
+  --line: #e7e8ec;
+  --text-primary: #16181d;
+  --text-secondary: #5b6270;
+  --text-muted: #9aa0ad;
+  --accent: #5b5bd6;
+  --accent-rgb: 91, 91, 214;
+  --grad: linear-gradient(135deg, #5b5bd6, #7a78ff);
+  --green: #30a46c;
+  --radius: 13px;
+  --shadow: 0 4px 14px rgba(20, 22, 28, 0.08);
+
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 1.7rem 1.6rem 3rem;
+  line-height: 1.55;
+}
+
+.models-gallery .crumb {
+  font: 600 0.72rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.models-gallery .h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.models-gallery .sub {
+  color: var(--text-secondary);
+  margin-top: 0.35rem;
+  font-size: 0.96rem;
+  max-width: 72ch;
+}
+.models-gallery .sub strong {
+  color: var(--text-primary);
+}
+
+/* — En-tête de section — */
+.models-gallery .rvhead {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 2rem 0 0.9rem;
+}
+.models-gallery .seclabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font: 600 0.74rem inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+.models-gallery .seclabel::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  background: var(--grad);
+  border-radius: 2px;
+}
+.models-gallery .seclabel .n {
+  font: 600 0.68rem ui-monospace, monospace;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.models-gallery .models-empty {
+  margin-top: 0.6rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  max-width: 62ch;
+}
+.models-gallery .models-empty code {
+  font: 600 0.82rem ui-monospace, monospace;
+  color: var(--accent);
+}
+
+/* ===== Grille de cartes de frames ===== */
+.models-gallery .pgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 1rem;
+}
+.models-gallery .fcard {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.05rem 1.1rem;
+  box-shadow: var(--shadow);
+  transition: 0.16s;
+  position: relative;
+  overflow: hidden;
+}
+.models-gallery .fcard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(20, 22, 28, 0.12);
+  border-color: rgba(var(--accent-rgb), 0.35);
+}
+
+/* — La carte de la frame ACTIVE : liseré accent + rehaut — */
+.models-gallery .fcard.active {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent-rgb), 0.35),
+    var(--shadow);
+}
+.models-gallery .fcard .active-badge {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  font: 700 0.6rem ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+}
+
+.models-gallery .fcard .top {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.models-gallery .fcard .vg {
+  width: 50px;
+  height: 50px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font: 800 1rem ui-monospace, monospace;
+  letter-spacing: 0.01em;
+  flex: none;
+  box-shadow: 0 3px 10px rgba(20, 22, 28, 0.18);
+}
+.models-gallery .fcard .nm {
+  font-weight: 750;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+}
+.models-gallery .fcard .nm .star {
+  color: #f5a623;
+}
+.models-gallery .fcard .ref {
+  font: 600 0.72rem ui-monospace, monospace;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+.models-gallery .fcard .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+.models-gallery .fcard .chip {
+  font: 600 0.66rem ui-monospace, monospace;
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bg-deep);
+  color: var(--text-secondary);
+  border: 1px solid var(--line);
+}
+.models-gallery .fcard .chip.mth {
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+  border-color: transparent;
+}
+.models-gallery .fcard .chip.team {
+  background: rgba(48, 164, 108, 0.1);
+  color: #1f7a4d;
+  border-color: transparent;
+}
