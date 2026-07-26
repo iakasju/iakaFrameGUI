@@ -1,15 +1,16 @@
 /**
- * skillKind — la **skill en tant que pool authorable** de l'hôte générique `ElementReservoir`
- * (chantier #3 Lot 2). Clone du pilote `principleKind` adapté aux champs réels de `Skill` : un
- * `buildCards` + un `Editor` + un `toAuthoredEntity` propres à la skill, branchés **sans toucher
- * l'hôte** ni FeanorHead.
+ * skillKind — la **skill en tant que pool authorable** de l'hôte générique `ElementReservoir`,
+ * rebranché sur l'atome **DISQUE** `SkillAtom {id, name, description, subskills}` (chantier #4 Lot C,
+ * AR-E E1). Avant le Lot C, le pool parlait le type d'**attribution catalogue** `Skill {id, roleKey,
+ * label}` (dont `label`/`roleKey` étaient des contrôles fantômes jetés au save). Désormais il parle la
+ * **vérité disque** : `SkillEditor` édite `description` (load-bearing, garde visible) + `subskills`
+ * (via `<ListEditor>`), `id`/`name` verrouillés (C-1), corps `SKILL.md` différé.
  *
- * Source = catalogue canonique vendoré `CATALOG_SKILLS` (étiqueté, honnête) ; édition **persistée
- * sur disque** via `persistSkill` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat cœur touché.
- * NB : l'authoring des champs riches (`description`/`subskills`) + la levée des contrôles fantômes
- * (`label`/`roleKey`) restent au **Lot C** (chantier #4).
+ * Source réelle = `frame.skills` (atomes parsés) ; repli = catalogue projeté en atomes ; édition
+ * **persistée sur disque** via `persistSkill` (Lot 5c, câblé par `ElementsAuthoring`). AUCUN contrat
+ * cœur touché : le rebranchement est un mapping `src/` au-dessus du contrat 5c déjà en place.
  */
-import { type Skill } from "@iakaframe/core";
+import { type SkillAtom } from "@iakaframe/core";
 import {
   buildSkillReservoir,
   cloneSkillCatalog,
@@ -20,8 +21,8 @@ import {
 import type { ElementKind } from "./elementKind";
 import { SkillEditor } from "../components/SkillEditor";
 
-/** Le pool **skill** de l'hôte générique (Lot 2). */
-export const skillKind: ElementKind<Skill> = {
+/** Le pool **skill** de l'hôte générique (rebranché sur `SkillAtom` — Lot C). */
+export const skillKind: ElementKind<SkillAtom> = {
   type: "skill",
   typeLabel: SKILL_TYPE_LABEL,
   scopeClass: "skill-reservoir",
@@ -31,9 +32,10 @@ export const skillKind: ElementKind<Skill> = {
   subtitle: (
     <>
       Le <strong>« comment » outillé d'un rôle</strong> — chaque skill est un{" "}
-      <code>{"{ label · roleKey }"}</code>, rattachée à un rôle et référencée (jamais copiée) par les
-      personas. Ouvrez une fiche pour l'éditer. Source : le catalogue canonique (édition locale de
-      session).
+      <code>{"{ description · subskills }"}</code> sur disque : un{" "}
+      <strong>blurb de déclenchement</strong> (load-bearing) et une éventuelle composition de
+      sous-skills. Ouvrez une fiche pour l'éditer (id/name verrouillés, corps différé). Source : les
+      skills réelles du frame courant.
     </>
   ),
   sectionLabel: "Skills",
