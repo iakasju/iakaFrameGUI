@@ -16,3 +16,6 @@
 
 /* Habillage de la forge à trois ateliers (E2b), scopé .forge */
 @import "./forge/forge.css";
+
+/* Écran d'assemblage « frame = méthode + team (frères) », scopé .assembly-view (Studio clair local) */
+@import "./forge/assembly.css";

@@ -45,6 +45,7 @@ import {
 import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
 import { OpenFramePanel } from "../components/OpenFramePanel";
+import { AssemblyView } from "./AssemblyView";
 import { ElementPoolPanel } from "./ElementPoolPanel";
 import type { ElementPoolTarget } from "@iakaframe/core";
 import { DocBar } from "./DocBar";
@@ -91,6 +92,7 @@ export function ForgeShell() {
   const [tab, setTab] = useState<Tab>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [frameOpen, setFrameOpen] = useState(false);
+  const [assemblyOpen, setAssemblyOpen] = useState(false);
   const [elementPoolOpen, setElementPoolOpen] = useState(false);
 
   // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
@@ -255,6 +257,15 @@ export function ForgeShell() {
         <button
           type="button"
           className="settings-toggle"
+          aria-pressed={assemblyOpen}
+          title="Assemblage — le frame et ses deux frères (méthode + team), mariés par le binding"
+          onClick={() => setAssemblyOpen((v) => !v)}
+        >
+          Assemblage
+        </button>
+        <button
+          type="button"
+          className="settings-toggle"
           aria-pressed={frameOpen}
           title="Ouvrir un frame — charger et compter les 11 types"
           onClick={() => setFrameOpen((v) => !v)}
@@ -304,6 +315,8 @@ export function ForgeShell() {
           />
         </>
       )}
+
+      {assemblyOpen && <AssemblyView />}
 
       {frameOpen && (
         <div className="settings-panel">
