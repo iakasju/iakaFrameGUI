@@ -1,21 +1,21 @@
 /**
- * skillCards — dérivation **pure** des fiches à vignettes du pool **skill** (chantier #3 Lot 2,
- * extension-feanor-en-tete-pages-elements.md § 5 Lot 2), clone de `principleCards` adapté aux
- * champs réels de `Skill`. AUCUN I/O, AUCUN contrat touché : on **consomme** le catalogue canonique
- * vendoré `CATALOG_SKILLS` (`{id, roleKey, label}`) et on projette le view-model de fiche unifié de
- * l'hôte générique. Pure addition `src/` au-dessus du contrat (parité drift 0 par construction).
+ * skillCards — dérivation **pure** des fiches à vignettes du pool **skill**, rebranché sur l'atome
+ * **DISQUE** `SkillAtom {id, name, description, subskills}` (chantier #4 Lot C, AR-E E1). Avant le Lot C,
+ * la projection consommait le type d'**attribution catalogue** `Skill {id, roleKey, label}` (vue
+ * catalogue) ; désormais elle consomme la **vérité disque** (`frame.skills`), dont `description` et
+ * `subskills` sont les vrais champs. AUCUN I/O, AUCUN contrat touché : pure addition/rebranchement `src/`.
  *
- * Honnêteté (§ 8) : la source est le **catalogue canonique étiqueté comme tel** (repli de session),
- * jamais une donnée fabriquée. La skill se rattache à un **rôle** réel (`roleKey`) : la teinte de la
- * vignette est castée par le `roleIndex` canon du rôle (couleur = rôle, pas un hash arbitraire).
- * MVP = attribution d'id (le corps riche `SKILL.md`/allowedTools est différé côté cœur, cf. skill.ts).
+ * Honnêteté (§ 8) : la fiche ne montre que ce que l'atome **déclare** — `description` en résumé,
+ * `subskills` en puces (jamais fabriqués). Le **rôle** de rattachement (`roleLabel`/teinte) n'est PAS un
+ * champ de l'atome : c'est une **méta d'affichage dérivée du catalogue** (`CATALOG_SKILLS`) par id **si
+ * connu**, sinon retombe sur une teinte neutre — jamais une donnée inventée. Le corps `SKILL.md` (payload)
+ * reste hors carte (différé, AR-D).
  */
 import {
   CATALOG_SKILLS,
-  roleByKey,
   roleIndexOf,
   roleLabel,
-  type Skill,
+  type SkillAtom,
 } from "@iakaframe/core";
 import { vignetteGradient, initialsOf } from "./casting";
 import type { AuthoredEntity } from "./feanorHeadModel";
@@ -24,46 +24,62 @@ import type { ElementCardVM } from "./elementKind";
 /** Le type FR affiché du pool. */
 export const SKILL_TYPE_LABEL = "skill";
 
-/** Projette UNE skill en fiche à vignette (déterministe, castée par le rôle réel). */
-export function buildSkillCard(s: Skill): ElementCardVM {
-  const idx = roleIndexOf(s.roleKey);
-  const knownRole = roleByKey(s.roleKey);
+/** Index de casting neutre par défaut (skill hors-catalogue : aucune teinte de rôle à dériver). */
+const DEFAULT_SKILL_ROLE_INDEX = 2;
+
+/** Rôle d'affichage (méta) dérivé du catalogue par id — `null` si la skill est hors-catalogue. */
+function displayRole(id: string): { roleKey: string; index: number } | null {
+  const cat = CATALOG_SKILLS.find((s) => s.id === id);
+  return cat ? { roleKey: cat.roleKey, index: roleIndexOf(cat.roleKey) } : null;
+}
+
+/** Projette UNE skill (atome disque) en fiche à vignette (déterministe). */
+export function buildSkillCard(a: SkillAtom): ElementCardVM {
+  const role = displayRole(a.id);
+  const idx = role ? role.index : DEFAULT_SKILL_ROLE_INDEX;
   return {
-    id: s.id,
-    name: s.label,
-    initials: initialsOf(s.label),
+    id: a.id,
+    name: a.name,
+    initials: initialsOf(a.name),
     gradient: vignetteGradient(idx),
     pastille: null,
     royaume: null,
-    ref: s.id,
-    // La skill EST le « comment » d'un rôle → on montre le rôle de rattachement (réel).
-    roleLabel: knownRole ? roleLabel(s.roleKey) : null,
+    ref: a.id,
+    // Rôle de rattachement = méta d'affichage catalogue (jamais un champ de l'atome).
+    roleLabel: role ? roleLabel(role.roleKey) : null,
     roleIndex: idx,
-    summary: null,
-    chips: [{ key: `role-${s.id}`, text: `rôle · ${s.roleKey}`, kind: "meta" as const }],
-    emptyChipsLabel: "attribution d'id — corps de skill différé",
+    // Résumé = la `description` réelle (blurb de déclenchement), champ load-bearing de l'atome.
+    summary: a.description.trim().length > 0 ? a.description : null,
+    // Puces = les `subskills` réelles (composition) — jamais fabriquées.
+    chips: a.subskills.map((s) => ({ key: `sub-${a.id}-${s}`, text: s, kind: "sk" as const })),
+    emptyChipsLabel: "skill atomique — aucune sous-skill",
   };
 }
 
 /** Projette le pool de skills complet (l'ordre d'entrée est conservé). */
-export function buildSkillReservoir(skills: readonly Skill[]): ElementCardVM[] {
+export function buildSkillReservoir(skills: readonly SkillAtom[]): ElementCardVM[] {
   return skills.map(buildSkillCard);
 }
 
-/** Repli hors-ligne / source de session du pool : le catalogue canonique (copie éditable). */
-export function cloneSkillCatalog(): Skill[] {
-  return CATALOG_SKILLS.map((s) => ({ ...s }));
+/**
+ * Repli hors-ligne / source de session du pool : le catalogue canonique **projeté en atomes** (copie
+ * éditable). Repli d'affichage uniquement (name == id, description/subskills vides) — remplacé par les
+ * atomes réels (`frame.skills`) dès que le disque répond.
+ */
+export function cloneSkillCatalog(): SkillAtom[] {
+  return CATALOG_SKILLS.map((s) => ({ id: s.id, name: s.id, description: "", subskills: [] }));
 }
 
-/** Adapte une skill vers l'entité générique de Fëanor-en-tête (édition). */
-export function skillToAuthoredEntity(s: Skill): AuthoredEntity {
+/** Adapte une skill (atome) vers l'entité générique de Fëanor-en-tête (édition). */
+export function skillToAuthoredEntity(a: SkillAtom): AuthoredEntity {
+  const role = displayRole(a.id);
   return {
     type: "skill",
     typeLabel: SKILL_TYPE_LABEL,
     newLabel: "Nouvelle skill",
-    name: s.label,
-    key: s.roleKey || null,
-    roleIndex: roleIndexOf(s.roleKey),
+    name: a.name,
+    key: role ? role.roleKey : null,
+    roleIndex: role ? role.index : DEFAULT_SKILL_ROLE_INDEX,
     pastille: null,
   };
 }
@@ -75,6 +91,6 @@ export const SKILL_BLANK_ENTITY: AuthoredEntity = {
   newLabel: "Nouvelle skill",
   name: "",
   key: null,
-  roleIndex: 2,
+  roleIndex: DEFAULT_SKILL_ROLE_INDEX,
   pastille: null,
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CATALOG_SKILLS, roleIndexOf } from "@iakaframe/core";
+import { CATALOG_SKILLS, roleIndexOf, type SkillAtom } from "@iakaframe/core";
 import { vignetteGradient } from "./casting";
 import {
   buildSkillCard,
@@ -9,47 +9,73 @@ import {
   SKILL_BLANK_ENTITY,
 } from "./skillCards";
 
-describe("skillCards — projection pure du pool skill (Lot 2)", () => {
-  it("buildSkillReservoir : une fiche par skill du catalogue canonique, ordre conservé", () => {
-    const cards = buildSkillReservoir(cloneSkillCatalog());
-    expect(cards.length).toBe(CATALOG_SKILLS.length);
-    expect(cards.map((c) => c.id)).toEqual(CATALOG_SKILLS.map((s) => s.id));
+const ATOM = (over: Partial<SkillAtom> = {}): SkillAtom => ({
+  id: "iakaframe-cadrage",
+  name: "iakaframe-cadrage",
+  description: "Cadrer une feature avant tout code.",
+  subskills: [],
+  ...over,
+});
+
+describe("skillCards — projection pure depuis l'atome disque SkillAtom (Lot C)", () => {
+  it("buildSkillReservoir : une fiche par atome, ordre conservé", () => {
+    const atoms = [ATOM({ id: "a", name: "a" }), ATOM({ id: "b", name: "b" })];
+    const cards = buildSkillReservoir(atoms);
+    expect(cards.map((c) => c.id)).toEqual(["a", "b"]);
   });
 
-  it("buildSkillCard : libellé, id (ref), rôle de rattachement (roleLabel) + teinte castée par le rôle réel", () => {
-    const s = CATALOG_SKILLS.find((x) => x.id === "iakaframe-cadrage")!;
-    const card = buildSkillCard(s);
-    expect(card.name).toBe(s.label);
-    expect(card.ref).toBe(s.id);
-    // La skill se rattache à un rôle réel → teinte castée par le roleIndex canon.
-    expect(card.gradient).toEqual(vignetteGradient(roleIndexOf(s.roleKey)));
-    expect(card.roleLabel).not.toBeNull();
-    // Le roleKey réel figure en puce méta (jamais un royaume/pastille fabriqué).
-    expect(card.chips[0].kind).toBe("meta");
-    expect(card.chips[0].text).toContain(s.roleKey);
+  it("buildSkillCard : name, id (ref), description en résumé, subskills en puces", () => {
+    const a = ATOM({ subskills: ["iakaframe-git", "iakaframe-jalon"] });
+    const card = buildSkillCard(a);
+    expect(card.name).toBe(a.name);
+    expect(card.ref).toBe(a.id);
+    expect(card.summary).toBe(a.description); // le blurb réel est le résumé
+    // Les subskills réelles sont les puces (jamais fabriquées).
+    expect(card.chips.map((c) => c.text)).toEqual(["iakaframe-git", "iakaframe-jalon"]);
+    expect(card.chips.every((c) => c.kind === "sk")).toBe(true);
     expect(card.royaume).toBeNull();
     expect(card.pastille).toBeNull();
   });
 
-  it("skillToAuthoredEntity : entité générique de type `skill` (jamais `persona`), key = roleKey", () => {
-    const s = CATALOG_SKILLS[0];
-    const ent = skillToAuthoredEntity(s);
-    expect(ent.type).toBe("skill");
-    expect(ent.typeLabel).toBe("skill");
-    expect(ent.newLabel).toBe("Nouvelle skill");
-    expect(ent.name).toBe(s.label);
-    expect(ent.key).toBe(s.roleKey);
+  it("buildSkillCard : rôle d'affichage dérivé du catalogue par id (méta), teinte castée", () => {
+    // iakaframe-cadrage EST au catalogue → roleLabel + teinte castées par son roleKey canon.
+    const card = buildSkillCard(ATOM());
+    const cat = CATALOG_SKILLS.find((s) => s.id === "iakaframe-cadrage")!;
+    expect(card.gradient).toEqual(vignetteGradient(roleIndexOf(cat.roleKey)));
+    expect(card.roleLabel).not.toBeNull();
   });
 
-  it("SKILL_BLANK_ENTITY : descripteur de création vierge (name vide → placeholder genré)", () => {
+  it("buildSkillCard : skill hors-catalogue → roleLabel null, teinte neutre (jamais inventée)", () => {
+    const card = buildSkillCard(ATOM({ id: "skill-inconnue", name: "skill-inconnue" }));
+    expect(card.roleLabel).toBeNull();
+    expect(card.gradient).toEqual(vignetteGradient(2)); // index neutre
+  });
+
+  it("buildSkillCard : skill atomique (aucune subskill) → puces vides + libellé muté", () => {
+    const card = buildSkillCard(ATOM({ subskills: [] }));
+    expect(card.chips).toEqual([]);
+    expect(card.emptyChipsLabel).toContain("atomique");
+  });
+
+  it("skillToAuthoredEntity : entité de type `skill`, name de l'atome, key = rôle catalogue si connu", () => {
+    const ent = skillToAuthoredEntity(ATOM());
+    expect(ent.type).toBe("skill");
+    expect(ent.typeLabel).toBe("skill");
+    expect(ent.name).toBe("iakaframe-cadrage");
+    expect(ent.key).not.toBeNull(); // cadrage est au catalogue
+  });
+
+  it("SKILL_BLANK_ENTITY : descripteur de création vierge (name vide)", () => {
     expect(SKILL_BLANK_ENTITY.name).toBe("");
     expect(SKILL_BLANK_ENTITY.newLabel).toBe("Nouvelle skill");
     expect(SKILL_BLANK_ENTITY.type).toBe("skill");
   });
 
-  it("cloneSkillCatalog : copie éditable (mutation locale n'altère pas le catalogue vendoré)", () => {
+  it("cloneSkillCatalog : repli d'atomes (name == id, description/subskills vides)", () => {
     const copy = cloneSkillCatalog();
-    copy[0].label = "MUTÉ EN SESSION";
-    expect(CATALOG_SKILLS[0].label).not.toBe("MUTÉ EN SESSION");
+    expect(copy.length).toBe(CATALOG_SKILLS.length);
+    expect(copy[0].id).toBe(copy[0].name);
+    expect(copy[0].description).toBe("");
+    expect(copy[0].subskills).toEqual([]);
   });
 });
