@@ -19,6 +19,7 @@ pub mod kit_deploy;
 pub mod library_store;
 pub mod llm;
 pub mod pathguard;
+pub mod project_conf;
 pub mod paths;
 pub mod settings;
 pub mod teams_store;
@@ -63,6 +64,10 @@ pub fn run() {
             settings::set_authoring_model,
             settings::authoring_endpoint,
             settings::set_authoring_endpoint,
+            settings::project_dir,
+            settings::set_project_dir,
+            project_conf::active_frame_id,
+            project_conf::set_active_frame_id,
             llm::llm_complete,
             kit_deploy::kit_deploy,
             handoff::handoff_deliver,

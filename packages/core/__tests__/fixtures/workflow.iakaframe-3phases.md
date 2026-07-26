@@ -1,11 +1,12 @@
 ---
 id: iakaframe-3phases
 name: iakaframe — cadrage → réalisation → staging (+ squad prod)
+kind: pipeline
 phases:
-  - { id: p1, label: Cadrage, agentsRoleKeys: [cadrage], input: besoin, output: "specs/instructions/{feature}.md" }
-  - { id: p2, label: Réalisation, agentsRoleKeys: [dev, qualite], input: instruction, output: "branche + commits + verdict PASS" }
-  - { id: p3, label: Staging, agentsRoleKeys: [dev, qualite], input: PASS, output: "build en staging vX.Y.Z-rc" }
-  - { id: prod, label: Déploiement prod, side: prod, agentsRoleKeys: [deploiement], input: "rc recettée + feu vert humain", output: "prod (alias de version) + surveillance/rollback" }
+  - { id: p1, label: Cadrage, actorsRoleKeys: [cadrage], input: besoin, output: "specs/instructions/{feature}.md" }
+  - { id: p2, label: Réalisation, actorsRoleKeys: [dev, qualite], input: instruction, output: "branche + commits + verdict PASS" }
+  - { id: p3, label: Staging, actorsRoleKeys: [dev, qualite], input: PASS, output: "build en staging vX.Y.Z-rc" }
+  - { id: prod, label: Déploiement prod, side: prod, actorsRoleKeys: [deploiement], input: "rc recettée + feu vert humain", output: "prod (alias de version) + surveillance/rollback" }
 gates:
   - { afterPhase: p1, kind: human, criteria: "l'utilisateur valide l'instruction" }
   - { afterPhase: p2, kind: auto,  criteria: "typecheck + lint + tests verts (verdict Legolas PASS, indépendant)" }

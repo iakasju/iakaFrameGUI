@@ -15,6 +15,11 @@ const AUTHORING_MODEL_KEY: &str = "authoringModel";
 /// Clé JSON de l'**endpoint d'authoring** optionnel (§ D3) — l'hôte Ollama à joindre pour
 /// l'inférence LIVE (ex. un Ollama sur le LAN). Vide/absent ⇒ défaut `http://localhost:11434`.
 const AUTHORING_ENDPOINT_KEY: &str = "authoringEndpoint";
+/// Clé JSON du **dossier de projet** courant (arbitrage 2026-07-26). C'est un **confort d'outil**
+/// de la forge : il dit OÙ est le projet, pas quelle frame est active. Le pointeur de frame active,
+/// lui, vit dans `<projectDir>/iakaframe.json` — **propriété du lieu**, partagée avec le CLI
+/// (`project_conf.rs`). Les mélanger ferait du pointeur un état de la GUI (interdit, I-5).
+const PROJECT_DIR_KEY: &str = "projectDir";
 
 /// Lit une clé chaîne du `settings_file` (`None` si absent/illisible/vide). Générique et partagée
 /// par tous les réglages simples (racine bibliothèque, modèle d'authoring…).
@@ -89,6 +94,17 @@ pub fn write_authoring_endpoint(settings_file: &Path, endpoint: &str) -> Result<
     write_string_key(settings_file, AUTHORING_ENDPOINT_KEY, endpoint)
 }
 
+/// Lit le **dossier de projet** persisté (`None` si absent/illisible/vide).
+pub fn read_project_dir(settings_file: &Path) -> Option<String> {
+    read_string_key(settings_file, PROJECT_DIR_KEY)
+}
+
+/// Écrit/fusionne le **dossier de projet**. Une valeur vide **retire** la clé. Même contrat de
+/// fusion non destructive que les autres réglages.
+pub fn write_project_dir(settings_file: &Path, dir: &str) -> Result<(), String> {
+    write_string_key(settings_file, PROJECT_DIR_KEY, dir)
+}
+
 // --- Commandes Tauri (façade unique côté front : `src/api/backend.ts`) ---
 
 /// Racine bibliothèque résolue (§5) — `null` si introuvable (l'UI invite à la définir).
@@ -124,6 +140,18 @@ pub fn authoring_endpoint() -> Option<String> {
 }
 
 /// Définit (ou retire, si vide) l'endpoint d'authoring persisté dans `<workspace>/settings.json`.
+/// Dossier de projet courant — `null` si non réglé (l'UI invite à le définir).
+#[tauri::command]
+pub fn project_dir() -> Option<String> {
+    read_project_dir(&crate::paths::resolve_settings_file())
+}
+
+/// Règle le dossier de projet. Chaîne vide ⇒ retrait du réglage.
+#[tauri::command]
+pub fn set_project_dir(dir: String) -> Result<(), String> {
+    write_project_dir(&crate::paths::resolve_settings_file(), &dir)
+}
+
 #[tauri::command]
 pub fn set_authoring_endpoint(endpoint: String) -> Result<(), String> {
     write_authoring_endpoint(&crate::paths::resolve_settings_file(), &endpoint)

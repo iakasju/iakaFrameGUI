@@ -12,6 +12,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { backend, type Backend } from "../api/backend";
 
+/** Aucun dossier de projet réglé : la forge ne sait pas où lire le pointeur de frame active. */
+export const NO_PROJECT_HINT =
+  "aucun dossier de projet réglé — la frame active du réservoir (default) sera utilisée";
+
+/** Projet réglé mais sans pointeur : ce n'est pas une erreur, c'est le cas nominal du défaut. */
+export const NO_ACTIVE_FRAME_HINT =
+  "aucun pointeur posé — la frame « default » du réservoir est active";
+
 export function SettingsRoot({ api = backend }: { api?: Backend }) {
   const [home, setHome] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -23,6 +31,11 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
   // § D3 : endpoint d'authoring optionnel (hôte Ollama LAN). `null` = non défini → défaut localhost.
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [endpointDraft, setEndpointDraft] = useState<string>("");
+  // Dossier de PROJET : il dit OÙ est le projet. Le pointeur de frame active, lui, vit dans
+  // `<projectDir>/iakaframe.json` et appartient au LIEU (partagé avec le CLI) — jamais ici.
+  const [project, setProject] = useState<string | null>(null);
+  const [projectDraft, setProjectDraft] = useState<string>("");
+  const [activeFrame, setActiveFrame] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     let resolved: string | null = null;
@@ -48,6 +61,21 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
     }
     setEndpoint(resolvedEndpoint);
     setEndpointDraft(resolvedEndpoint ?? "");
+    let resolvedProject: string | null = null;
+    try {
+      resolvedProject = await api.projectDir();
+    } catch {
+      resolvedProject = null;
+    }
+    setProject(resolvedProject);
+    setProjectDraft(resolvedProject ?? "");
+    let resolvedFrame: string | null = null;
+    try {
+      resolvedFrame = await api.activeFrameId();
+    } catch {
+      resolvedFrame = null;
+    }
+    setActiveFrame(resolvedFrame);
     setLoaded(true);
   }, [api]);
 
@@ -92,6 +120,18 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
       setBusy(false);
     }
   }, [api, endpointDraft, refresh]);
+
+  const saveProject = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setProjectDir(projectDraft.trim());
+      await refresh();
+    } catch {
+      /* hors Tauri / erreur : on ne casse pas le rendu */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, projectDraft, refresh]);
 
   // Efface l'endpoint : `setAuthoringEndpoint("")` retire la clé (retour au défaut localhost).
   const clearEndpoint = useCallback(async () => {
@@ -234,6 +274,46 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
         {endpoint && (
           <p className="settings-line">
             Endpoint configuré : <code className="model-value">{endpoint}</code>
+          </p>
+        )}
+      </div>
+
+      <div className="settings-block">
+        <h3>Dossier de projet</h3>
+        <p className="settings-hint">
+          Le projet dont la forge lit la <b>frame active</b>. Le pointeur lui-même vit dans{" "}
+          <code>{"<projet>/iakaframe.json"}</code> (clé <code>frame</code>) — <b>propriété du lieu</b>,
+          partagée avec le CLI, jamais recopiée dans les réglages de la forge.
+        </p>
+        <div className="settings-actions">
+          <input
+            type="text"
+            className="model-input"
+            aria-label="Dossier de projet"
+            placeholder="ex. /Users/moi/work/mon-projet"
+            value={projectDraft}
+            disabled={busy}
+            onChange={(e) => setProjectDraft(e.target.value)}
+          />
+          <button type="button" className="docbtn" disabled={busy} onClick={() => void saveProject()}>
+            Enregistrer le projet
+          </button>
+        </div>
+        {project ? (
+          <p className="settings-line">
+            Projet : <code className="model-value">{project}</code>
+            {" · "}
+            {activeFrame ? (
+              <>
+                frame active : <code className="model-value">{activeFrame}</code>
+              </>
+            ) : (
+              <em className="no-model">{NO_ACTIVE_FRAME_HINT}</em>
+            )}
+          </p>
+        ) : (
+          <p className="settings-line">
+            <em className="no-model">{NO_PROJECT_HINT}</em>
           </p>
         )}
       </div>

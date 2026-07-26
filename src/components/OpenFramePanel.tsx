@@ -19,11 +19,18 @@ import {
   loadFrame,
   type Frame,
 } from "../forge/frame";
+import { activeFrameIsDangling } from "@iakaframe/core";
+
+/** Le pointeur désigne une frame qui n'existe plus : on retombe sur `default`, mais on le DIT. */
+export const DANGLING_FRAME_HINT =
+  "pointeur de frame active cassé (frame introuvable dans le réservoir) — repli sur « default »";
 
 export function OpenFramePanel({ api = backend }: { api?: Backend }) {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Pointeur lu à côté du frame — sert à détecter le cas « pointeur mort » (I-4). */
+  const [pointer, setPointer] = useState<string | null>(null);
 
   /** Charge le frame de la racine courante (sans re-sélectionner de dossier). */
   const load = useCallback(async () => {
@@ -31,6 +38,7 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
     setError(null);
     try {
       setFrame(await loadFrame(api));
+      setPointer(await api.activeFrameId?.().catch(() => null) ?? null);
     } catch {
       setError("Chargement du frame impossible (racine introuvable ?).");
     } finally {
@@ -47,6 +55,10 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
       if (!dir) return; // annulation utilisateur : on ne change rien.
       await api.setIakaframeHome(dir);
       setFrame(await loadFrame(api));
+      // Le pointeur suit le PROJET, pas la racine : il reste valable après changement de racine,
+      // mais il faut le (re)lire ici aussi — sans quoi l'alerte de pointeur mort ne s'afficherait
+      // jamais sur le chemin « Ouvrir un frame ».
+      setPointer(await api.activeFrameId?.().catch(() => null) ?? null);
     } catch {
       setError("Ouverture du frame impossible.");
     } finally {
@@ -54,7 +66,33 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
     }
   }, [api]);
 
+  /**
+   * Bascule la frame active : écrit le pointeur dans `<projet>/iakaframe.json` (non destructif,
+   * côté Rust) puis **recharge** — l'assemblage affiché est celui que le disque porte, jamais un
+   * état local optimiste qui mentirait si l'écriture avait échoué.
+   */
+  const selectFrame = useCallback(
+    async (frameId: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        await api.setActiveFrameId(frameId);
+        setFrame(await loadFrame(api));
+        setPointer(await api.activeFrameId?.().catch(() => null) ?? null);
+      } catch {
+        setError(
+          "Bascule impossible : aucun dossier de projet réglé, ou iakaframe.json illisible " +
+            "(l'écriture est refusée plutôt que d'écraser les clés du CLI).",
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [api],
+  );
+
   const integrity = frame?.integrity;
+  const dangling = frame ? activeFrameIsDangling(frame.frames, pointer) : false;
 
   return (
     <section className="open-frame" aria-label="Ouvrir un frame iakaframe">
@@ -146,6 +184,36 @@ export function OpenFramePanel({ api = backend }: { api?: Backend }) {
           </div>
 
           {/* Assemblage résolu : méthode · team · binding (repli « — »). */}
+          {frame.frames.length > 0 && (
+            <div className="frame-active" aria-label="Frame active du réservoir">
+              <h4>Frame active</h4>
+              {dangling && (
+                <p className="settings-line err" role="alert">
+                  {DANGLING_FRAME_HINT}
+                </p>
+              )}
+              <div className="settings-actions">
+                {frame.frames.map((f) => {
+                  const active = frame.assembly.frame?.id === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className="docbtn"
+                      disabled={busy || active}
+                      aria-pressed={active}
+                      title={`Méthode ${f.methodId} · Team ${f.teamId}${f.default ? " · défaut" : ""}`}
+                      onClick={() => void selectFrame(f.id)}
+                    >
+                      {f.name}
+                      {f.default ? " ★" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <p className="settings-line frame-assembly">
             Assemblage résolu : Méthode <code>{frame.assembly.method?.id ?? "—"}</code> · Team{" "}
             <code>{frame.assembly.team?.id ?? "—"}</code> · Binding{" "}

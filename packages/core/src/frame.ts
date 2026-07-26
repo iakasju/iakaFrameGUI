@@ -200,6 +200,12 @@ export interface Frame {
   poolIds: Record<PoolFrameType, string[]>;
   /** L'assemblage résolu (method + team + binding). */
   assembly: FrameAssembly;
+  /**
+   * Les descripteurs du **réservoir de frames** (type `frames`, AR-1), dans l'ordre de chargement.
+   * Exposés parce que **choisir** une frame active suppose de pouvoir les **lister** :
+   * `assembly.frame` ne dit que celle qui est active. Vide si la racine n'en déclare aucune.
+   */
+  frames: FrameDescriptor[];
   /** La facette portefeuille (scaffold portfolio + persona du rôle portefeuille + backlog). */
   portfolio: FramePortfolioFacet;
   /** Intégrité référentielle exécutée DANS le périmètre de ce frame — critère B. */
@@ -326,19 +332,27 @@ export function parseSkillRefs(md: string): SkillRefs | null {
 }
 
 /**
- * Références d'un workflow depuis son `.md` (frontmatter) : agrège les `agentsRoleKeys` de toutes
- * les `phases` (champ **réel du canon**, distinct du `roleKeys` calibré rendu par `parseWorkflow`).
- * Dédupliqué, défensif ; `null` si pas d'`id`.
+ * Références d'un workflow depuis son `.md` (frontmatter) : agrège le champ d'acteurs de chaque étape.
+ * Lecture **ALIAS-AWARE** du modèle agnostique (correction-biais-modele-frame.md § 3.1), miroir exact
+ * du CLI (`frame-lint.js` `workflowRoleKeys`) :
+ *   - conteneur d'étapes unifié : `phases` (canon, A-1) OU `stages` (alias Kanban) ;
+ *   - champ d'acteurs unifié : `actorsRoleKeys` (canon, A-2) OU `agentsRoleKeys` (alias rétro-compat).
+ * Avant ce lot, seul `phases[].agentsRoleKeys` était lu : les refs d'acteurs des 8 frames forgés
+ * (`actorsRoleKeys`, et `stages` pour Kanban) échappaient à l'intégrité (§ 1.3). Dédupliqué, défensif ;
+ * `null` si pas d'`id`. Distinct du `roleKeys` calibré rendu par `parseWorkflow`.
  */
 export function parseWorkflowRefs(md: string): WorkflowRefs | null {
   const { data } = parseFrontmatter(md);
   const id = str(data.id);
   if (!id) return null;
   const roleKeys: string[] = [];
-  const phases = Array.isArray(data.phases) ? data.phases : [];
-  for (const ph of phases) {
+  const rawSteps = data.phases != null ? data.phases : data.stages;
+  const steps = Array.isArray(rawSteps) ? rawSteps : [];
+  for (const ph of steps) {
     if (ph && typeof ph === "object") {
-      for (const k of coerceStringArray((ph as Record<string, unknown>).agentsRoleKeys)) {
+      const r = ph as Record<string, unknown>;
+      const actors = r.actorsRoleKeys != null ? r.actorsRoleKeys : r.agentsRoleKeys;
+      for (const k of coerceStringArray(actors)) {
         if (!roleKeys.includes(k)) roleKeys.push(k);
       }
     }
@@ -457,9 +471,31 @@ export function checkFrameRefs(
 }
 
 /**
- * Résout l'assemblage **multi-frame (AR-1)** : le pivot est la **frame active** parmi N — la frame
- * `default: true`, ou la 1re chargée à défaut. method/team sont résolus depuis les ids de cette
- * frame (`methodId`/`teamId`), le binding depuis le couple (method, team) apparié.
+ * Le pointeur désigne-t-il une frame **absente** du réservoir chargé ? Sert le message d'alerte
+ * (I-4) : on retombe sur le défaut, mais on **le dit** — un pointeur mort qui bascule en silence
+ * afficherait un assemblage juste pour une frame que l'utilisateur ne croit pas active.
+ *
+ * `false` si aucun pointeur n'est posé (cas nominal) ou si la frame pointée existe.
+ */
+export function activeFrameIsDangling(
+  frames: readonly FrameDescriptor[],
+  activeFrameId?: string | null,
+): boolean {
+  if (!activeFrameId) return false;
+  return !frames.some((f) => f.id === activeFrameId);
+}
+
+/**
+ * Résout l'assemblage **multi-frame (AR-1)** : le pivot est la **frame active** parmi N. L'ordre de
+ * résolution est **le pointeur d'abord**, puis le défaut du réservoir :
+ *
+ *   1. `activeFrameId` — le **pointeur de frame active** du projet (`iakaframe.json`, clé `frame`) ;
+ *   2. la frame `default: true` du réservoir ;
+ *   3. la 1re chargée.
+ *
+ * **Sans pointeur, le comportement est celui d'avant, à l'identique** (invariant I-3). Un pointeur
+ * qui désigne une frame **absente** est ignoré au profit du défaut — l'appelant le signale à
+ * l'utilisateur via {@link activeFrameIsDangling} : jamais un écran silencieusement faux (I-4).
  *
  * **Repli legacy — zéro régression :** sans aucun descripteur `frames`, on retombe sur le
  * comportement mono-frame historique (le 1er binding est le pivot ; method/team depuis le binding).
@@ -470,8 +506,12 @@ function resolveAssembly(
   teams: TeamMd[],
   bindings: FrameBinding[],
   frames: FrameDescriptor[] = [],
+  activeFrameId?: string | null,
 ): FrameAssembly {
-  const active = frames.find((f) => f.default) ?? frames[0] ?? null;
+  const pointed = activeFrameId
+    ? (frames.find((f) => f.id === activeFrameId) ?? null)
+    : null;
+  const active = pointed ?? frames.find((f) => f.default) ?? frames[0] ?? null;
 
   if (active) {
     // Pivot = frame active : method/team par ses ids ; binding apparié au couple (repli 1er binding).
@@ -538,7 +578,7 @@ function detectPortfolioFacet(raw: FrameRaw): FramePortfolioFacet {
  * du socle, **plus** l'assemblage résolu et la facette portefeuille. Défensif : un atome/assemblage
  * illisible est ignoré ; la facette non trouvée → champs `null` ; jamais d'exception, jamais `null`.
  */
-export function buildFrame(raw: FrameRaw): Frame {
+export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame {
   const poolIds = {} as Record<PoolFrameType, string[]>;
   const counts = {} as Record<FrameType, number>;
   for (const type of POOL_FRAME_TYPES) {
@@ -582,7 +622,8 @@ export function buildFrame(raw: FrameRaw): Frame {
     root: raw.root,
     counts,
     poolIds,
-    assembly: resolveAssembly(methods, teams, bindings, frames),
+    frames,
+    assembly: resolveAssembly(methods, teams, bindings, frames, activeFrameId),
     portfolio: detectPortfolioFacet(raw),
     integrity: checkFrameRefs(
       poolIds,
@@ -668,6 +709,9 @@ export function parseFrame(raw: unknown): Frame | null {
     root: typeof raw.root === "string" ? raw.root : null,
     counts,
     poolIds,
+    // `parseFrame` est le garde défensif d'un objet Frame déjà sérialisé : il ne reconstruit pas
+    // les descripteurs (ils ne sont pas dans son schéma d'entrée) — liste vide, jamais inventée.
+    frames: [],
     assembly: { frame: null, binding: null, method: null, team: null },
     portfolio: coercePortfolio(raw.portfolio),
     integrity: coerceIntegrity(raw.integrity),

@@ -85,5 +85,9 @@ export async function loadFrame(api: Backend = backend): Promise<Frame> {
     api.libraryList("bindings").catch(() => []),
     api.libraryList("frames").catch(() => []),   // AR-1 : réservoir de frames (descripteurs)
   ]);
-  return buildFrame({ root, pools, teams, methods, bindings, frames });
+  // Pointeur de frame active : `<projectDir>/iakaframe.json`, clé `frame` (propriété du LIEU,
+  // partagée avec le CLI). Absent / pas de projet réglé / hors Tauri → `null` ⇒ l'assemblage
+  // retombe sur la frame `default` du réservoir, comportement d'avant à l'identique (I-3).
+  const active = await api.activeFrameId?.().catch(() => null);
+  return buildFrame({ root, pools, teams, methods, bindings, frames }, active ?? null);
 }

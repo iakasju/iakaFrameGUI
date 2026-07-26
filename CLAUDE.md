@@ -145,14 +145,6 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
-- [ ] **Pointeur de frame active — CADRÉ, non codé.** Arbitrage décideur (2026-07-26) : le pointeur
-  va dans **`iakaframe.json` du projet**, le « projet » étant un **dossier réglé dans les Settings**.
-  Instruction fermée : `specs/instructions/pointeur-frame-active.md`. Fait mesuré qui débloque le
-  lot : **`iakaframe config` fusionne** (relit l'existant, ne touche que ses clés) — une clé posée
-  par la GUI survit. Clé proposée : **`frame`**, *à confirmer au dépôt canon avant que le CLI ne s'y
-  branche*. ~1,5 j-h. **Touche le Rust → `cargo test` devra être mesuré.**
-  ⚠️ *Dette signalée au dépôt `iakaframe` : sur un JSON illisible, `iakaframe config` « repart à
-  vide » et perdrait la clé en silence.*
 - [ ] **Troisième sens de « réservoir » — non cadré.** L'onglet **Apprentissage** appelle
   « réservoir » son **stock de propositions** (`useForgeLearning.ts`, `LearningAtelier.tsx`,
   `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne
@@ -237,6 +229,15 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
 - ~~Réserve P6b « total front consolidé non re-mesuré / `ForgeShell.test.tsx` à reconfirmer »~~ —
   **close** : `npm run test:all` → `56 passed (56)` / `518 passed (518)`, et le run ciblé
   `npx vitest run src/forge/ForgeShell.test.tsx` → `Test Files 1 passed (1) / Tests 3 passed (3)`.
+- ~~Pointeur de frame active (cadré, non codé)~~ — **close, LIVRÉ 2026-07-26** : le pointeur vit
+  dans `<projet>/iakaframe.json` (clé `frame`), le projet étant réglé dans les Settings. Écriture
+  **non destructive** côté Rust, qui **refuse d'écrire** sur un JSON illisible plutôt que d'écraser
+  les clés du CLI. `buildFrame(raw, activeFrameId?)` : **sans pointeur = comportement d'avant**,
+  prouvé ; pointeur mort → repli sur `default` **avec alerte**. `Frame` expose `frames` (lister est
+  requis pour choisir). Instruction : `specs/instructions/pointeur-frame-active.md` § 3bis.
+  Gate : `lint:all` `0`, `test:all` `0`, **`60 passed (60)` / `546 passed (546)`**, `cargo test`
+  **`83 passed`**.
+  ⚠️ *Reste à confirmer au dépôt canon : le **nom de clé** `frame`, avant que le CLI ne s'y branche.*
 - ~~Fëanor est le copilote du GUI (cadré, non codé)~~ — **close, LIVRÉ 2026-07-26** : identité
   **dérivée du canon** (`identity.ts` lit la fiche du rôle `frame` par `poolReadAll`, recherche par
   RÔLE et non par nom), `buildSystemPrompt(identity?)` injecté (**sans identité = byte-identique**,

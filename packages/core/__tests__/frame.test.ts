@@ -482,6 +482,38 @@ describe("intégrité élargie (T1/T3/T5/T6) — canon sain + fantômes détect�
     });
   });
 
+  // AC4 (correction-biais-modele-frame.md § 3.1) — lecture ALIAS-AWARE de parseWorkflowRefs :
+  // le champ d'acteurs UNIFIÉ `actorsRoleKeys` (canon A-2) est désormais réellement lu → une ref
+  // pendante rougit (avant ce lot, seul `agentsRoleKeys` était lu → faux vert des 8 frames forgés).
+  it("T5 — workflow → actorsRoleKeys (canon A-2) fantôme détecté (champ unifié enfin lu)", () => {
+    const raw = canonRaw();
+    raw.pools.workflows = [
+      ...raw.pools.workflows,
+      `---\nid: wf-a\nname: x\nkind: pipeline\nphases:\n  - { id: p1, actorsRoleKeys: [role-fantome] }\n---\n# x\n`,
+    ];
+    const f = buildFrame(raw);
+    expect(f.integrity.missing).toContainEqual({
+      source: "workflow:wf-a",
+      field: "agentsRoleKeys",
+      id: "role-fantome",
+    });
+  });
+
+  // AC4 bis — conteneur d'étapes UNIFIÉ : `stages` (alias Kanban) lu au même titre que `phases`.
+  it("T5 — workflow → stages[].actorsRoleKeys (alias conteneur Kanban) fantôme détecté", () => {
+    const raw = canonRaw();
+    raw.pools.workflows = [
+      ...raw.pools.workflows,
+      `---\nid: wf-s\nname: x\nkind: flow\nstages:\n  - { id: s1, actorsRoleKeys: [stage-fantome] }\n---\n# x\n`,
+    ];
+    const f = buildFrame(raw);
+    expect(f.integrity.missing).toContainEqual({
+      source: "workflow:wf-s",
+      field: "agentsRoleKeys",
+      id: "stage-fantome",
+    });
+  });
+
   it("T6 — team.guardrails fantôme détecté", () => {
     const raw = canonRaw();
     raw.teams = [teamMd.replace("guardrails: []", "guardrails: [garde-fantome]")];
