@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, within, fireEvent } from "@testing-library/react";
+import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
 import { parsePersona, type Persona } from "@iakaframe/core";
 import { PersonaReservoir } from "./PersonaReservoir";
+import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
+import { FEANOR_NO_REPLY_PREFIX } from "./FeanorHead";
 
 // Repli hors-ligne DÉTERMINISTE : aucune persona réelle → le composant garde le gabarit canonique.
 // (Évite un appel réel à loadFrame en test ; prouve le chemin de repli des tests structurels du Lot 3.)
@@ -84,11 +86,16 @@ describe("PersonaReservoir — écran réservoir + fiche (Lot 3, A3)", () => {
     expect(within(headCreate).getByText("Nouvelle persona")).toBeTruthy();
   });
 
-  it("Fëanor-en-tête : coquille INERTE — « envoyer » n'invente aucune réponse d'IA", () => {
+  it("Fëanor-en-tête : branché mais SANS modèle (hors Tauri) — envoyer n'invente aucune réponse d'IA", async () => {
     render(<PersonaReservoir loadReservoir={offline} />);
     fireEvent.click(screen.getByLabelText("Ouvrir la fiche de Gimli"));
+    // Aucun modèle configuré hors Tauri → l'absence est signalée honnêtement (jamais masquée).
+    expect(screen.getByText(NO_AUTHORING_MODEL_HINT)).toBeTruthy();
+    // Un envoi ne fabrique JAMAIS de réponse de Fëanor : aveu honnête, aucune zone de réponse.
+    fireEvent.change(screen.getByLabelText(/Demander à Fëanor/), { target: { value: "conseille" } });
     fireEvent.click(screen.getByLabelText(/Envoyer à Fëanor/));
-    expect(screen.getByText(/Ta demande n'a pas été envoyée à un modèle/)).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(new RegExp(FEANOR_NO_REPLY_PREFIX))).toBeTruthy());
+    expect(document.querySelector(".fh-reply")).toBeNull();
   });
 
   it("consomme les personas RÉELLES du frame : royaume IAKAFRAME (pas DEV) + ligne de mission", async () => {

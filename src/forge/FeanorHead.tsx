@@ -1,38 +1,54 @@
 /**
- * FeanorHead — le composant **Fëanor-en-tête** (Lot 6, alignement-gui-modele-de-frame.md § A6,
- * Fork C). Monté en **haut** des pages d'authoring d'un élément — en mode **✚ création** ET en mode
+ * FeanorHead — le composant **Fëanor-en-tête** (Lot 6 → chantier `feanor-en-tete-fonctionnel-llm.md`,
+ * MVP-A). Monté en **haut** des pages d'authoring d'un élément — en mode **✚ création** ET en mode
  * **✎ édition** — fidèle à la maquette validée `specs/mock/gui/02-feanor-prompt-element.html`
  * (Studio clair) : une bande d'en-tête avec, à gauche, la **vignette de l'entité** en cours
  * d'authoring, et à droite, la **vignette de Fëanor** (le 9ᵉ persona, royaume FRAME, badge flamme)
- * + une **zone de prompt** (textarea + bouton d'envoi).
+ * + une **zone de prompt** (textarea + bouton d'envoi) + une **zone de réponse**.
  *
- * ⚠️ **COQUILLE MVP — aucune IA branchée, aucune réponse simulée (Fork C).** Le bouton d'envoi
- * **n'appelle aucun modèle** et **ne fabrique aucune réponse** : il révèle un **état stub honnête**
- * (« Fëanor arrive bientôt — aucune IA branchée »). Le compagnon Fëanor **fonctionnel (LLM) est un
- * chantier SÉPARÉ** — délibérément NON implémenté ici. La coquille est *présente* visuellement mais
- * *inerte* fonctionnellement, et son libellé le dit. (Distinct du `CopiloteShell` d'authoring, qui
- * porte, lui, un transport LLM mocké/live — non réutilisé ici, précisément pour rester inerte.)
+ * ✅ **BRANCHÉ (MVP-A, conseil/chat).** Le bouton d'envoi appelle **réellement** le LLM via la pile
+ * réutilisée du copilote — AUCUN second transport : `realLlm(backend)` → Rust `llm_complete` → Ollama
+ * LAN, identité Fëanor `loadCopiloteIdentity` (rôle `frame`, badge 🟠), réglage PARTAGÉ `authoringModel`
+ * (+ `authoringEndpoint`). La **réponse** de Fëanor s'affiche dans l'en-tête, encadrée du badge
+ * d'ouverture/clôture posé par l'UI (jamais par le modèle). MVP-A = **conseil seul** : Fëanor n'écrit
+ * ni ne matérialise RIEN (la matérialisation d'élément vit dans `CopiloteShell`, non dupliquée ici).
+ *
+ * 🛡️ **Honnêteté par construction.** Aucun appel LLM au montage (activation explicite, seulement au
+ * geste). Modèle absent / provider non supporté / réseau KO / réponse illisible → **aucune fausse
+ * réponse** : l'en-tête affiche l'aveu honnête (`reason`), jamais une pseudo-réponse de Fëanor. En
+ * test/dev, le transport est injecté (`fakeLlm`) — zéro réseau réel.
  */
-import { useState } from "react";
-import type { Persona } from "@iakaframe/core";
+import { useEffect, useState } from "react";
+import type { LlmTransport, Persona } from "@iakaframe/core";
 import { buildFeanorVignette, buildEntityVignette } from "./feanorHeadModel";
+import { resolveAdvice, type AdviceResult } from "./llm/advise";
+import {
+  copiloteBadgeClose,
+  copiloteBadgeOpen,
+  loadCopiloteIdentity,
+  type CopiloteIdentity,
+} from "./llm/identity";
+import { realLlm } from "./llm/transport";
+import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
+import { backend, type Backend } from "../api/backend";
 
-/** Message d'inertie honnête, affiché quand l'utilisateur tente d'« envoyer » à la coquille. */
-export const FEANOR_STUB_NOTICE =
-  "Fëanor arrive bientôt — coquille visuelle, aucune IA n'est branchée (chantier séparé). " +
-  "Ta demande n'a pas été envoyée à un modèle.";
+/** Invite neutre quand Fëanor est branché (modèle réglé) et n'attend qu'une demande. */
+export const FEANOR_READY_HINT =
+  "Fëanor est branché — décris ce que tu veux retravailler sur cet élément, il te conseille.";
 
-/** Note d'inertie permanente, visible avant même toute tentative d'envoi (honnêteté par défaut). */
-export const FEANOR_INERT_HINT =
-  "Coquille — Fëanor n'est pas encore branché (aucun modèle). Le compagnon fonctionnel est un chantier séparé.";
+/** Préfixe honnête d'un repli : Fëanor n'a PAS répondu (jamais une fausse réponse d'IA). */
+export const FEANOR_NO_REPLY_PREFIX = "Fëanor n'a pas répondu";
 
-/** Suggestions de la maquette — inertes : cliquer ne fait que pré-remplir le champ (aucun envoi). */
+/** Suggestions de la maquette : cliquer pré-remplit le champ (aucun envoi tant que l'on n'envoie pas). */
 const SUGGESTIONS = ["Réécris la mission", "Ajoute un garde-fou", "Génère une variante"];
 
 export function FeanorHead({
   mode,
   entity,
   feanorSource,
+  api = backend,
+  llm = realLlm(backend),
+  model,
 }: {
   /** Mode d'authoring de la page hôte : `create` (✚) ou `edit` (✎). */
   mode: "create" | "edit";
@@ -40,22 +56,105 @@ export function FeanorHead({
   entity: Persona | null;
   /** Personas réelles du frame (source de la vignette Fëanor). Repli : `CANONICAL_ROSTER`. */
   feanorSource?: readonly Persona[];
+  /** Backend injectable (tests) — sert à lire l'identité + le modèle/endpoint d'authoring. */
+  api?: Backend;
+  /** Transport LLM injectable (tests : `fakeLlm`) — défaut = `realLlm(backend)` (commande Rust). */
+  llm?: LlmTransport;
+  /** Modèle d'authoring imposé (tests) — sinon lu depuis les Settings (`authoringModel`, PARTAGÉ). */
+  model?: string;
 }) {
   const feanor = buildFeanorVignette(feanorSource);
   const ent = buildEntityVignette(entity);
   const [prompt, setPrompt] = useState("");
-  const [stubbed, setStubbed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [answer, setAnswer] = useState<AdviceResult | null>(null);
+  // Identité DÉRIVÉE du canon (jamais fabriquée) : null = fiche introuvable → réponse anonyme (dite).
+  const [identity, setIdentity] = useState<CopiloteIdentity | null>(null);
+  // Endpoint d'authoring optionnel : hôte Ollama LAN. Vide → localhost (résolu par le résolveur).
+  const [endpoint, setEndpoint] = useState<string | null>(null);
+  // Modèle d'authoring PARTAGÉ (`authoringModel`), lu des Settings — AUCUN défaut : l'absence est
+  // signalée (jamais masquée). Défensif hors Tauri : le mock reste, il indique juste l'absence.
+  const [configuredModel, setConfiguredModel] = useState<string>(model ?? "");
+
+  // Modèle d'authoring (§ réglage PARTAGÉ) — même geste que `CopiloteShell` (appel OPTIONNEL `?.`).
+  useEffect(() => {
+    if (model !== undefined) {
+      setConfiguredModel(model);
+      return;
+    }
+    let alive = true;
+    void (async () => {
+      try {
+        const m = await api.authoringModel?.();
+        if (alive && m && m.trim().length > 0) setConfiguredModel(m.trim());
+      } catch {
+        /* hors Tauri / non défini : on garde le défaut vide (absence signalée) */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api, model]);
+
+  // Endpoint d'authoring : lu des Settings (`authoringEndpoint`). Vide/absent → localhost.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const e = await api.authoringEndpoint?.();
+        if (alive && e && e.trim().length > 0) setEndpoint(e.trim());
+      } catch {
+        /* hors Tauri / non défini : défaut localhost côté résolveur */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api]);
+
+  // Identité de Fëanor : lue de la racine bibliothèque active (fiche du rôle `frame`).
+  // ⚠️ Lire la fiche n'est PAS activer l'agent : AUCUN appel LLM ici — l'invariant d'activation
+  // explicite porte sur `llm.complete`, déclenché UNIQUEMENT par `handleSend` (le geste EST la demande).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const found = await loadCopiloteIdentity(api);
+      if (alive) setIdentity(found);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api]);
 
   const verb = mode === "edit" ? "édite" : "façonne";
   const modeLabel = mode === "edit" ? "🔥 édition" : "🔥 création";
   const modeWord = mode === "edit" ? "édition" : "création";
 
+  async function handleSend() {
+    const trimmed = prompt.trim();
+    if (trimmed.length === 0 || pending) return; // garde anti-double-appel (un seul appel en vol)
+    setPending(true);
+    try {
+      // Chemin de conseil : le résolveur oriente LIVE (transport injecté) ou repli honnête. Il NE
+      // lève jamais — modèle absent / réseau KO deviennent un aveu propre, jamais une fausse réponse.
+      const result = await resolveAdvice(
+        trimmed,
+        {
+          mode,
+          entityType: "persona",
+          entityName: entity && entity.name.trim().length > 0 ? entity.name : null,
+          entityRole: entity?.roleKey ?? null,
+        },
+        { llm, model: configuredModel, endpoint, identity },
+      );
+      setAnswer(result);
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
-    <div
-      className="feanor-head"
-      data-stub="true"
-      aria-label="Fëanor en tête — coquille (aucune IA branchée)"
-    >
+    <div className="feanor-head" aria-label={`Fëanor en tête — ${modeWord}`}>
       {/* — L'entité en cours d'authoring (vignette + nom + type) — */}
       <div className="fh-entity">
         <div
@@ -78,7 +177,7 @@ export function FeanorHead({
 
       <div className="fh-div" aria-hidden="true" />
 
-      {/* — Fëanor glissé en tête : sa vignette (badge flamme) + la zone de prompt (INERTE) — */}
+      {/* — Fëanor glissé en tête : sa vignette (badge flamme) + la zone de prompt + la réponse — */}
       <div className="fh-feanor">
         <div className="fh-flabel">
           <span
@@ -100,20 +199,21 @@ export function FeanorHead({
         <div className="fh-field">
           <textarea
             rows={1}
-            aria-label={`Demander à Fëanor (coquille inerte) — ${modeWord}`}
+            aria-label={`Demander à Fëanor — ${modeWord}`}
             placeholder={`Demander à Fëanor de retravailler ${ent.name}…`}
             value={prompt}
-            onChange={(e) => {
-              setPrompt(e.target.value);
-              setStubbed(false);
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void handleSend();
             }}
           />
           <button
             type="button"
             className="fh-send"
-            aria-label="Envoyer à Fëanor (inerte — coquille, aucune IA)"
-            title="Fëanor arrive bientôt — aucune IA branchée"
-            onClick={() => setStubbed(true)}
+            aria-label="Envoyer à Fëanor"
+            title="Demander conseil à Fëanor"
+            onClick={() => void handleSend()}
+            disabled={prompt.trim().length === 0 || pending}
           >
             ↥
           </button>
@@ -125,20 +225,50 @@ export function FeanorHead({
               type="button"
               key={s}
               className="s"
-              onClick={() => {
-                setPrompt(s);
-                setStubbed(false);
-              }}
+              onClick={() => setPrompt(s)}
             >
               {s}
             </button>
           ))}
         </div>
 
-        {/* État stub HONNÊTE : jamais de fausse réponse d'IA — juste l'aveu d'inertie. */}
-        <p className={`fh-stub${stubbed ? " on" : ""}`} role={stubbed ? "status" : undefined}>
-          {stubbed ? FEANOR_STUB_NOTICE : FEANOR_INERT_HINT}
-        </p>
+        {/* — Zone de réponse / d'état — jamais de fausse réponse d'IA. — */}
+        {answer ? (
+          answer.reply !== null ? (
+            // Réponse RÉELLE du modèle : badge d'ouverture AVANT, clôture APRÈS (posés par l'UI).
+            <div className="fh-answer" role="status" data-source={answer.source}>
+              {identity && (
+                <div className="fh-open" aria-label="Ouverture de Fëanor">
+                  {copiloteBadgeOpen(identity)}
+                </div>
+              )}
+              <p className="fh-reply">{answer.reply}</p>
+              <div className="fh-prov">
+                {answer.source === "live" ? "LLM live" : "LLM mocké"}
+                {identity && (
+                  <span className="fh-close" aria-label="Clôture de Fëanor">
+                    {" · "}
+                    {copiloteBadgeClose(identity)}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Repli HONNÊTE : Fëanor n'a pas répondu — on le DIT (reason), aucune réponse fabriquée.
+            <p className="fh-stub on" role="status">
+              {FEANOR_NO_REPLY_PREFIX} — {answer.reason}
+            </p>
+          )
+        ) : pending ? (
+          <p className="fh-stub on" role="status">
+            Fëanor réfléchit…
+          </p>
+        ) : (
+          // Au repos : invite quand le modèle est réglé ; sinon on SIGNALE l'absence de modèle.
+          <p className={`fh-stub${configuredModel ? "" : " on"}`}>
+            {configuredModel ? FEANOR_READY_HINT : NO_AUTHORING_MODEL_HINT}
+          </p>
+        )}
       </div>
     </div>
   );
