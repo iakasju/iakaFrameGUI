@@ -23,3 +23,6 @@
 
 /* Réservoir de personas (fiches à vignettes) + fiche d'édition, scopé .persona-reservoir (Studio clair local) */
 @import "./forge/persona.css";
+
+/* Galerie des frames (cartes à vignettes + marqueur actif), scopé .models-gallery (Studio clair local) */
+@import "./forge/models.css";
