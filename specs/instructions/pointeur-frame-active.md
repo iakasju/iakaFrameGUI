@@ -123,6 +123,34 @@ la rend attendue. Elle applique le **même contrat que le CLI** : relire, ne mod
 
 ---
 
+## 3bis. ✅ LIVRÉ le 2026-07-26 — état d'exécution
+
+> Merge `--no-ff` de `feat/pointeur-frame-active` (`26b4855`). **Gate : `lint:all` exit `0` ;
+> `test:all` exit `0`, `Test Files 60 passed (60) / Tests 546 passed (546)` ; `cargo test`
+> **`83 passed`** (+8).**
+
+| AC | État | Preuve |
+|---|---|---|
+| AC-1 | ✅ | assemblage comparé avec `null` **et** `undefined` : strictement identique |
+| AC-2 | ✅ | pointeur → method/team/binding pivotent ; **prime sur `default`** |
+| AC-3 | ✅ | repli sur `default` + `activeFrameIsDangling` + alerte UI |
+| AC-4 | ✅ | test Rust : `runner`/`node`/`target`/`note` intacts après écriture |
+| AC-5 | ✅ | fichier absent, clé vide, JSON illisible, projet inexistant, backend sans commande |
+| AC-6 | ✅ | voir gate ci-dessus — **`cargo test` mesuré**, le lot touchant le Rust |
+
+**Écarts et décisions d'exécution :**
+
+- **`Frame` expose désormais `frames`.** Manque révélé en écrivant le test : `assembly.frame` ne dit
+  que la frame **active**, or **choisir** suppose de **lister**. Sans ça, le sélecteur n'aurait rien
+  eu à afficher.
+- **Refus d'écrire sur un `iakaframe.json` illisible** (plutôt que d'écraser). Va plus loin que le
+  cadrage : c'est la réponse côté GUI au R1 — là où le CLI « repart à vide », la forge s'abstient.
+- **Deux défauts attrapés à l'exécution** : `openFrame` ne relisait pas le pointeur (l'alerte de
+  pointeur mort ne se serait **jamais** affichée sur ce chemin) ; et la bascule **recharge depuis le
+  disque** au lieu d'un état local optimiste qui aurait menti si l'écriture avait échoué.
+
+---
+
 ## 4. Critères d'acceptation
 
 - **AC-1** — `buildFrame(raw)` **sans** `activeFrameId` rend **exactement** l'assemblage actuel (test).
