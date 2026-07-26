@@ -54,6 +54,8 @@ pub fn run() {
             library_store::library_read,
             library_store::library_write,
             library_store::library_exists,
+            library_store::pool_write,
+            library_store::pool_exists,
             library_store::pool_list,
             library_store::pool_read_all,
             library_store::pool_read,

@@ -135,6 +135,45 @@ pub fn exists_in(home: &Path, collection: &str, id: &str) -> Result<bool, String
     Ok(file.exists())
 }
 
+/// Chemin absolu et validé d'un ATOME de pool `<home>/library/<pool_type>/<id>.md` (E2, Lot 5a).
+/// Calque exact de `library_file`, réorienté sous `library/<pool>/`. Le pool `skills` (stocké en
+/// DOSSIER `<id>/SKILL.md`) est **hors périmètre 5a** : l'écriture y est refusée (le routage vers le
+/// sous-dossier est reporté au Lot 5c). Mêmes gardes d'autorité : `validate_pool_type` +
+/// `validate_id` + `pathguard::safe_path` (anti-traversée).
+fn pool_file(home: &Path, pool_type: &str, id: &str) -> Result<PathBuf, String> {
+    validate_pool_type(pool_type)?;
+    validate_id(id)?;
+    if pool_type == "skills" {
+        return Err(
+            "écriture du pool `skills` non supportée en 5a (stockage dossier <id>/SKILL.md, voir Lot 5c)"
+                .to_string(),
+        );
+    }
+    let rel = Path::new("library")
+        .join(pool_type)
+        .join(format!("{}.{}", id.trim(), LIBRARY_EXT));
+    safe_path(home, &rel).map_err(|e| e.to_string())
+}
+
+/// Écrit (ou remplace) l'atome de pool `<home>/library/<pool_type>/<id>.md` (E2, Lot 5a). Calque
+/// **exact** de `write_in` : crée le dossier au besoin, mêmes gardes que `pool_file`. Rust reste un
+/// passe-plat de texte — la (dé)sérialisation et la préservation non-destructive du frontmatter
+/// vivent côté cœur (`packages/core/src/frontmatter.ts` : `patchFrontmatter`/`serializePersonaMd`).
+pub fn pool_write_in(home: &Path, pool_type: &str, id: &str, text: &str) -> Result<(), String> {
+    let file = pool_file(home, pool_type, id)?;
+    if let Some(parent) = file.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&file, text).map_err(|e| e.to_string())
+}
+
+/// Indique si l'atome de pool `<home>/library/<pool_type>/<id>.md` existe (garde de création non
+/// destructive : refus d'écraser hors intention). `skills` (dossier) → erreur (hors 5a).
+pub fn pool_exists_in(home: &Path, pool_type: &str, id: &str) -> Result<bool, String> {
+    let file = pool_file(home, pool_type, id)?;
+    Ok(file.exists())
+}
+
 /// Scanne les **ids** d'atomes présents dans `<home>/library/<pool_type>/` (I1). Dossier absent
 /// → `[]`. Fichiers `.md` → stem ; dossiers (kind skill : `<id>/SKILL.md`) → nom du dossier.
 pub fn pool_list_in(home: &Path, pool_type: &str) -> Result<Vec<String>, String> {
@@ -309,6 +348,27 @@ pub fn library_write(collection: String, id: String, text: String) -> Result<(),
 pub fn library_exists(collection: String, id: String) -> Result<bool, String> {
     match resolve_iakaframe_home() {
         Some(home) => exists_in(&home, &collection, &id),
+        None => Ok(false),
+    }
+}
+
+/// Écrit/remplace un atome de pool `library/<type>/<id>.md` (E2, Lot 5a). Racine introuvable →
+/// erreur (Save impossible sans bibliothèque). Calque de `library_write`, sous `library/<pool>/`.
+#[tauri::command]
+pub fn pool_write(pool_type: String, id: String, text: String) -> Result<(), String> {
+    match resolve_iakaframe_home() {
+        Some(home) => pool_write_in(&home, &pool_type, &id, &text),
+        None => {
+            Err("racine bibliothèque introuvable — définir IAKAFRAME_HOME (Réglages)".to_string())
+        }
+    }
+}
+
+/// Indique si un atome de pool existe (`false` si racine introuvable) — garde de création.
+#[tauri::command]
+pub fn pool_exists(pool_type: String, id: String) -> Result<bool, String> {
+    match resolve_iakaframe_home() {
+        Some(home) => pool_exists_in(&home, &pool_type, &id),
         None => Ok(false),
     }
 }
@@ -555,6 +615,69 @@ mod tests {
     }
 
     // --- G2 : `bindings` est une collection chargeable (`library_list("bindings")`) ---
+
+    // --- Lot 5a : écriture d'atomes de pool (`pool_write_in` / `pool_exists_in`) ---
+
+    #[test]
+    fn pool_write_then_read_roundtrip_md() {
+        // Écriture sous `library/<pool>/<id>.md` puis relecture byte-identique (miroir `pool_read_in`).
+        let home = tmp_dir("poolwrite");
+        let md = "---\nid: sam\nname: Sam\nroleKey: dev\n---\n# corps\n";
+        pool_write_in(&home, "personas", "sam", md).unwrap();
+        assert_eq!(
+            pool_read_in(&home, "personas", "sam").unwrap(),
+            Some(md.to_string())
+        );
+        assert_eq!(
+            pool_file(&home, "personas", "sam").unwrap(),
+            home.join("library").join("personas").join("sam.md")
+        );
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_exists_reflete_la_presence() {
+        let home = tmp_dir("poolexists");
+        assert!(!pool_exists_in(&home, "principles", "p1").unwrap());
+        pool_write_in(&home, "principles", "p1", "---\nid: p1\n---\n").unwrap();
+        assert!(pool_exists_in(&home, "principles", "p1").unwrap());
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_write_type_invalide_est_refuse() {
+        let home = tmp_dir("poolwritebad");
+        assert!(pool_write_in(&home, "secrets", "x", "y").is_err());
+        assert!(pool_write_in(&home, "..", "x", "y").is_err());
+    }
+
+    #[test]
+    fn pool_write_traversal_dans_l_id_est_refuse() {
+        let home = tmp_dir("poolwritetrav");
+        assert!(pool_write_in(&home, "personas", "../evil", "{}").is_err());
+        assert!(pool_write_in(&home, "personas", "a/b", "{}").is_err());
+        assert!(pool_write_in(&home, "personas", "..", "{}").is_err());
+        assert!(pool_write_in(&home, "personas", "", "{}").is_err());
+    }
+
+    #[test]
+    fn pool_write_skills_dossier_est_refuse_en_5a() {
+        // `skills` = DOSSIER `<id>/SKILL.md` : écriture hors périmètre 5a (reportée au Lot 5c).
+        let home = tmp_dir("poolwriteskill");
+        assert!(pool_write_in(&home, "skills", "iakaframe-cadrage", "x").is_err());
+        assert!(pool_exists_in(&home, "skills", "iakaframe-cadrage").is_err());
+        std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_file_reste_sous_library_du_pool() {
+        let home = PathBuf::from("/home/user/work/iakaframe");
+        let f = pool_file(&home, "personas", "odin").unwrap();
+        assert_eq!(
+            f,
+            home.join("library").join("personas").join("odin.md")
+        );
+    }
 
     #[test]
     fn bindings_est_une_collection_chargeable() {
