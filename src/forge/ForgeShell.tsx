@@ -60,6 +60,7 @@ import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
 import { MethodeAtelier } from "./ateliers/MethodeAtelier";
+import { WorkflowAtelier } from "./ateliers/WorkflowAtelier";
 import { KitAtelier } from "./ateliers/KitAtelier";
 import { LearningAtelier } from "./ateliers/LearningAtelier";
 import { useForgeLearning } from "../hooks/useForgeLearning";
@@ -101,6 +102,10 @@ export function ForgeShell() {
   const handoff = useForgeHandoff();
   const [nav, setNav] = useState<NavKey>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Sous-surfaces de l'entrée « méthode » (Lot 5) : la **discipline** (principes/rôles/…) et le
+  // **workflow** (type `kind` + phases/gates). Le workflow est un **élément de la méthode**
+  // (maquette `04-creation-workflow.html`) — rétabli ici après son retrait de la nav au Lot 2.
+  const [methodeTab, setMethodeTab] = useState<"discipline" | "workflow">("discipline");
 
   // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
   const learning = useForgeLearning();
@@ -234,7 +239,11 @@ export function ForgeShell() {
     nav === "team"
       ? (teamDoc as unknown as UseForgeDocument<unknown>)
       : nav === "methode"
-        ? (methodDoc as unknown as UseForgeDocument<unknown>)
+        ? // Lot 5 : sous « méthode », le cycle de document suit la sous-surface active — la
+          // discipline édite `methodDoc`, le workflow édite `workflowDoc` (New/Open/Save ciblés).
+          methodeTab === "workflow"
+          ? (workflowDoc as unknown as UseForgeDocument<unknown>)
+          : (methodDoc as unknown as UseForgeDocument<unknown>)
         : nav === "kit"
           ? (kitDoc as unknown as UseForgeDocument<unknown>)
           : null;
@@ -344,23 +353,58 @@ export function ForgeShell() {
           )}
         </div>
       ) : nav === "methode" ? (
-        <div className="workbench">
-          {method === null ? (
-            <div className="edit">
-              <p className="empty">Aucun artefact ouvert — New ou Open.</p>
-            </div>
-          ) : (
-            <MethodeAtelier
-              method={method}
-              workflow={resolvedMethodWorkflow}
-              workflowOptions={workflowOptions}
-              onWorkflowIdChange={setMethodWorkflowId}
-              insert={(ref: MethodRef, id: string) =>
-                methodDoc.edit(insertMethodRef(method, ref, id))
-              }
-            />
-          )}
-        </div>
+        <>
+          <div className="methode-subtabs" role="tablist" aria-label="Surfaces de la méthode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={methodeTab === "discipline"}
+              className={`methode-subtab${methodeTab === "discipline" ? " on" : ""}`}
+              title="La discipline : principes, rituels, gardes-fous, rôles"
+              onClick={() => setMethodeTab("discipline")}
+            >
+              Discipline
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={methodeTab === "workflow"}
+              className={`methode-subtab${methodeTab === "workflow" ? " on" : ""}`}
+              title="Le workflow : type (kind), phases & gates — élément de la méthode"
+              onClick={() => setMethodeTab("workflow")}
+            >
+              Workflow
+            </button>
+          </div>
+          <div className="workbench">
+            {methodeTab === "workflow" ? (
+              workflowArtifact === null ? (
+                <div className="edit">
+                  <p className="empty">Aucun workflow ouvert — New ou Open.</p>
+                </div>
+              ) : (
+                <WorkflowAtelier
+                  workflow={workflowArtifact}
+                  onWorkflowChange={(w) => workflowDoc.edit(w)}
+                />
+              )
+            ) : method === null ? (
+              <div className="edit">
+                <p className="empty">Aucun artefact ouvert — New ou Open.</p>
+              </div>
+            ) : (
+              <MethodeAtelier
+                method={method}
+                workflow={resolvedMethodWorkflow}
+                workflowOptions={workflowOptions}
+                onWorkflowIdChange={setMethodWorkflowId}
+                insert={(ref: MethodRef, id: string) =>
+                  methodDoc.edit(insertMethodRef(method, ref, id))
+                }
+              />
+            )}
+          </div>
+        </>
       ) : nav === "kit" ? (
         <div className="workbench">
           {kit === null ? (
