@@ -1,7 +1,7 @@
 /**
  * CharteSelector — sélecteur de charte visuelle (barre supérieure de la forge, E2b).
  *
- * Liste les chartes du registre (Cinabre par défaut + NaonEdge). Choisir une charte
+ * Liste les chartes du registre (Studio clair par défaut + Cinabre + NaonEdge). Choisir une charte
  * commute instantanément l'UI (data-theme) et persiste le choix. Aucun I/O backend :
  * la persistance passe par localStorage (mécanique P4), la façade unique reste intacte.
  */

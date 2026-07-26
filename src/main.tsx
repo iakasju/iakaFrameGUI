@@ -4,7 +4,7 @@ import App from "./App";
 import "./styles.css";
 import { bootstrapCharte } from "./theme/useCharte";
 
-// Applique la charte persistée (ou Cinabre par défaut) AVANT le premier rendu (anti-flash).
+// Applique la charte persistée (ou Studio clair par défaut) AVANT le premier rendu (anti-flash).
 bootstrapCharte();
 
 const rootEl = document.getElementById("root");

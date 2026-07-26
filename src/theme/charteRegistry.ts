@@ -19,16 +19,19 @@ export interface CharteDef {
 }
 
 export const charteRegistry: CharteDef[] = [
-  { id: "cinabre", label: "Cinabre", default: true },
+  { id: "studio-clair", label: "Studio clair", default: true },
+  { id: "cinabre", label: "Cinabre" },
   { id: "naonedge", label: "NaonEdge" },
-  { id: "studio-clair", label: "Studio clair" },
 ];
 
 export type CharteId = string;
 
-/** Id de la charte par défaut (Cinabre). Repli sûr si le registre changeait. */
+/**
+ * Id de la charte par défaut (Studio clair — charte contextuelle du contexte dev
+ * logiciel, cohérente avec les maquettes). Repli sûr si le registre changeait.
+ */
 export const DEFAULT_CHARTE: CharteId =
-  charteRegistry.find((c) => c.default)?.id ?? charteRegistry[0]?.id ?? "cinabre";
+  charteRegistry.find((c) => c.default)?.id ?? charteRegistry[0]?.id ?? "studio-clair";
 
 /** Vrai si `id` correspond à une charte connue du registre. */
 export function isKnownCharte(id: string | null | undefined): id is CharteId {

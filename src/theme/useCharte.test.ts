@@ -1,6 +1,6 @@
 /**
  * Tests du mécanisme de charte (P5) — registre, persistance, application data-theme.
- * Couvre T-1 (défaut Cinabre), T-2 (commutation), T-3 (persistance).
+ * Couvre T-1 (défaut Studio clair), T-2 (commutation), T-3 (persistance).
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -20,11 +20,12 @@ import {
 } from "./useCharte";
 
 describe("charteRegistry", () => {
-  it("expose au moins Cinabre + NaonEdge, Cinabre par défaut (T-1, T-2)", () => {
+  it("expose Studio clair + Cinabre + NaonEdge, Studio clair par défaut (T-1, T-2)", () => {
     expect(charteRegistry.length).toBeGreaterThanOrEqual(2);
+    expect(charteRegistry.map((c) => c.id)).toContain("studio-clair");
     expect(charteRegistry.map((c) => c.id)).toContain("cinabre");
     expect(charteRegistry.map((c) => c.id)).toContain("naonedge");
-    expect(DEFAULT_CHARTE).toBe("cinabre");
+    expect(DEFAULT_CHARTE).toBe("studio-clair");
   });
 
   it("isKnownCharte filtre les ids inconnus", () => {
@@ -49,11 +50,11 @@ describe("useCharte — persistance + application data-theme", () => {
     delete document.documentElement.dataset.theme;
   });
 
-  it("démarre en Cinabre sans préférence enregistrée (T-1)", () => {
-    expect(readStoredCharte()).toBe("cinabre");
+  it("démarre en Studio clair sans préférence enregistrée (T-1)", () => {
+    expect(readStoredCharte()).toBe("studio-clair");
     const { result } = renderHook(() => useCharte());
-    expect(result.current.charte).toBe("cinabre");
-    expect(document.documentElement.dataset.theme).toBe("cinabre");
+    expect(result.current.charte).toBe("studio-clair");
+    expect(document.documentElement.dataset.theme).toBe("studio-clair");
   });
 
   it("commute vers NaonEdge et persiste (T-2, T-3)", () => {
@@ -72,8 +73,8 @@ describe("useCharte — persistance + application data-theme", () => {
     expect(result.current.charte).toBe("naonedge");
   });
 
-  it("ignore une valeur stockée inconnue et retombe sur Cinabre", () => {
+  it("ignore une valeur stockée inconnue et retombe sur Studio clair", () => {
     localStorage.setItem(CHARTE_STORAGE_KEY, "inexistante");
-    expect(readStoredCharte()).toBe("cinabre");
+    expect(readStoredCharte()).toBe("studio-clair");
   });
 });

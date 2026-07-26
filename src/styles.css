@@ -3,10 +3,11 @@
    Agrège : les jeux de tokens de charte (vendorisés, scopés [data-theme]) + les
    règles structurelles neutres. Tout est BUNDLÉ par Vite (servi 'self') → CSP-safe,
    zéro asset distant. La charte active est pilotée par data-theme sur <html>
-   (cf. src/theme/useCharte.ts). Défaut : Cinabre.
+   (cf. src/theme/useCharte.ts). Défaut : Studio clair.
    ========================================================================== */
 
-/* Chartes vendorisées (jeux de tokens scopés [data-theme]) */
+/* Chartes vendorisées (jeux de tokens scopés [data-theme]).
+   Studio clair importé en DERNIER : il porte le repli anti-flash `:root` (défaut). */
 @import "./themes/cinabre.css";
 @import "./themes/naonedge.css";
 @import "./themes/studio-clair.css";

@@ -14,8 +14,14 @@
    Fonts (Q-2, MVP) : fallback système. « Inter » est laissée EN TÊTE des piles mais
    reste optionnelle — absente, on tombe proprement sur les polices système. AUCUNE
    requête réseau (CSP stricte).
+
+   Charte de défaut de la forge : le sélecteur `:root` (sans data-theme) matche AUSSI
+   Studio clair → l'app est en Studio clair même si l'attribut n'est pas encore posé
+   (anti-flash de secours ; en pratique useCharte pose data-theme="studio-clair" avant
+   le 1er rendu).
    ========================================================================== */
 
+:root,
 :root[data-theme="studio-clair"] {
   /* — Surfaces — */
   --bg-primary: #fbfbfc;     /* fond global : blanc froid */
