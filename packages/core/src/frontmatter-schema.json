@@ -1,0 +1,92 @@
+{
+  "$comment": "SOURCE UNIQUE du schema de frontmatter typé (Finding 3, schema-frontmatter-type-frame-lint-strict.md). DONNEE PURE, aucune logique — lue par cli/src/lib/frame-lint.js (autorité iakaframe) et VENDOREE vers le GUI (packages/core/src/frontmatter-schema.json), verrouillée par cli/test/frontmatter-schema-parity.test.js. Muter une copie sans l'autre rougit la parité. Types de champ : 'scalar' (ni liste ni map), 'bool', 'list' (tableau), 'map-list' (tableau d'objets), ou { \"enum\": [...] }. Politique (Fork A, D-1) : champ CONNU mal typé = BLOQUANT (bad-type) ; requis manquant = BLOQUANT (missing-field) ; champ INCONNU = AVERTISSEMENT par défaut, BLOQUANT sous --strict (unknown-field). Le census est celui du § 3 (fait autorité), complété par un scan exhaustif du canon (R-2).",
+  "version": 1,
+  "types": {
+    "personas": {
+      "required": { "id": "scalar", "name": "scalar", "roleKey": "scalar" },
+      "optional": { "royaume": "scalar", "pastille": "scalar", "vignette": "scalar", "description": "scalar", "skills": "list", "guardrails": "list" },
+      "extensions": {}
+    },
+    "skills": {
+      "required": { "id": "scalar", "name": "scalar" },
+      "optional": { "description": "scalar", "layer": "scalar", "subskills": "list" },
+      "extensions": {}
+    },
+    "principles": {
+      "required": { "id": "scalar", "label": "scalar" },
+      "optional": { "policy": "scalar", "trigger": "scalar" },
+      "extensions": {}
+    },
+    "rituals": {
+      "required": { "id": "scalar", "label": "scalar" },
+      "optional": { "cadence": "scalar", "timebox": "scalar", "side": "scalar", "triggers": "list", "actions": "list" },
+      "extensions": { "nature": "scalar" }
+    },
+    "guardrails": {
+      "required": { "id": "scalar", "label": "scalar" },
+      "optional": { "kind": "scalar", "hook": "scalar", "policy": "scalar" },
+      "extensions": {}
+    },
+    "roles": {
+      "required": { "id": "scalar", "key": "scalar", "label": "scalar" },
+      "optional": { "roleIndex": "scalar", "scope": "scalar", "optional": "bool" },
+      "extensions": {}
+    },
+    "scaffolds": {
+      "required": { "id": "scalar" },
+      "optional": { "level": "scalar", "nonDestructive": "bool", "entries": "map-list" },
+      "extensions": {}
+    },
+    "workflows": {
+      "required": { "id": "scalar", "name": "scalar" },
+      "optional": {
+        "kind": { "enum": ["pipeline", "cycle", "flow", "cycle-with-gate"] },
+        "container": "scalar",
+        "loop": "scalar",
+        "soleActor": "scalar",
+        "phases": "map-list",
+        "stages": "map-list",
+        "gates": "map-list"
+      },
+      "extensions": {
+        "pillars": "list",
+        "diamonds": "map-list",
+        "mindsets": "list",
+        "nonLinear": "bool",
+        "pullPoints": "list",
+        "commitmentPoint": "scalar",
+        "deliveryPoint": "scalar",
+        "metrics": "list",
+        "cadences": "list",
+        "practices": "list",
+        "tracking": "list",
+        "noBackflow": "scalar",
+        "principlesInPlay": "list"
+      },
+      "stepFields": {
+        "nature": { "enum": ["divergent", "convergent"] },
+        "wipLimited": "bool"
+      }
+    },
+    "methods": {
+      "required": { "id": "scalar", "workflowId": "scalar", "roleKeys": "list" },
+      "optional": { "name": "scalar", "principleIds": "list", "ritualIds": "list", "guardrailIds": "list", "scaffoldIds": "list" },
+      "extensions": {}
+    },
+    "teams": {
+      "required": { "id": "scalar", "personas": "list" },
+      "optional": { "name": "scalar", "coordinator": "scalar", "vignetteTeam": "scalar", "guardrails": "list" },
+      "extensions": {}
+    },
+    "bindings": {
+      "required": { "id": "scalar", "teamId": "scalar" },
+      "optional": { "methodId": "scalar", "node": "scalar", "origin": "scalar", "assignments": "map-list", "bindings": "map-list" },
+      "extensions": {}
+    },
+    "frames": {
+      "required": { "id": "scalar", "methodId": "scalar", "teamId": "scalar" },
+      "optional": { "name": "scalar", "version": "scalar", "default": "bool" },
+      "extensions": {}
+    }
+  }
+}
