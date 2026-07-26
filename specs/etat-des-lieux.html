@@ -24,29 +24,30 @@ code{font-family:'SF Mono',Consolas,monospace;background:rgba(200,164,78,.1);col
 footer{margin-top:3rem;padding-top:1.2rem;border-top:1px solid #1f1f1f;color:#555;font-size:.78rem;}
 </style></head><body>
 <h1>Etat des lieux - <span class="accent">iakaFrameGUI</span></h1>
-<div class="sub">Genere le 2026-07-25 23:33 - motif : manual - a regenerer a chaque version et a chaque pause/reprise.</div>
+<div class="sub">Genere le 2026-07-26 02:33 - motif : pause - a regenerer a chaque version et a chaque pause/reprise.</div>
 <h2>Etat courant</h2>
 <div class="kv">
   <div class="k">Version</div><div>-</div>
   <div class="k">Branche</div><div>main</div>
-  <div class="k">Dernier commit</div><div><code>c88e8bf merge(frame): support de Feanor cote GUI - 9e role/casting + vignette flamme</code></div>
-  <div class="k">Arbre</div><div><span class='bad'>modifications non commitees</span></div>
-  <div class="k">Fichiers</div><div>18227 (hors .git / node_modules)</div>
-  <div class='k'>Note</div><div>Reprise 25/07 : menage des refs (3 branches obsoletes supprimees local+origin, archivees par tags), backlog CLAUDE.md reecrit sur l etat mesure (4 items mensongers corriges, 4 dettes closes), CLI mis dans le PATH. Gate : lint:all exit 0, test:all 56 fichiers / 518 tests verts.</div>
+  <div class="k">Dernier commit</div><div><code>06d2d99 merge(core): section phases dans le kit Claude Code - gate PASS</code></div>
+  <div class="k">Arbre</div><div><span class='ok'>propre</span></div>
+  <div class="k">Fichiers</div><div>19750 (hors .git / node_modules)</div>
+  <div class='k'>Note</div><div>Session du 25-26/07 : menage des refs + 5 lots livres (renommage element pool/briques, Feanor copilote identifie, garde de montage, pointeur de frame active dans iakaframe.json, phases dans le kit Claude Code). Gate final : lint:all 0, test:all 61 fichiers / 551 tests, cargo test 83.</div>
 </div>
-<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>c88e8bf</code></td><td>2026-07-25</td><td>merge(frame): support de Feanor cote GUI - 9e role/casting + vignette flamme</td></tr>
-<tr><td><code>98a6259</code></td><td>2026-07-25</td><td>test+fixtures(gui): sync vendorage feanor + comptes 8-&gt;9</td></tr>
-<tr><td><code>453cd29</code></td><td>2026-07-25</td><td>feat(core): 9e rôle frame (Constructeur de frame) + 9e dégradé de casting</td></tr>
-<tr><td><code>96accf1</code></td><td>2026-07-24</td><td>merge(frame): support du reservoir de frames cote GUI - resolveAssembly mono-&gt;multi + renommage element-pool</td></tr>
-<tr><td><code>49dc84c</code></td><td>2026-07-24</td><td>feat(gui): charge la collection frames (backend + allow-list Rust) + comptes 11-&gt;12</td></tr>
-<tr><td><code>3b2b14c</code></td><td>2026-07-24</td><td>refactor(core): renomme reservoir -&gt; element-pool (AR-2, A13)</td></tr>
-<tr><td><code>b782e19</code></td><td>2026-07-24</td><td>feat(core): type frames de 1re classe (AR-1) + resolveAssembly mono-&gt;multi</td></tr>
-<tr><td><code>721165a</code></td><td>2026-07-23</td><td>chore(release): v0.1.4 - alignement cles de role sur le canon (B2) + cadrage versé</td></tr>
-<tr><td><code>6fb7e36</code></td><td>2026-07-23</td><td>merge(roster): B2 - alignement des 5 cles de role sur le canon (cadrage/dev/qualite/design/documentation) + reordre canon + bug skill helm-&gt;deploiement - gate Legolas PASS</td></tr>
-<tr><td><code>292df50</code></td><td>2026-07-23</td><td>test(core): aligner les tests derives sur les cles de role canon (B2)</td></tr>
+<h2>Commits recents</h2><table><tr><th>Hash</th><th>Date</th><th>Sujet</th></tr><tr><td><code>06d2d99</code></td><td>2026-07-26</td><td>merge(core): section phases dans le kit Claude Code - gate PASS</td></tr>
+<tr><td><code>2ec138f</code></td><td>2026-07-26</td><td>docs: solde les phases du kit Claude Code et requalifie l'item Open WebUI</td></tr>
+<tr><td><code>a063914</code></td><td>2026-07-26</td><td>feat(core): section phases/workflow dans le kit Claude Code (arbitrage tranche)</td></tr>
+<tr><td><code>73fff82</code></td><td>2026-07-26</td><td>merge(forge): pointeur de frame active dans iakaframe.json du projet - gate PASS</td></tr>
+<tr><td><code>cfb5c9f</code></td><td>2026-07-26</td><td>docs: solde le pointeur de frame active (instruction 3bis + backlog)</td></tr>
+<tr><td><code>26b4855</code></td><td>2026-07-26</td><td>feat(forge): pointeur de frame active dans iakaframe.json du projet</td></tr>
+<tr><td><code>a6d9803</code></td><td>2026-07-26</td><td>feat(core): modele de frame agnostique — kind first-class + champ d'acteurs/conteneur unifies (lot A)</td></tr>
+<tr><td><code>3fd860c</code></td><td>2026-07-26</td><td>docs(instructions): cadre le pointeur de frame active dans iakaframe.json (arbitrage decideur)</td></tr>
+<tr><td><code>98b26fd</code></td><td>2026-07-26</td><td>merge(forge): garde de montage du copilote sur backend partiel - gate PASS</td></tr>
+<tr><td><code>59296e0</code></td><td>2026-07-26</td><td>fix(forge): montage du copilote robuste a un backend partiel</td></tr>
 </table>
 <h2>Journal (versions &amp; pauses)</h2>
 <table><tr><th>Date</th><th>Motif</th><th>Version</th><th>Branche</th><th>Note</th></tr>
+<tr><td>2026-07-26 02:33</td><td><span class='r r-pause'>pause</span></td><td>-</td><td>main</td><td>Session du 25-26/07 : menage des refs + 5 lots livres (renommage element pool/briques, Feanor copilote identifie, garde de montage, pointeur de frame active dans iakaframe.json, phases dans le kit Claude Code). Gate final : lint:all 0, test:all 61 fichiers / 551 tests, cargo test 83.</td></tr>
 <tr><td>2026-07-25 23:33</td><td><span class='r r-manual'>manual</span></td><td>-</td><td>main</td><td>Reprise 25/07 : menage des refs (3 branches obsoletes supprimees local+origin, archivees par tags), backlog CLAUDE.md reecrit sur l etat mesure (4 items mensongers corriges, 4 dettes closes), CLI mis dans le PATH. Gate : lint:all exit 0, test:all 56 fichiers / 518 tests verts.</td></tr>
 <tr><td>2026-07-25 23:13</td><td><span class='r r-reprise'>reprise</span></td><td>-</td><td>main</td><td>reprise de session 2026-07-25</td></tr>
 <tr><td>2026-07-19 23:10</td><td><span class='r r-pause'>pause</span></td><td>v0.3.11</td><td>main</td><td>Capacite de preservation du wrapping des listes flow dans serializeMethodMd : readListLayout (releve la decoupe en lignes d'un .md source, tokenizer respectant les quotes) + Field.wrap + type ListLayout + 3e parametre OPTIONNEL de serializeMethodMd. Fixture method.iakaframe-wrapped.md (principleIds wrappe sur 4 lignes) + 5 cas de test dont round-trip byte-a-byte et layout perime ignore (retombe sur la forme canonique au lieu de produire un rendu faux). COMPORTEMENT PAR DEFAUT INCHANGE (mono-ligne) et cablage ForgeShell.tsx:125 VOLONTAIREMENT NON FAIT : cli/src/lib/frontmatter.js:217-222 reflow exactement pareil, donc activer cote GUI seul aurait fabrique une divergence GUI!=CLI - precisement la classe de defaut qu'aucune garde ne detecte (cf. contrat fantome v0.3.10). Le cablage est rattache au chantier vendor-check cross-repo, decision a deux depots. Tests 480 pass / 0 fail (53 fichiers), tsc --noEmit clean, eslint clean. Gate Legolas PASS. Dettes ouvertes cote GUI : perte du corps markdown au Save (ForgeShell.tsx:84-86 regenere un boilerplate de 2 lignes - ecraserait tout le recit d'un fichier de methode) ; fixture method.iakaframe-wrapped.md declaree 'copie conforme' alors que son corps est tronque de 8 lignes (frontmatter byte-identique, validite du test intacte).</td></tr>

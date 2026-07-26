@@ -158,5 +158,15 @@
     "dirty": true,
     "files": 18227,
     "note": "Reprise 25/07 : menage des refs (3 branches obsoletes supprimees local+origin, archivees par tags), backlog CLAUDE.md reecrit sur l etat mesure (4 items mensongers corriges, 4 dettes closes), CLI mis dans le PATH. Gate : lint:all exit 0, test:all 56 fichiers / 518 tests verts."
+  },
+  {
+    "date": "2026-07-26 02:33",
+    "reason": "pause",
+    "version": "-",
+    "branch": "main",
+    "commit": "06d2d99 merge(core): section phases dans le kit Claude Code - gate PASS",
+    "dirty": false,
+    "files": 19750,
+    "note": "Session du 25-26/07 : menage des refs + 5 lots livres (renommage element pool/briques, Feanor copilote identifie, garde de montage, pointeur de frame active dans iakaframe.json, phases dans le kit Claude Code). Gate final : lint:all 0, test:all 61 fichiers / 551 tests, cargo test 83."
   }
 ]
