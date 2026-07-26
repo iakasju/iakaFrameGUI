@@ -1443,6 +1443,97 @@
   color: var(--orange);
 }
 
+/* --- Sélecteur de TYPE (kind) de 1er ordre (Lot 5, workflow agnostique) --- */
+.forge .wfkinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 2px 0 4px;
+}
+.forge .wfkind {
+  text-align: left;
+  border: 1.5px solid var(--forge-line-soft);
+  border-radius: 9px;
+  background: var(--panel);
+  padding: 7px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.forge .wfkind:hover {
+  border-color: var(--blue);
+}
+.forge .wfkind.sel {
+  border-color: var(--blue);
+  background: var(--panel-2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--blue) 18%, transparent);
+}
+.forge .wfkn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: 700 11px/1.2 var(--font-sans);
+  color: var(--ink);
+}
+.forge .wfrd {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--forge-line-soft);
+  flex: none;
+}
+.forge .wfkind.sel .wfrd {
+  border-color: var(--blue);
+  background: var(--blue);
+  box-shadow: inset 0 0 0 2px var(--panel);
+}
+.forge .wfkd {
+  display: block;
+  margin-top: 3px;
+  font: 500 10px/1.35 var(--font-sans);
+  color: var(--muted);
+}
+.forge .wfkc {
+  display: inline-block;
+  margin-top: 4px;
+  font: 600 9.5px/1 var(--font-mono, ui-monospace, monospace);
+  color: var(--blue);
+}
+.forge .wfkind-badge {
+  font: 600 9.5px/1 var(--font-mono, ui-monospace, monospace);
+  color: var(--blue);
+  background: var(--panel-2);
+  border: 1px solid var(--forge-line-soft);
+  border-radius: 5px;
+  padding: 2px 5px;
+}
+.forge .phase-editor .gate-off {
+  margin: 6px 0 0;
+  font: 600 10.5px/1.4 var(--font-sans);
+  color: var(--muted);
+}
+
+/* --- Sous-onglets de l'entrée « méthode » (Lot 5) : Discipline · Workflow --- */
+.forge .methode-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 22px 0;
+}
+.forge .methode-subtab {
+  border: 1px solid var(--forge-line-soft);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--panel-2);
+  color: var(--muted);
+  font: 700 11px/1 var(--font-sans);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.forge .methode-subtab.on {
+  background: var(--panel);
+  color: var(--blue);
+  border-color: var(--border);
+}
+
 /* --- Onglet « Apprentissage » (U2, surface-apprentissage.md) : vue du réservoir de propositions,
        pilote de `iakaframe review`. Boutons Valider/Rejeter JUMEAUX (symétrie +/−). --- */
 .forge .learning {
