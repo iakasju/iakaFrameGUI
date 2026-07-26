@@ -204,6 +204,13 @@ export interface Frame {
   counts: Record<FrameType, number>;
   /** Ids scannés par pool (servent l'intégrité ET la détection de facette). */
   poolIds: Record<PoolFrameType, string[]>;
+  /**
+   * Les personas **réelles parsées** du pool `personas` (promotion de la `personaList` déjà calculée
+   * pour l'intégrité, aujourd'hui jetée). **Pure addition dérivée** (AR-2) : source unique des fiches
+   * du réservoir — royaume/pastille/skills/guardrails/mission viennent des `.md`, jamais d'une table
+   * synthétique. Ordre = ordre de chargement du pool. Vide si aucune persona (jamais inventée).
+   */
+  personas: Persona[];
   /** L'assemblage résolu (method + team + binding). */
   assembly: FrameAssembly;
   /**
@@ -631,6 +638,8 @@ export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame 
     root: raw.root,
     counts,
     poolIds,
+    // AR-2 : la liste riche déjà parsée pour l'intégrité est PROMUE (plus jetée) — source des fiches.
+    personas: personaList,
     frames,
     assembly: resolveAssembly(methods, teams, bindings, frames, activeFrameId),
     portfolio: detectPortfolioFacet(raw),
@@ -718,8 +727,9 @@ export function parseFrame(raw: unknown): Frame | null {
     root: typeof raw.root === "string" ? raw.root : null,
     counts,
     poolIds,
-    // `parseFrame` est le garde défensif d'un objet Frame déjà sérialisé : il ne reconstruit pas
-    // les descripteurs (ils ne sont pas dans son schéma d'entrée) — liste vide, jamais inventée.
+    // Garde défensif : ni les descripteurs ni les personas riches ne sont dans son schéma d'entrée
+    // (Frame déjà sérialisé) — listes vides, jamais inventées (symétrie avec `frames`).
+    personas: [],
     frames: [],
     assembly: { frame: null, binding: null, method: null, team: null },
     portfolio: coercePortfolio(raw.portfolio),

@@ -5,11 +5,14 @@
  * rendu comme la maquette validée `specs/mock/gui/01-library.html` (grille de **fiches à
  * vignettes**) et `02-feanor-prompt-element.html` (la **fiche** en mode ✎ édition).
  *
- * DONNÉES — GUI-only : le réservoir est alimenté par les **personas vendorées** du cœur
- * (`CANONICAL_ROSTER` — les 9 : odin·aragorn·gandalf·gimli·legolas·helm·loki·nathalie·feanor).
- * La **vignette** est un rendu dérivé des champs EXISTANTS (initiales + dégradé casté par
- * `roleIndex`) — aucun asset ni champ canon neuf (règle cross-repo). Aucun contrat de
- * `packages/core` n'est touché : projection pure via `buildPersonaReservoir`.
+ * DONNÉES — la vérité DÉRIVE des `.md` (AR-2, enrichissement-modele-persona.md) : le réservoir est
+ * alimenté par les **personas RÉELLES parsées** du frame chargé (`frame.personas`, casting de la team
+ * active `[odin…feanor]`) — royaume réel (IAKAFRAME/PORTEFEUILLE/FRAME, jamais `DEV`), pastille,
+ * skills/guardrails et **ligne de mission** viennent des `.md`, plus d'une table synthétique. Le
+ * gabarit `cloneCanonicalRoster()` ne sert plus que de **repli hors-ligne** (racine introuvable). La
+ * **vignette** reste un rendu dérivé des champs EXISTANTS (initiales + dégradé casté par `roleIndex`)
+ * — aucun asset ni champ canon neuf. Aucun contrat de `packages/core` n'est touché : projection pure
+ * via `buildPersonaReservoir`, sélection via `reservoirPersonasFromFrame`.
  *
  * SÉLECTION → ÉDITION : cliquer une fiche l'ouvre en **mode édition** (pastille ✎ édition,
  * cohérente avec le pattern « élément sélectionné → mode édition » du Lot 2), et **New** ouvre le
@@ -17,18 +20,49 @@
  * **état local** de session (MVP — aucune écriture disque : la persistance `library/personas/`
  * relève d'un chantier I/O ultérieur ; Fëanor-en-tête = Lot 6, NON implémenté ici).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cloneCanonicalRoster, type Persona } from "@iakaframe/core";
-import { buildPersonaReservoir } from "./personaCards";
+import { buildPersonaReservoir, reservoirPersonasFromFrame } from "./personaCards";
+import { loadFrame } from "./frame";
 import { PersonaEditor } from "../components/PersonaEditor";
 
 type Mode = "grid" | "edit" | "create";
 
-export function PersonaReservoir() {
-  // Copie éditable du réservoir vendoré (les 9 personas canoniques). Aucune écriture disque.
+/**
+ * Source du réservoir : les personas RÉELLES parsées du frame chargé (AR-2). Injectable pour les
+ * tests ; par défaut, charge le frame et en dérive le casting de la team active. Repli sur `[]`
+ * (jamais d'exception) → le composant garde alors le gabarit canonique hors-ligne.
+ */
+async function defaultLoadReservoir(): Promise<Persona[]> {
+  try {
+    return reservoirPersonasFromFrame(await loadFrame());
+  } catch {
+    return [];
+  }
+}
+
+export function PersonaReservoir({
+  loadReservoir = defaultLoadReservoir,
+}: {
+  /** Chargeur des personas réelles (injectable en test). Défaut : `frame.personas` via `loadFrame`. */
+  loadReservoir?: () => Promise<Persona[]>;
+} = {}) {
+  // État éditable de session. Amorcé sur le gabarit canonique (repli hors-ligne + rendu synchrone
+  // immédiat), REMPLACÉ par les personas réelles du frame dès qu'elles sont chargées. Aucune écriture disque.
   const [personas, setPersonas] = useState<Persona[]>(() => cloneCanonicalRoster());
   const [mode, setMode] = useState<Mode>("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadReservoir().then((real) => {
+      // Personas réelles disponibles → elles font foi ; sinon on garde le gabarit (repli hors-ligne).
+      if (!cancelled && real.length > 0) setPersonas(real);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadReservoir]);
 
   const cards = buildPersonaReservoir(personas);
   const selected = personas.find((p) => p.id === selectedId) ?? null;
@@ -137,6 +171,7 @@ export function PersonaReservoir() {
             <div className="role">
               {c.roleLabel} <span className="ri">· index {c.roleIndex}</span>
             </div>
+            {c.mission && <div className="mission">{c.mission}</div>}
             <div className="chips">
               {c.skills.map((s) => (
                 <span key={s} className="chip sk">
