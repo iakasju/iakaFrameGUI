@@ -722,6 +722,53 @@ export function parseKitMd(text: string | undefined | null): KitMd | null {
   return kit;
 }
 
+// --- persona (Lot 5a : création d'un atome de pool persona) ------------------
+
+/**
+ * Sérialise une persona en `.md`-frontmatter **canonique** — réservé à la **CRÉATION** (fichier
+ * neuf : rien à préserver). L'**édition** passe par {@link patchFrontmatter} (non-destructif), pas
+ * par ce sérialiseur : un round-trip « parse → serialize » d'une persona existante **jetterait**
+ * `description` (blurb de déclenchement du sous-agent, load-bearing) et `vignette` — clés que le
+ * type `Persona` ne modélise pas. Ordre des champs = fichiers réels `library/personas/*.md` :
+ * `id, name, mission?, roleKey, royaume, pastille?, skills, guardrails`. `roleIndex` n'est **pas** un
+ * champ de fichier (dérivé du rôle). `body` = prose optionnelle.
+ */
+export function serializePersonaMd(
+  p: {
+    id: string;
+    name: string;
+    mission?: string;
+    roleKey: string;
+    royaume: string;
+    pastille?: string;
+    skills: readonly string[];
+    guardrails: readonly string[];
+  },
+  body = "",
+): string {
+  const mission =
+    p.mission && p.mission.length > 0
+      ? ({ key: "mission", kind: "scalar", value: p.mission } as Field)
+      : undefined;
+  const pastille =
+    p.pastille && p.pastille.length > 0
+      ? ({ key: "pastille", kind: "scalar", value: p.pastille } as Field)
+      : undefined;
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: p.id },
+      { key: "name", kind: "scalar", value: p.name },
+      mission,
+      { key: "roleKey", kind: "scalar", value: p.roleKey },
+      { key: "royaume", kind: "scalar", value: p.royaume },
+      pastille,
+      { key: "skills", kind: "list", value: [...p.skills] },
+      { key: "guardrails", kind: "list", value: [...p.guardrails] },
+    ],
+    body,
+  );
+}
+
 // --- workflow (étape 3bis : réconciliation GUI ← frame) ----------------------
 
 /**
@@ -989,6 +1036,166 @@ export function parseWorkflowMd(text: string | undefined | null): Workflow | nul
     sectionTitle: p.sectionTitle,
     sectionNote: p.sectionNote,
   });
+}
+
+// ---------------------------------------------------------------------------
+// 4. PATCHEUR NON-DESTRUCTIF (Lot 5a, C1) — édition-en-place du frontmatter
+// ---------------------------------------------------------------------------
+//
+// AJOUT PUR (aucune signature existante modifiée). Le round-trip naïf « type → serialize »
+// JETTE les clés non modélisées par le type (pour une persona : `description` — le blurb de
+// déclenchement du sous-agent, load-bearing — et `vignette`) + le corps + le layout des listes.
+// `patchFrontmatter` évite cette régression : il **ne réécrit une ligne que si sa valeur change
+// réellement** ; toute clé absente du patch, toute clé inchangée, tout le corps et le layout
+// d'origine sont **préservés à l'octet**. Un patch qui ne change rien ⇒ document byte-identique
+// (invariant du round-trip AC3). Zéro dépendance : réutilise `parseFrontmatter`/`balance`/KEY_RE.
+
+/** Une valeur de patch : scalaire (`clé: valeur`) ou liste flow (`clé: [a, b, …]`). */
+export type PatchField =
+  | { kind: "scalar"; value: Scalar }
+  | { kind: "list"; value: readonly Scalar[] };
+
+/** Un patch de frontmatter : par clé, la valeur voulue (les autres clés restent verbatim). */
+export type FrontmatterPatch = Record<string, PatchField>;
+
+/** Span de lignes (indices dans le bloc frontmatter, `end` exclusif) occupé par une clé. */
+interface KeySpan {
+  key: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * Relève, sur les lignes du **bloc frontmatter** (sans les `---`), le span de lignes de chaque clé
+ * de 1er niveau. Miroir de la tokenisation de {@link parseFrontmatterBody} (blocs `- …` indentés,
+ * listes/maps flow multi-lignes via {@link balance}) — indispensable pour remplacer une clé SANS
+ * toucher aux voisines. Les lignes blanches/commentaires n'appartiennent à aucune clé.
+ */
+function frontmatterKeySpans(fmLines: string[]): KeySpan[] {
+  const spans: KeySpan[] = [];
+  let i = 0;
+  while (i < fmLines.length) {
+    const line = fmLines[i];
+    if (line.trim() === "" || line.trim().startsWith("#")) {
+      i++;
+      continue;
+    }
+    const m = line.match(KEY_RE);
+    if (!m) {
+      i++;
+      continue;
+    }
+    const baseIndent = m[1].length;
+    const key = m[2];
+    const rest = m[3];
+    const start = i;
+    if (rest.trim() === "") {
+      // Valeur en bloc : séquence `- …` indentée (avec continuation flow multi-ligne).
+      let j = i + 1;
+      while (j < fmLines.length) {
+        const l = fmLines[j];
+        if (l.trim() === "") {
+          j++;
+          continue;
+        }
+        if (indentOf(l) <= baseIndent) break;
+        const sm = l.match(/^\s*-\s?(.*)$/);
+        if (!sm) break;
+        let itemText = sm[1];
+        while (balance(itemText) > 0 && j + 1 < fmLines.length) {
+          j++;
+          itemText += " " + fmLines[j].trim();
+        }
+        j++;
+      }
+      spans.push({ key, start, end: j });
+      i = j;
+      continue;
+    }
+    // Valeur inline, potentiellement liste/map flow multi-ligne.
+    if ((rest.trim().startsWith("[") || rest.trim().startsWith("{")) && balance(rest) > 0) {
+      let acc = rest;
+      let j = i;
+      while (balance(acc) > 0 && j + 1 < fmLines.length) {
+        j++;
+        acc += " " + fmLines[j].trim();
+      }
+      spans.push({ key, start, end: j + 1 });
+      i = j + 1;
+      continue;
+    }
+    spans.push({ key, start, end: i + 1 });
+    i++;
+  }
+  return spans;
+}
+
+/** Rend UNE ligne de frontmatter pour une clé patchée (forme canonique, indent 0). */
+function renderPatchLine(key: string, field: PatchField): string {
+  return field.kind === "list"
+    ? `${key}: ${renderFlowList(field.value)}`
+    : `${key}: ${renderScalar(field.value)}`;
+}
+
+/** Deux valeurs de frontmatter sont-elles sémantiquement égales (⇒ ligne laissée verbatim) ? */
+function sameFrontmatterValue(existing: FrontmatterValue | undefined, field: PatchField): boolean {
+  if (field.kind === "list") {
+    if (!Array.isArray(existing)) return false;
+    if (existing.length !== field.value.length) return false;
+    return existing.every((e, i) => String(e) === String(field.value[i]));
+  }
+  if (existing == null || Array.isArray(existing) || typeof existing === "object") return false;
+  return String(existing) === String(field.value);
+}
+
+/**
+ * Réécrit un `.md` en **préservant tout ce que le patch ne touche pas** (AC2/AC3). Pour chaque clé
+ * du patch : si la valeur est **inchangée** (ou la clé bornée d'un span multi-ligne dont la valeur
+ * n'a pas bougé), la/les ligne(s) d'origine sont laissées **verbatim** ; si elle **change**, son span
+ * est remplacé par **une** ligne canonique ; si la clé est **absente**, une ligne canonique est
+ * **ajoutée** en fin de frontmatter. Les clés hors patch (`description`, `vignette`, `id`, …), le
+ * **corps** et les lignes blanches/commentaires du frontmatter restent **intacts à l'octet**.
+ *
+ * Défensif : document sans frontmatter délimité (`---` … `---`) → rendu inchangé. Travaille sur les
+ * bytes en découpant sur `\n` (round-trip LF exact ; les fichiers de la bibliothèque sont en LF).
+ */
+export function patchFrontmatter(rawMd: string, patch: FrontmatterPatch): string {
+  const src = String(rawMd);
+  const lines = src.split("\n");
+  if (lines[0] !== "---") return src;
+  let end = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === "---" || lines[i] === "...") {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return src;
+
+  const fmLines = lines.slice(1, end);
+  const tail = lines.slice(end); // le `---` fermant + le corps, préservés tels quels
+  const { data } = parseFrontmatter(src);
+  const spans = frontmatterKeySpans(fmLines);
+  const spanByKey = new Map(spans.map((s) => [s.key, s]));
+
+  // Remplacements en place (des plus BAS aux plus HAUTS, pour ne pas décaler les index restants).
+  const touched = [...spans]
+    .filter((s) => patch[s.key] !== undefined)
+    .sort((a, b) => b.start - a.start);
+  let next = [...fmLines];
+  for (const s of touched) {
+    const field = patch[s.key];
+    if (sameFrontmatterValue(data[s.key], field)) continue; // valeur inchangée → verbatim
+    next = [...next.slice(0, s.start), renderPatchLine(s.key, field), ...next.slice(s.end)];
+  }
+
+  // Ajouts (clés absentes du frontmatter d'origine) — en fin de bloc, ordre du patch.
+  for (const key of Object.keys(patch)) {
+    if (spanByKey.has(key)) continue;
+    next.push(renderPatchLine(key, patch[key]));
+  }
+
+  return ["---", ...next, ...tail].join("\n");
 }
 
 /** Interne exposé pour les tests (parité fine avec le CLI). */

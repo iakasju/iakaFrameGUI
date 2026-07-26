@@ -10,6 +10,7 @@
  */
 
 import { roleIndexOf } from "./roles";
+import type { FrontmatterPatch } from "./frontmatter";
 
 /**
  * Une persona forgée. **AUCUN champ `runner`, AUCUN champ `model`** (AR-1).
@@ -120,4 +121,30 @@ export function parsePersona(raw: unknown): Persona | null {
     skills: toStringArray(r.skills),
     guardrails: toStringArray(r.guardrails),
   };
+}
+
+/**
+ * Construit le **patch de frontmatter** d'une persona pour une réécriture **non-destructive**
+ * (Lot 5a, C1) : uniquement les champs de fichier que l'éditeur modélise
+ * (`name, mission?, roleKey, royaume, pastille?, skills, guardrails`). **Exclus volontairement** :
+ * `id` (verrouillé en édition, C-1 : jamais de renommage), `roleIndex` (dérivé, pas un champ de
+ * fichier), et toute clé non modélisée (`description`, `vignette`, inconnues) — ces dernières sont
+ * **préservées à l'octet** par {@link patchFrontmatter} du seul fait de leur absence du patch.
+ * `mission`/`pastille` ne sont émis que s'ils sont déclarés (même politique que `parsePersona`).
+ */
+export function personaFrontmatterPatch(p: Persona): FrontmatterPatch {
+  const patch: FrontmatterPatch = {
+    name: { kind: "scalar", value: p.name },
+    roleKey: { kind: "scalar", value: p.roleKey },
+    royaume: { kind: "scalar", value: p.royaume },
+    skills: { kind: "list", value: [...p.skills] },
+    guardrails: { kind: "list", value: [...p.guardrails] },
+  };
+  if (p.mission !== undefined && p.mission.length > 0) {
+    patch.mission = { kind: "scalar", value: p.mission };
+  }
+  if (p.pastille !== undefined && p.pastille.length > 0) {
+    patch.pastille = { kind: "scalar", value: p.pastille };
+  }
+  return patch;
 }
