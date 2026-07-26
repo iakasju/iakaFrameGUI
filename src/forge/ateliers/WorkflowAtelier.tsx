@@ -1,14 +1,21 @@
 /**
- * WorkflowAtelier — l'atelier **Workflow** ÉDITABLE de la forge (P6b, 4ᵉ onglet, iso-pattern
- * Team/Méthode/Kit). Le workflow est un **artefact autonome** de la collection `workflows/` (Q-1) :
- * on édite ici ses **phases/gates** (ajouter · supprimer · réordonner monter/descendre — Q-2 ; et
- * éditer name/description/roleKeys/offChain + gate) via les **helpers PURS** du cœur
+ * WorkflowAtelier — l'atelier **Workflow** ÉDITABLE de la forge (rattaché à « méthode » — le
+ * workflow est un **élément de la méthode**, maquette `04-creation-workflow.html`). Le workflow est
+ * un **artefact autonome** de la collection `workflows/` (Q-1) : on choisit ici son **type (`kind`)
+ * de 1er ordre** (pipeline · cycle · flow · cycle-with-gate — modèle **agnostique**, § 3.1) puis on
+ * édite ses **phases/gates** (ajouter · supprimer · réordonner monter/descendre — Q-2 ; et éditer
+ * name/description/roleKeys/offChain + gate) via les **helpers PURS** du cœur
  * (`addPhase`/`removePhase`/`movePhase`/`updatePhase*`, `order` normalisé, calage nettoyé — Q-3).
+ * Les **gates sont optionnels** : un `cycle`/`flow` n'en impose aucun — le modèle ne présuppose plus
+ * le pipeline linéaire. Le `kind` se pose par une **addition immuable** (`{ ...workflow, kind }`),
+ * **sans toucher au contrat** (`packages/core` inchangé ; `kind` déjà parsé/sérialisé/schématisé).
  * Le `FlowDiagram` (réutilisé) **reflète** l'état édité. **Zéro modèle/runner** (workflow pur, AR-1).
  */
 import { useEffect, useState } from "react";
 import {
   CANONICAL_ROLES,
+  DEFAULT_WORKFLOW_KIND,
+  WORKFLOW_KINDS,
   addPhase,
   movePhase,
   removePhase,
@@ -17,10 +24,27 @@ import {
   updatePhaseGate,
   type GateKind,
   type Workflow,
+  type WorkflowKind,
 } from "@iakaframe/core";
 import { RailNote, RailSection } from "../Rail";
 import { UploadChip } from "../Vignette";
 import { FlowDiagram } from "../ContextGraph";
+
+/**
+ * Métadonnées de présentation des 4 familles de gouvernance (`kind`) — **libellés/pitch d'UI
+ * seulement** (le vocabulaire autoritaire est `WORKFLOW_KINDS` du cœur). `gated` = le `kind`
+ * **présuppose** un point de contrôle (gate) ; `false` ⇒ gate **optionnel** pour ce type.
+ */
+const KIND_META: Record<WorkflowKind, { label: string; desc: string; gated: boolean }> = {
+  pipeline: { label: "Pipeline", desc: "Étapes linéaires, une seule passe.", gated: true },
+  cycle: { label: "Cycle", desc: "Boucle : on repasse par le début.", gated: false },
+  flow: { label: "Flow", desc: "Étapes non contraintes, à la demande.", gated: false },
+  "cycle-with-gate": {
+    label: "Cycle + gate",
+    desc: "Boucle avec point de contrôle PASS/FAIL.",
+    gated: true,
+  },
+};
 
 export function WorkflowAtelier({
   workflow,
@@ -39,6 +63,26 @@ export function WorkflowAtelier({
       setSelectedId(workflow.phases[0]?.id ?? null);
     }
   }, [workflow, selectedId]);
+
+  // `kind` de 1er ordre — lu present-si-porté (absent ⇒ pipeline, {@link DEFAULT_WORKFLOW_KIND}).
+  const kind: WorkflowKind = workflow.kind ?? DEFAULT_WORKFLOW_KIND;
+  // Gate **optionnel** quand le `kind` ne le présuppose pas (cycle/flow) — le GUI ne force jamais un
+  // pipeline linéaire. Sémantique portée par le contrat lui-même (cycle = sans gate hiérarchique).
+  const gatesOptional = !KIND_META[kind].gated;
+
+  // Le `kind` se pose par une addition immuable — aucun setter de contrat requis (`cloneWorkflow`
+  // préserve déjà `kind` ; le round-trip .md est byte-neutre, cf. serializeWorkflowMd).
+  const setKind = (next: WorkflowKind): void => {
+    if (next === workflow.kind) return;
+    onWorkflowChange({ ...workflow, kind: next });
+  };
+
+  // Affichage du gate d'une phase : masquable quand le `kind` le rend optionnel (état d'UI local ;
+  // aucune donnée « sans gate » n'est fabriquée — le contrat porte toujours une gate par phase).
+  const [showGate, setShowGate] = useState<boolean>(!gatesOptional);
+  useEffect(() => {
+    setShowGate(!gatesOptional);
+  }, [gatesOptional, selectedId]);
 
   const phases = [...workflow.phases].sort((a, b) => a.order - b.order);
   const selected = phases.find((p) => p.id === selectedId) ?? null;
@@ -64,7 +108,40 @@ export function WorkflowAtelier({
   return (
     <>
       <aside className="rail">
-        <div className="railhead">Stock — atelier Workflow · phases &amp; gates</div>
+        <div className="railhead">Stock — atelier Workflow · type, phases &amp; gates</div>
+
+        <RailSection
+          title="Type (kind)"
+          count="le modèle n'impose plus le pipeline"
+          defaultOpen
+        >
+          <div className="wfkinds" role="radiogroup" aria-label="Type de workflow (kind)">
+            {WORKFLOW_KINDS.map((k) => (
+              <button
+                type="button"
+                key={`kind-${k}`}
+                role="radio"
+                aria-checked={kind === k}
+                className={`wfkind${kind === k ? " sel" : ""}`}
+                onClick={() => setKind(k)}
+                title={KIND_META[k].desc}
+              >
+                <span className="wfkn">
+                  {KIND_META[k].label}
+                  <span className="wfrd" aria-hidden="true" />
+                </span>
+                <span className="wfkd">{KIND_META[k].desc}</span>
+                <code className="wfkc">kind: {k}</code>
+              </button>
+            ))}
+          </div>
+          <RailNote>
+            Le <b>type</b> est un choix de <b>1er ordre</b> : le workflow est <b>agnostique</b> — un{" "}
+            <code>cycle</code>/<code>flow</code> n'impose <b>aucun gate</b>, un <code>pipeline</code>/
+            <code>cycle-with-gate</code> en pose. Les alias <code>phases</code>/<code>stages</code>{" "}
+            désignent la même étape.
+          </RailNote>
+        </RailSection>
 
         <RailSection title="Phases" count={`${phases.length} · monter/descendre`} defaultOpen>
           {phases.map((p, i) => (
@@ -132,7 +209,9 @@ export function WorkflowAtelier({
           <div>
             <div className="nm">Workflow {workflow.name} — en édition</div>
             <div className="meta">
-              {phases.length} phases · <code>workflows/{workflow.id}.md</code>
+              <span className="wfkind-badge">kind: {kind}</span> · {phases.length} phases ·{" "}
+              {gatesOptional ? "gates optionnels" : "gates"} ·{" "}
+              <code>workflows/{workflow.id}.md</code>
             </div>
           </div>
           <UploadChip label="⬆ pictogramme workflow — glisser-déposer" />
@@ -209,7 +288,24 @@ export function WorkflowAtelier({
                 </label>
 
                 <fieldset className="gate">
-                  <legend>Gate de sortie</legend>
+                  <legend>Gate de sortie{gatesOptional ? " — optionnel" : ""}</legend>
+                  {gatesOptional && (
+                    <label className="chk">
+                      <input
+                        type="checkbox"
+                        checked={showGate}
+                        aria-label="Définir un gate de sortie pour cette phase"
+                        onChange={(e) => setShowGate(e.target.checked)}
+                      />
+                      Poser un gate sur cette phase (kind: {kind} n'en impose aucun)
+                    </label>
+                  )}
+                  {!showGate ? (
+                    <p className="gate-off" role="note">
+                      ◇ Aucun gate — étape libre (workflow <code>kind: {kind}</code>).
+                    </p>
+                  ) : (
+                  <>
                   <label>
                     Type
                     <select
@@ -276,6 +372,8 @@ export function WorkflowAtelier({
                       ))}
                     </select>
                   </label>
+                  </>
+                  )}
                 </fieldset>
               </fieldset>
             )}
