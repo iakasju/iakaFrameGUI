@@ -4,7 +4,7 @@
   "types": {
     "personas": {
       "required": { "id": "scalar", "name": "scalar", "roleKey": "scalar" },
-      "optional": { "royaume": "scalar", "pastille": "scalar", "vignette": "scalar", "description": "scalar", "skills": "list", "guardrails": "list" },
+      "optional": { "royaume": "scalar", "pastille": "scalar", "vignette": "scalar", "description": "scalar", "mission": "scalar", "skills": "list", "guardrails": "list" },
       "extensions": {}
     },
     "skills": {

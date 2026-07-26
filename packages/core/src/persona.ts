@@ -32,6 +32,13 @@ export interface Persona {
    * l'égalité d'un round-trip sur une persona qui ne la porte pas.
    */
   pastille?: string;
+  /**
+   * Ligne de **mission** d'affichage (courte) — le libellé de la maquette réservoir. **Optionnel —
+   * absent = non déclaré** : DISTINCT de `description` (blurb de déclenchement du sous-agent,
+   * load-bearing). La clé n'est émise par le parseur que si la fiche la déclare, pour ne pas casser
+   * l'égalité d'un round-trip sur une persona qui ne la porte pas (même politique que `pastille`).
+   */
+  mission?: string;
   /** Index de casting (0..N-1), dérivé du rôle par défaut, éditable. */
   roleIndex: number;
   /** Ids de skills attribuées (ex. "iakaframe-cadrage"). */
@@ -98,6 +105,9 @@ export function parsePersona(raw: unknown): Persona | null {
   // jamais de clé vide qui casserait un round-trip).
   const pastille = typeof r.pastille === "string" ? r.pastille.trim() : "";
 
+  // Mission : même politique que la pastille — VERBATIM si déclarée, sinon CLÉ ABSENTE.
+  const mission = typeof r.mission === "string" ? r.mission.trim() : "";
+
   // AR-1 : `r.runner` / `r.model` sont volontairement NON lus → jamais réémis.
   return {
     id,
@@ -105,6 +115,7 @@ export function parsePersona(raw: unknown): Persona | null {
     roleKey,
     royaume,
     ...(pastille.length > 0 ? { pastille } : {}),
+    ...(mission.length > 0 ? { mission } : {}),
     roleIndex,
     skills: toStringArray(r.skills),
     guardrails: toStringArray(r.guardrails),

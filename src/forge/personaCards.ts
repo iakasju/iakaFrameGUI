@@ -10,7 +10,7 @@
  * la règle cross-repo). Aucun champ absent du frontmatter persona (mission/description/avatar)
  * n'est fabriqué ici : la carte ne montre que ce que la persona déclare.
  */
-import { personaBadge, roleLabel, type Persona } from "@iakaframe/core";
+import { personaBadge, roleLabel, type Frame, type Persona } from "@iakaframe/core";
 import { vignetteGradient, initialsOf } from "./casting";
 
 /** Une persona projetée en fiche à vignette (tout dérivé des champs canon existants). */
@@ -35,6 +35,8 @@ export interface PersonaCardVM {
   gradient: [string, string];
   /** Emoji de pastille SI la persona le déclare (sinon `null` — jamais fabriqué). */
   pastille: string | null;
+  /** Ligne de mission SI la persona la déclare (sinon `null` — jamais fabriquée). */
+  mission: string | null;
   /** Ids de skills déclarées. */
   skills: string[];
   /** Ids de gardes-fous déclarés. */
@@ -54,6 +56,7 @@ export function buildPersonaCard(p: Persona): PersonaCardVM {
     initials: initialsOf(p.name),
     gradient: vignetteGradient(p.roleIndex),
     pastille: p.pastille && p.pastille.length > 0 ? p.pastille : null,
+    mission: p.mission && p.mission.length > 0 ? p.mission : null,
     skills: [...p.skills],
     guardrails: [...p.guardrails],
   };
@@ -62,4 +65,22 @@ export function buildPersonaCard(p: Persona): PersonaCardVM {
 /** Projette le réservoir complet (l'ordre d'entrée est conservé). */
 export function buildPersonaReservoir(personas: readonly Persona[]): PersonaCardVM[] {
   return personas.map(buildPersonaCard);
+}
+
+/**
+ * Sélectionne les personas **réelles** à afficher au réservoir depuis un `Frame` chargé (AR-2 :
+ * la vérité DÉRIVE des `.md`, jamais d'une table synthétique). On prend les personas parsées du pool
+ * (`frame.personas`) dans l'**ordre de la team active** (`frame.assembly.team.personas`) — soit le
+ * casting iakaframe `[odin…feanor]`, chacune avec son royaume réel (IAKAFRAME/PORTEFEUILLE/FRAME),
+ * sa pastille, ses skills/guardrails et sa mission. Repli : sans team résolue, l'ordre de chargement
+ * du pool. Défensif : un id de team sans persona parsée est ignoré ; liste vide possible (l'appelant
+ * retombe alors sur le gabarit `CANONICAL_ROSTER`, repli hors-ligne).
+ */
+export function reservoirPersonasFromFrame(frame: Frame): Persona[] {
+  const byId = new Map(frame.personas.map((p) => [p.id, p]));
+  const teamIds = frame.assembly.team?.personas ?? [];
+  const order = teamIds.length > 0 ? teamIds : frame.personas.map((p) => p.id);
+  return order
+    .map((id) => byId.get(id))
+    .filter((p): p is Persona => p != null);
 }

@@ -1,6 +1,68 @@
 import { describe, it, expect } from "vitest";
-import { CANONICAL_ROSTER, type Persona } from "@iakaframe/core";
-import { buildPersonaCard, buildPersonaReservoir } from "./personaCards";
+import {
+  CANONICAL_ROSTER,
+  buildFrame,
+  parsePersona,
+  POOL_FRAME_TYPES,
+  type FrameRaw,
+  type Persona,
+  type PoolFrameType,
+} from "@iakaframe/core";
+import {
+  buildPersonaCard,
+  buildPersonaReservoir,
+  reservoirPersonasFromFrame,
+} from "./personaCards";
+
+// --- Petits fabricants de `.md` pour construire un Frame réel via buildFrame (aucun I/O). --------
+function personaMd(o: {
+  id: string;
+  name: string;
+  roleKey: string;
+  royaume: string;
+  pastille?: string;
+  skills?: string[];
+  guardrails?: string[];
+  mission?: string;
+}): string {
+  return [
+    "---",
+    `id: ${o.id}`,
+    `name: ${o.name}`,
+    `roleKey: ${o.roleKey}`,
+    `royaume: ${o.royaume}`,
+    ...(o.pastille ? [`pastille: "${o.pastille}"`] : []),
+    `skills: [${(o.skills ?? []).join(", ")}]`,
+    `guardrails: [${(o.guardrails ?? []).join(", ")}]`,
+    ...(o.mission ? [`mission: ${o.mission}`] : []),
+    "---",
+    `# ${o.name}`,
+    "",
+  ].join("\n");
+}
+
+function teamMd(ids: string[]): string {
+  return [
+    "---",
+    "id: t",
+    "name: T",
+    `personas: [${ids.join(", ")}]`,
+    `coordinator: ${ids[0] ?? ""}`,
+    "guardrails: []",
+    "vignetteTeam: none",
+    "---",
+    "# T",
+    "",
+  ].join("\n");
+}
+
+function frameOf(personaMds: string[], teamIds: string[]): FrameRaw {
+  const pools = Object.fromEntries(
+    POOL_FRAME_TYPES.map((t) => [t, [] as string[]]),
+  ) as Record<PoolFrameType, string[]>;
+  pools.personas = personaMds;
+  return { root: null, pools, teams: [teamMd(teamIds)], methods: [], bindings: [] };
+}
 
 describe("personaReservoir — projection pure des fiches à vignettes (Lot 3, A3)", () => {
   it("projette les 9 personas vendorées du roster canonique (le casting du réservoir)", () => {
@@ -62,5 +124,85 @@ describe("personaReservoir — projection pure des fiches à vignettes (Lot 3, A
     const card = buildPersonaCard(p);
     expect(card.skills).toEqual(["iakaframe-fabrication"]);
     expect(card.guardrails).toEqual(["identity", "perimeter"]);
+  });
+
+  it("surface la ligne de mission déclarée (sinon null — jamais fabriquée)", () => {
+    const withMission = parsePersona({
+      id: "gimli",
+      name: "Gimli",
+      roleKey: "dev",
+      royaume: "IAKAFRAME",
+      mission: "Implémente l'instruction validée, jusqu'au staging.",
+    })!;
+    expect(buildPersonaCard(withMission).mission).toBe(
+      "Implémente l'instruction validée, jusqu'au staging.",
+    );
+    // Le gabarit synthétique CANONICAL_ROSTER ne porte PAS de mission → null partout.
+    expect(buildPersonaReservoir(CANONICAL_ROSTER).every((c) => c.mission === null)).toBe(true);
+  });
+});
+
+describe("reservoirPersonasFromFrame — le réservoir DÉRIVE des .md, pas d'une table synthétique (AR-2)", () => {
+  it("rend les personas RÉELLES parsées dans l'ordre de la team active (royaume IAKAFRAME, pas DEV)", () => {
+    // Pool dans un ordre DIFFÉRENT de la team, pour prouver que l'ordre suivi est celui de la team.
+    const raw = frameOf(
+      [
+        personaMd({
+          id: "feanor",
+          name: "Fëanor",
+          roleKey: "frame",
+          royaume: "FRAME",
+          pastille: "🟠",
+          skills: ["iakaframe-frame"],
+          guardrails: ["identity", "perimeter"],
+          mission: "Aide à forger une frame neuve.",
+        }),
+        personaMd({
+          id: "gimli",
+          name: "Gimli",
+          roleKey: "dev",
+          royaume: "IAKAFRAME",
+          pastille: "🔴",
+          skills: ["iakaframe-fabrication"],
+          guardrails: ["identity", "perimeter"],
+          mission: "Implémente l'instruction validée, jusqu'au staging.",
+        }),
+        personaMd({
+          id: "odin",
+          name: "Odin",
+          roleKey: "portefeuille",
+          royaume: "PORTEFEUILLE",
+          pastille: "🟡",
+          skills: ["iakaframe-odin"],
+          guardrails: ["identity", "delegation"],
+          mission: "CTO du portefeuille.",
+        }),
+      ],
+      ["odin", "gimli", "feanor"],
+    );
+    const reservoir = reservoirPersonasFromFrame(buildFrame(raw));
+
+    // Ordre = ordre de la team, pas du pool.
+    expect(reservoir.map((p) => p.id)).toEqual(["odin", "gimli", "feanor"]);
+
+    const gimli = reservoir.find((p) => p.id === "gimli")!;
+    // La vraie cause du bug est corrigée : royaume RÉEL (IAKAFRAME), plus le synthétique DEV.
+    expect(gimli.royaume).toBe("IAKAFRAME");
+    expect(gimli.pastille).toBe("🔴");
+    expect(gimli.skills).toEqual(["iakaframe-fabrication"]);
+    expect(gimli.guardrails).toEqual(["identity", "perimeter"]);
+    expect(gimli.mission).toBe("Implémente l'instruction validée, jusqu'au staging.");
+    // Royaumes hétérogènes RÉELS : Odin=PORTEFEUILLE, Fëanor=FRAME (jamais roleKey.toUpperCase()).
+    expect(reservoir.find((p) => p.id === "odin")!.royaume).toBe("PORTEFEUILLE");
+    expect(reservoir.find((p) => p.id === "feanor")!.royaume).toBe("FRAME");
+  });
+
+  it("ignore un id de team sans persona parsée (défensif) ; vide possible → repli à l'appelant", () => {
+    const raw = frameOf(
+      [personaMd({ id: "gimli", name: "Gimli", roleKey: "dev", royaume: "IAKAFRAME" })],
+      ["gimli", "absent"],
+    );
+    const reservoir = reservoirPersonasFromFrame(buildFrame(raw));
+    expect(reservoir.map((p) => p.id)).toEqual(["gimli"]);
   });
 });
