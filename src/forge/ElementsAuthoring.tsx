@@ -25,6 +25,10 @@ import { workflowKind } from "./workflowKind";
 import { loadPrinciplesReservoir, persistPrinciple } from "./principlePersist";
 import { loadRitualsReservoir, persistRitual } from "./ritualPersist";
 import { loadScaffoldsReservoir, persistScaffold } from "./scaffoldPersist";
+import { loadRolesReservoir, persistRole } from "./rolePersist";
+import { loadGuardrailsReservoir, persistGuardrail } from "./guardrailPersist";
+import { loadSkillsReservoir, persistSkill } from "./skillPersist";
+import { loadWorkflowsReservoir, persistWorkflow } from "./workflowPersist";
 
 interface AuthorableEntry {
   /** Clé de type stable. */
@@ -64,7 +68,14 @@ const AUTHORABLE: AuthorableEntry[] = [
     type: "skill",
     label: "skills",
     icon: "🧩",
-    render: () => <ElementReservoir key="skill" kind={skillKind} />,
+    render: () => (
+      <ElementReservoir
+        key="skill"
+        kind={skillKind}
+        loadElements={loadSkillsReservoir}
+        persist={persistSkill}
+      />
+    ),
   },
   {
     type: "ritual",
@@ -83,13 +94,27 @@ const AUTHORABLE: AuthorableEntry[] = [
     type: "guardrail",
     label: "gardes-fous",
     icon: "🛡️",
-    render: () => <ElementReservoir key="guardrail" kind={guardrailKind} />,
+    render: () => (
+      <ElementReservoir
+        key="guardrail"
+        kind={guardrailKind}
+        loadElements={loadGuardrailsReservoir}
+        persist={persistGuardrail}
+      />
+    ),
   },
   {
     type: "role",
     label: "rôles",
     icon: "🎯",
-    render: () => <ElementReservoir key="role" kind={roleKind} />,
+    render: () => (
+      <ElementReservoir
+        key="role"
+        kind={roleKind}
+        loadElements={loadRolesReservoir}
+        persist={persistRole}
+      />
+    ),
   },
   {
     type: "scaffold",
@@ -108,7 +133,14 @@ const AUTHORABLE: AuthorableEntry[] = [
     type: "workflow",
     label: "workflows",
     icon: "🧭",
-    render: () => <ElementReservoir key="workflow" kind={workflowKind} />,
+    render: () => (
+      <ElementReservoir
+        key="workflow"
+        kind={workflowKind}
+        loadElements={loadWorkflowsReservoir}
+        persist={persistWorkflow}
+      />
+    ),
   },
 ];
 

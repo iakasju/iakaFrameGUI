@@ -841,6 +841,73 @@ export function serializeScaffoldMd(
   );
 }
 
+/**
+ * Sérialise un **rôle** `.md` (création, forme canonique) — Lot 5c. Ordre de champ des fichiers
+ * réels `id, key, label, roleIndex, scope`. Réservé à la **création** (fichier neuf) : l'édition
+ * passe par `patchFrontmatter` + `roleFrontmatterPatch` (non-destructif, ne touche que `label`).
+ * `id == key` par convention canon ; `roleIndex` est émis **tel quel** (jamais recalculé). `body` =
+ * prose optionnelle.
+ */
+export function serializeRoleMd(
+  r: { id: string; key: string; label: string; roleIndex: number; scope: string },
+  body = "",
+): string {
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: r.id },
+      { key: "key", kind: "scalar", value: r.key },
+      { key: "label", kind: "scalar", value: r.label },
+      { key: "roleIndex", kind: "scalar", value: r.roleIndex },
+      { key: "scope", kind: "scalar", value: r.scope },
+    ],
+    body,
+  );
+}
+
+/**
+ * Sérialise un **garde-fou** `.md` (création, forme canonique) — Lot 5c. Ordre de champ des fichiers
+ * réels `id, label, kind, hook, policy`. Réservé à la **création** : l'édition passe par
+ * `patchFrontmatter` + `guardrailFrontmatterPatch` (préserve `kind`/`hook`/`policy` à l'octet).
+ * `hook`/`policy` sont scalaires : `renderScalar` ne les quote que si nécessaire à la relecture.
+ * `body` = prose optionnelle.
+ */
+export function serializeGuardrailMd(
+  g: { id: string; label: string; kind: string; hook: string; policy: string },
+  body = "",
+): string {
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: g.id },
+      { key: "label", kind: "scalar", value: g.label },
+      { key: "kind", kind: "scalar", value: g.kind },
+      { key: "hook", kind: "scalar", value: g.hook },
+      { key: "policy", kind: "scalar", value: g.policy },
+    ],
+    body,
+  );
+}
+
+/**
+ * Sérialise une **skill** `.md` (création, forme canonique) — Lot 5c. Ordre `id, name, description,
+ * subskills` (`subskills` **omis si vide**, comme le canon atomique). Réservé à la **création** du
+ * `SKILL.md` d'un nouveau dossier ; l'édition passe par `patchFrontmatter` + `skillFrontmatterPatch`.
+ * `body` = payload de la skill (vide en création).
+ */
+export function serializeSkillMd(
+  s: { id: string; name: string; description: string; subskills?: readonly string[] },
+  body = "",
+): string {
+  const fields: (Field | undefined)[] = [
+    { key: "id", kind: "scalar", value: s.id },
+    { key: "name", kind: "scalar", value: s.name },
+    { key: "description", kind: "scalar", value: s.description },
+  ];
+  if (s.subskills && s.subskills.length > 0) {
+    fields.push({ key: "subskills", kind: "list", value: [...s.subskills] });
+  }
+  return buildDocument(fields, body);
+}
+
 // --- workflow (étape 3bis : réconciliation GUI ← frame) ----------------------
 
 /**

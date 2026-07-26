@@ -4,9 +4,11 @@
  * du lot : l'`Editor` injecté **réutilise l'éditeur existant** `WorkflowAtelier` (via l'adaptateur
  * `WorkflowElementEditor`) — jamais réimplémenté.
  *
- * Source = catalogue de workflows vendoré `WORKFLOW_CATALOG` (au MVP : le canonique iakaframe),
- * étiqueté honnêtement ; édition = état local de session (aucune écriture disque — Lot 5 différé,
- * cross-repo). AUCUN contrat cœur touché.
+ * Source (Lot 5c, sous-lot 5c-workflow — Option A) = `frame.workflows`, les `.md` RÉELS du **pool**
+ * `library/workflows/` (via `loadWorkflowsReservoir`), `WORKFLOW_CATALOG` (`fallback`) restant le
+ * repli hors-ligne. Édition/création persistées sur disque (`persistWorkflow` → `poolWrite`,
+ * ré-émission verbatim si inchangé). **Même vérité unique** que la surface « méthode »
+ * (`WorkflowAtelier`) — plus aucune écriture collection. AUCUN contrat cœur touché.
  */
 import { type Workflow } from "@iakaframe/core";
 import {
@@ -30,9 +32,9 @@ export const workflowKind: ElementKind<Workflow> = {
   subtitle: (
     <>
       Les <strong>workflows</strong> — chacun est un artefact autonome{" "}
-      <code>{"{ id · kind · phases[] }"}</code> de la collection <code>workflows/</code>, référencé
-      par une méthode. Ouvrez une fiche pour l'éditer (type <code>kind</code>, phases &amp; gates)
-      dans l'éditeur riche. Source : le catalogue canonique (édition locale de session).
+      <code>{"{ id · kind · phases[] }"}</code> du pool <code>library/workflows/</code> (vérité
+      unique), référencé par une méthode. Ouvrez une fiche pour l'éditer (type <code>kind</code>,
+      phases &amp; gates) dans l'éditeur riche. Source : les <code>.md</code> réels du pool (persistés).
     </>
   ),
   sectionLabel: "Workflows",

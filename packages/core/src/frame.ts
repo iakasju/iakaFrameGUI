@@ -29,7 +29,10 @@ import { parsePersona, type Persona } from "./persona";
 import { parsePrinciple, type Principle } from "./principle";
 import { parseRitual, type Ritual } from "./ritual";
 import { parseScaffold, PORTFOLIO_SCAFFOLD, type Scaffold } from "./scaffold";
-import { parseWorkflow, workflowById } from "./workflow";
+import { parseWorkflow, workflowById, type Workflow } from "./workflow";
+import { parseRole, type Role } from "./roles";
+import { parseGuardrail, type GuardrailAtom } from "./guardrail";
+import { parseSkill, type SkillAtom } from "./skill";
 
 // ---------------------------------------------------------------------------
 // 1. Taxonomie des 12 types — littéraux autonomes (DÉCOUPLÉS du backend `PoolType`).
@@ -222,6 +225,18 @@ export interface Frame {
   rituals: Ritual[];
   /** Les **scaffolds réels parsés** du pool `scaffolds` (Lot 5b, même promotion que `principles`). */
   scaffolds: Scaffold[];
+  /** Les **rôles réels parsés** du pool `roles` (Lot 5c, promotion — source des fiches du réservoir
+   * de rôles ; `roleIndex`/`scope` réels du disque, jamais recalculés). Vide si aucun rôle. */
+  roles: Role[];
+  /** Les **gardes-fous réels parsés** du pool `guardrails` (Lot 5c) — forme plate `{id,label,kind,
+   * hook,policy}` du disque. Vide si aucun. */
+  guardrails: GuardrailAtom[];
+  /** Les **skills réelles parsées** du pool `skills` (Lot 5c) — `{id,name,description,subskills}`
+   * (dossier `<id>/SKILL.md`). Vide si aucune. */
+  skills: SkillAtom[];
+  /** Les **workflows réels parsés** du pool `workflows` (Lot 5c — sous-lot 5c-workflow, Option A :
+   * le pool est la vérité unique). Source des fiches du réservoir workflow. Vide si aucun. */
+  workflows: Workflow[];
   /** L'assemblage résolu (method + team + binding). */
   assembly: FrameAssembly;
   /**
@@ -644,6 +659,20 @@ export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame 
   const scaffoldList = (raw.pools.scaffolds ?? [])
     .map((md) => parseScaffold(parseFrontmatter(md).data))
     .filter((s): s is Scaffold => s !== null);
+  // Lot 5c — promotion des 3 pools SANS parseur (roles/guardrails/skills) + workflows (sous-lot
+  // 5c-workflow, Option A). Même patron que `principleList` : source réelle des fiches des réservoirs.
+  const roleList = (raw.pools.roles ?? [])
+    .map((md) => parseRole(parseFrontmatter(md).data))
+    .filter((r): r is Role => r !== null);
+  const guardrailList = (raw.pools.guardrails ?? [])
+    .map((md) => parseGuardrail(parseFrontmatter(md).data))
+    .filter((g): g is GuardrailAtom => g !== null);
+  const skillList = (raw.pools.skills ?? [])
+    .map((md) => parseSkill(parseFrontmatter(md).data))
+    .filter((s): s is SkillAtom => s !== null);
+  const workflowList = (raw.pools.workflows ?? [])
+    .map((md) => parseWorkflow(parseFrontmatter(md).data))
+    .filter((w): w is Workflow => w !== null);
   const workflowRefs = (raw.pools.workflows ?? [])
     .map((md) => parseWorkflowRefs(md))
     .filter((w): w is WorkflowRefs => w !== null);
@@ -665,6 +694,10 @@ export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame 
     principles: principleList,
     rituals: ritualList,
     scaffolds: scaffoldList,
+    roles: roleList,
+    guardrails: guardrailList,
+    skills: skillList,
+    workflows: workflowList,
     frames,
     assembly: resolveAssembly(methods, teams, bindings, frames, activeFrameId),
     portfolio: detectPortfolioFacet(raw),
@@ -759,6 +792,10 @@ export function parseFrame(raw: unknown): Frame | null {
     principles: [],
     rituals: [],
     scaffolds: [],
+    roles: [],
+    guardrails: [],
+    skills: [],
+    workflows: [],
     frames: [],
     assembly: { frame: null, binding: null, method: null, team: null },
     portfolio: coercePortfolio(raw.portfolio),

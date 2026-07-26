@@ -25,11 +25,11 @@ function method(workflowId?: string): Method {
   };
 }
 
-/** Backend factice : la collection `workflows/` est un dictionnaire id → texte `.md`. */
-function fakeBackend(collection: Record<string, string>): Backend {
+/** Backend factice : le POOL `library/workflows/` est un dictionnaire id → texte `.md` (Lot 5c). */
+function fakeBackend(pool: Record<string, string>): Backend {
   return {
-    libraryRead: async (c: string, id: string) =>
-      c === "workflows" ? (collection[id] ?? null) : null,
+    poolRead: async (p: string, id: string) =>
+      p === "workflows" ? (pool[id] ?? null) : null,
   } as unknown as Backend;
 }
 

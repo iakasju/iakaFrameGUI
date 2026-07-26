@@ -135,23 +135,26 @@ pub fn exists_in(home: &Path, collection: &str, id: &str) -> Result<bool, String
     Ok(file.exists())
 }
 
-/// Chemin absolu et validé d'un ATOME de pool `<home>/library/<pool_type>/<id>.md` (E2, Lot 5a).
-/// Calque exact de `library_file`, réorienté sous `library/<pool>/`. Le pool `skills` (stocké en
-/// DOSSIER `<id>/SKILL.md`) est **hors périmètre 5a** : l'écriture y est refusée (le routage vers le
-/// sous-dossier est reporté au Lot 5c). Mêmes gardes d'autorité : `validate_pool_type` +
-/// `validate_id` + `pathguard::safe_path` (anti-traversée).
+/// Chemin absolu et validé d'un ATOME de pool (E2, Lot 5a ; **skills = Lot 5c**). Calque de
+/// `library_file`, réorienté sous `library/<pool>/`. Deux formes de stockage :
+///   - pools **plats** (roles/guardrails/principles/rituals/scaffolds/workflows/personas) →
+///     `<home>/library/<pool>/<id>.md` ;
+///   - pool **skills** → **DOSSIER** `<home>/library/skills/<id>/SKILL.md` (convention Claude Agent
+///     Skills : le nom du dossier fait foi). Le sous-dossier `<id>/` est créé au besoin par
+///     `pool_write_in` (`create_dir_all` du parent) ; écrire `SKILL.md` ne touche AUCUN autre fichier
+///     du dossier (sous-skills, assets) → non destructif.
+/// Mêmes gardes d'autorité dans les deux cas : `validate_pool_type` + `validate_id` (interdit
+/// `/`,`\`,`.`,`..` → pas de traversée dans l'id) + `pathguard::safe_path` (borne sous `home`).
 fn pool_file(home: &Path, pool_type: &str, id: &str) -> Result<PathBuf, String> {
     validate_pool_type(pool_type)?;
     validate_id(id)?;
-    if pool_type == "skills" {
-        return Err(
-            "écriture du pool `skills` non supportée en 5a (stockage dossier <id>/SKILL.md, voir Lot 5c)"
-                .to_string(),
-        );
-    }
-    let rel = Path::new("library")
-        .join(pool_type)
-        .join(format!("{}.{}", id.trim(), LIBRARY_EXT));
+    let rel = if pool_type == "skills" {
+        Path::new("library").join(pool_type).join(id.trim()).join("SKILL.md")
+    } else {
+        Path::new("library")
+            .join(pool_type)
+            .join(format!("{}.{}", id.trim(), LIBRARY_EXT))
+    };
     safe_path(home, &rel).map_err(|e| e.to_string())
 }
 
@@ -167,8 +170,8 @@ pub fn pool_write_in(home: &Path, pool_type: &str, id: &str, text: &str) -> Resu
     std::fs::write(&file, text).map_err(|e| e.to_string())
 }
 
-/// Indique si l'atome de pool `<home>/library/<pool_type>/<id>.md` existe (garde de création non
-/// destructive : refus d'écraser hors intention). `skills` (dossier) → erreur (hors 5a).
+/// Indique si l'atome de pool existe (garde de création non destructive). Suit `pool_file` : pools
+/// plats → `<pool>/<id>.md` ; skills → `<pool>/<id>/SKILL.md` (Lot 5c).
 pub fn pool_exists_in(home: &Path, pool_type: &str, id: &str) -> Result<bool, String> {
     let file = pool_file(home, pool_type, id)?;
     Ok(file.exists())
@@ -661,12 +664,48 @@ mod tests {
     }
 
     #[test]
-    fn pool_write_skills_dossier_est_refuse_en_5a() {
-        // `skills` = DOSSIER `<id>/SKILL.md` : écriture hors périmètre 5a (reportée au Lot 5c).
-        let home = tmp_dir("poolwriteskill");
-        assert!(pool_write_in(&home, "skills", "iakaframe-cadrage", "x").is_err());
-        assert!(pool_exists_in(&home, "skills", "iakaframe-cadrage").is_err());
+    fn pool_write_skills_ecrit_sous_id_slash_skill_md() {
+        // Lot 5c : `skills` = DOSSIER `<id>/SKILL.md`. L'écriture crée le sous-dossier, est
+        // round-trip (relue par `pool_read_in`), non destructive (siblings intacts), traversée
+        // refusee. Remplace `pool_write_skills_dossier_est_refuse_en_5a` (5a).
+        let home = tmp_dir("poolwriteskill5c");
+        let content = "---\nid: iakaframe-cadrage\nname: iakaframe-cadrage\ndescription: X\n---\n\n# corps\n";
+
+        // Création : le sous-dossier `<id>/` est créé et `SKILL.md` écrit sous ce dossier.
+        assert!(!pool_exists_in(&home, "skills", "iakaframe-cadrage").unwrap());
+        pool_write_in(&home, "skills", "iakaframe-cadrage", content).unwrap();
+        let expected = home
+            .join("library").join("skills").join("iakaframe-cadrage").join("SKILL.md");
+        assert!(expected.is_file(), "SKILL.md doit exister sous <id>/");
+        assert!(pool_exists_in(&home, "skills", "iakaframe-cadrage").unwrap());
+        // Round-trip : le contenu relu est byte-identique.
+        assert_eq!(
+            pool_read_in(&home, "skills", "iakaframe-cadrage").unwrap().as_deref(),
+            Some(content)
+        );
+
+        // Non destructif : un sibling du dossier `<id>/` (sous-skill, asset) n'est PAS touché.
+        let sibling = home.join("library").join("skills").join("iakaframe-cadrage").join("ref.md");
+        std::fs::write(&sibling, "garde-moi").unwrap();
+        pool_write_in(&home, "skills", "iakaframe-cadrage", content).unwrap(); // ré-écrit SKILL.md
+        assert_eq!(std::fs::read_to_string(&sibling).unwrap(), "garde-moi");
+
+        // Traversée dans l'id : toujours refusée (gardes validate_id + safe_path).
+        assert!(pool_write_in(&home, "skills", "../evil", "x").is_err());
+        assert!(pool_write_in(&home, "skills", "a/b", "x").is_err());
+        assert!(pool_write_in(&home, "skills", "..", "x").is_err());
+        assert!(pool_write_in(&home, "skills", "", "x").is_err());
         std::fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn pool_file_skills_route_vers_le_dossier_skill_md() {
+        let home = PathBuf::from("/home/user/work/iakaframe");
+        let f = pool_file(&home, "skills", "iakaframe-cadrage").unwrap();
+        assert_eq!(
+            f,
+            home.join("library").join("skills").join("iakaframe-cadrage").join("SKILL.md")
+        );
     }
 
     #[test]

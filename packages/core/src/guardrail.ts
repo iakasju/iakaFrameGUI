@@ -16,6 +16,8 @@
  * `iakaframe/kit-openwebui/AGENTS.md` (§ Identité), jamais dénaturé (invariant § 7).
  */
 
+import type { FrontmatterPatch } from "./frontmatter";
+
 /** Nature d'un garde-fou (intention, agnostique du nœud). */
 export type GuardrailKind =
   | "identity"
@@ -171,3 +173,55 @@ export function guardrailByKind(kind: GuardrailKind): Guardrail | undefined {
 export const CATALOG_GUARDRAIL_IDS: readonly string[] = CATALOG_GUARDRAILS.map(
   (g) => g.id,
 );
+
+// ---------------------------------------------------------------------------
+// Lot 5c — persistance du pool `guardrails`. ADDITIONS PURES (type d'atome distinct du
+// `Guardrail` riche P3b ci-dessus, qui porte `scope`/`rendering` — incompatible avec la forme
+// disque, d'où un type dédié plutôt qu'une modification de signature existante).
+// ---------------------------------------------------------------------------
+
+/**
+ * L'atome de garde-fou **réel** du disque (`library/guardrails/<id>.md`), forme **PLATE** mesurée
+ * au canon : `{ id, label, kind, hook, policy }`. **PAS** de `rendering {hook, prose}` (vue mentale
+ * du modèle riche, absente du disque). `kind` + `hook` + `policy` sont **load-bearing** (spec de
+ * branchement + enum couplés au code des hooks) : préservés verbatim (hors patch). Identité = `id`.
+ */
+export interface GuardrailAtom {
+  /** Id stable (== nom de fichier) — **identité (C-1)**. */
+  id: string;
+  /** Libellé lisible — seul champ éditable au MVP. */
+  label: string;
+  /** Nature (enum lié à l'implémentation des hooks) — préservé verbatim. */
+  kind: string;
+  /** Spec de branchement (ex. "Stop;SubagentStop;UserPromptSubmit") — load-bearing, préservé verbatim. */
+  hook: string;
+  /** Politique (prose de la garde) — préservée verbatim (non éditable au MVP). */
+  policy: string;
+}
+
+/**
+ * Parse défensif d'UN atome garde-fou réel — Lot 5c, calqué sur `parsePrinciple`. `null` si pas
+ * d'`id`. `label` repli sur `id` ; `kind`/`hook`/`policy` défensifs (`""` si absents). Jamais
+ * d'exception.
+ */
+export function parseGuardrail(raw: unknown): GuardrailAtom | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const s = (v: unknown): string => (typeof v === "string" ? v : "");
+  const id = typeof r.id === "string" && r.id.trim().length > 0 ? r.id.trim() : null;
+  if (!id) return null;
+  const label = s(r.label).trim().length > 0 ? s(r.label).trim() : id;
+  return { id, label, kind: s(r.kind), hook: s(r.hook), policy: s(r.policy) };
+}
+
+/**
+ * **Patch de frontmatter** d'un garde-fou (Lot 5c, C-1) : uniquement `label`. **Exclus** : `id`
+ * (verrou C-1) et l'équivalent réel du « rendering non éditable » = `kind` + `hook` + `policy`
+ * (préservés verbatim par `patchFrontmatter`, comme `scaffold.entries` au 5b). Éditer le `label`
+ * inchangé ⇒ document byte-identique.
+ */
+export function guardrailFrontmatterPatch(g: GuardrailAtom): FrontmatterPatch {
+  return {
+    label: { kind: "scalar", value: g.label },
+  };
+}

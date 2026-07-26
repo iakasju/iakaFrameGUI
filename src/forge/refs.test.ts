@@ -40,13 +40,14 @@ function method(over: Partial<Method> = {}): Method {
 }
 
 /**
- * Backend mock : pool d'atomes paramétrable (présence + ids par type) + **collection éditable**
- * `workflows/` (via `libraryList`, distincte du pool — Q-9) + capture des écritures.
+ * Backend mock : pool d'atomes paramétrable (présence + ids par type) + les workflows du **pool**
+ * `library/workflows/` (Lot 5c, Option A — servis par `poolReadAll("workflows")`, plus par la
+ * collection) + capture des écritures.
  */
 function fakeBackend(opts: {
   poolPresent: boolean;
   pool?: Partial<Record<string, string[]>>;
-  /** Ids de la collection `workflows/` (P6b) — servis par `libraryList("workflows")`. */
+  /** Ids des workflows du **pool** `library/workflows/` — servis par `poolReadAll("workflows")`. */
   workflows?: string[];
 }): { api: Backend; writes: string[] } {
   const writes: string[] = [];
@@ -54,8 +55,9 @@ function fakeBackend(opts: {
     isTauri: () => false,
     poolPresent: async () => opts.poolPresent,
     poolList: async (t: string) => opts.pool?.[t] ?? [],
-    libraryList: async (c: string) =>
-      c === "workflows" ? (opts.workflows ?? []).map((id) => serializeWorkflowMd(mkWorkflow(id))) : [],
+    poolReadAll: async (p: string) =>
+      p === "workflows" ? (opts.workflows ?? []).map((id) => serializeWorkflowMd(mkWorkflow(id))) : [],
+    libraryList: async () => [],
     libraryExists: async () => false,
     libraryWrite: async (c: string, id: string) => {
       writes.push(`${c}/${id}.md`);
