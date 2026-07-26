@@ -19,6 +19,12 @@ import {
 } from "./scaffoldCards";
 import type { ElementKind } from "./elementKind";
 import { ScaffoldEditor } from "../components/ScaffoldEditor";
+import { resolveScaffoldProposition } from "./scaffoldProposition";
+
+/** Scaffold **vierge** complet (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
+function blankScaffold(): Scaffold {
+  return { id: "", level: "project", entries: [], nonDestructive: true };
+}
 
 /** Le pool **scaffold** de l'hôte générique (Lot 2). */
 export const scaffoldKind: ElementKind<Scaffold> = {
@@ -52,4 +58,8 @@ export const scaffoldKind: ElementKind<Scaffold> = {
       onCancel={onCancel}
     />
   ),
+  // Brique B : Fëanor propose les champs éditables (level/entries) — `id`/`nonDestructive` jamais
+  // proposés (C-1/invariant). Repli honnête `null`+`reason` ; écriture inchangée (`persistScaffold`).
+  proposeElement: resolveScaffoldProposition,
+  blankElement: blankScaffold,
 };

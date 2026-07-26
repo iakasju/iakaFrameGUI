@@ -40,19 +40,23 @@ export function SkillEditor({
   );
   // Champ « nom » libre en création (la skill est un dossier `<id>/` → l'id naît du nom saisi, name == id).
   const [nameDraft, setNameDraft] = useState(draft.name);
+  // Un id est « committé » (verrouillé) dès qu'il est non vide — vrai en édition, mais AUSSI faux en
+  // création-avec-proposition (brique B) où l'hôte seede un atome vierge (id "") : le champ nom reste
+  // alors saisissable (sans quoi le save serait bloqué). Aligne le patron sur `PersonaEditor`.
+  const hasCommittedId = draft.id.length > 0;
 
   function patch(p: Partial<SkillAtom>) {
     setDraft((d) => ({ ...d, ...p }));
   }
 
   function submit() {
-    const name = editing ? draft.name : nameDraft.trim();
+    const name = hasCommittedId ? draft.name : nameDraft.trim();
     if (name.length === 0) return;
-    const id = editing && draft.id ? draft.id : uniqueId(slugify(name) || "skill", existingIds);
+    const id = hasCommittedId ? draft.id : uniqueId(slugify(name) || "skill", existingIds);
     onSubmit({
       id,
       // name == id au canon (verrouillé C-1) : préservé verbatim en édition, == id à la création.
-      name: editing ? draft.name : id,
+      name: hasCommittedId ? draft.name : id,
       description: draft.description,
       // subskills édités via <ListEditor> — lignes vides filtrées (ligne à demi saisie non persistée).
       subskills: draft.subskills.map((s) => s.trim()).filter((s) => s.length > 0),
@@ -63,13 +67,13 @@ export function SkillEditor({
     }
   }
 
-  const nameOk = (editing ? draft.name : nameDraft.trim()).length > 0;
+  const nameOk = (hasCommittedId ? draft.name : nameDraft.trim()).length > 0;
 
   return (
     <div className="panel">
       <h3>{editing ? "Éditer la skill" : "Nouvelle skill"}</h3>
 
-      {editing ? (
+      {hasCommittedId ? (
         <>
           <div className="field">
             <label>id</label>

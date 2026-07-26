@@ -19,6 +19,12 @@ import {
 } from "./principleCards";
 import type { ElementKind } from "./elementKind";
 import { PrincipleEditor } from "../components/PrincipleEditor";
+import { resolvePrincipleProposition } from "./principleProposition";
+
+/** Principe **vierge** complet (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
+function blankPrinciple(): Principle {
+  return { id: "", label: "", policy: "", trigger: "" };
+}
 
 /** Le pool **principe** de l'hôte générique (pilote du Lot 1). */
 export const principleKind: ElementKind<Principle> = {
@@ -52,4 +58,9 @@ export const principleKind: ElementKind<Principle> = {
       onCancel={onCancel}
     />
   ),
+  // Brique B : Fëanor peut PROPOSER les champs éditables (label/policy/trigger) — résolveur honnête,
+  // repli `null`+`reason`. La proposition pré-remplit l'éditeur ; l'utilisateur relit + « Enregistrer »
+  // (chemin `persistPrinciple` inchangé). `blankElement` = base de fusion en création.
+  proposeElement: resolvePrincipleProposition,
+  blankElement: blankPrinciple,
 };

@@ -17,6 +17,12 @@ import {
 } from "./ritualCards";
 import type { ElementKind } from "./elementKind";
 import { RitualEditor } from "../components/RitualEditor";
+import { resolveRitualProposition } from "./ritualProposition";
+
+/** Rituel **vierge** complet (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
+function blankRitual(): Ritual {
+  return { id: "", label: "", triggers: [], actions: [], side: "cockpit" };
+}
 
 /** Le pool **rituel** de l'hôte générique (Lot 2). */
 export const ritualKind: ElementKind<Ritual> = {
@@ -45,4 +51,8 @@ export const ritualKind: ElementKind<Ritual> = {
   Editor: ({ element, existingIds, onSubmit, onCancel }) => (
     <RitualEditor element={element} existingIds={existingIds} onSubmit={onSubmit} onCancel={onCancel} />
   ),
+  // Brique B : Fëanor propose les champs éditables (label/side/triggers/actions) — `id` jamais proposé
+  // (C-1), `side` validé à l'énum. Repli honnête `null`+`reason` ; écriture inchangée (`persistRitual`).
+  proposeElement: resolveRitualProposition,
+  blankElement: blankRitual,
 };

@@ -19,6 +19,12 @@ import {
 } from "./guardrailCards";
 import type { ElementKind } from "./elementKind";
 import { GuardrailEditor } from "../components/GuardrailEditor";
+import { resolveGuardrailProposition } from "./guardrailProposition";
+
+/** Garde-fou **vierge** complet (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
+function blankGuardrail(): Guardrail {
+  return { id: "", kind: "custom", label: "", scope: "persona", rendering: {}, policy: "" };
+}
 
 /** Le pool **garde-fou** de l'hôte générique (Lot 2). */
 export const guardrailKind: ElementKind<Guardrail> = {
@@ -51,4 +57,8 @@ export const guardrailKind: ElementKind<Guardrail> = {
       onCancel={onCancel}
     />
   ),
+  // Brique B : Fëanor propose les champs éditables (label/policy) — `kind`/`hook` load-bearing jamais
+  // proposés (C-1). Repli honnête `null`+`reason` ; écriture inchangée (`persistGuardrail`).
+  proposeElement: resolveGuardrailProposition,
+  blankElement: blankGuardrail,
 };
