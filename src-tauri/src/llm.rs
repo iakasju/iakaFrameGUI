@@ -72,6 +72,20 @@ pub fn build_chat_body(
     })
 }
 
+/// Construit le corps `POST /api/chat` en mode **STREAMING** (`stream:true`) — même contrat que
+/// `build_chat_body` (messages système/user, `format`), seul `stream` diffère. Additif : ne touche
+/// pas `build_chat_body` (le chemin bloquant `llm_complete` reste byte-identique).
+pub fn build_stream_chat_body(
+    model: &str,
+    system: &str,
+    user: &str,
+    format: Option<serde_json::Value>,
+) -> serde_json::Value {
+    let mut body = build_chat_body(model, system, user, format);
+    body["stream"] = serde_json::Value::Bool(true);
+    body
+}
+
 /// Extrait `message.content` de la réponse Ollama `/api/chat`. `Err` si la forme est inattendue.
 pub fn extract_content(resp: &serde_json::Value) -> Result<String, String> {
     resp.get("message")
@@ -132,6 +146,204 @@ pub async fn llm_complete(
     extract_content(&json)
 }
 
+// ============================================================================================
+// STREAMING d'authoring (feanor-extensions-mvpb-streaming-web-live.md, brique STREAMING)
+// --------------------------------------------------------------------------------------------
+// ADDITIF au chemin bloquant `llm_complete` (conservé — la proposition B en dépend). MÊME bornage
+// (provider `ollama` seul, hôte allow-listé `host_allowed`, timeout dur) : le streaming parle au
+// MÊME hôte Ollama LAN, il n'élargit RIEN. La seule différence : `stream:true` + lecture NDJSON
+// (`/api/chat`, un objet JSON par ligne, objet final `done:true`) et émission des deltas au front
+// via un **Channel Tauri v2** (canal Rust → JS), token par token.
+//
+// HONNÊTETÉ (AC-S2) portée jusqu'ici : un flux coupé / illisible / terminé sans `done:true` est un
+// AVEU explicite (chunk `Error` + `Err`), JAMAIS un partiel passé pour une réponse complète.
+// ============================================================================================
+
+/// Un événement de streaming émis vers le front via le Channel Tauri v2. Sérialisé en interne-tagged
+/// (`{"kind":"token","text":…}` / `{"kind":"done"}` / `{"kind":"error","message":…}`) pour coller à
+/// l'union TypeScript `LlmStreamChunk` (façade `backend.ts`).
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase", tag = "kind")]
+pub enum StreamChunk {
+    /// Un fragment de texte (delta de `message.content`) — la réponse se remplit progressivement.
+    Token { text: String },
+    /// Fin PROPRE du flux (l'objet Ollama `done:true` a été vu) — la réponse est complète.
+    Done,
+    /// Erreur en milieu de flux (réseau coupé / ligne illisible / fin sans `done`) — AVEU honnête :
+    /// le partiel N'EST PAS complet ni fiable (jamais présenté comme une réponse aboutie).
+    Error { message: String },
+}
+
+/// Parse **défensivement** UNE ligne NDJSON d'Ollama `/api/chat` (`stream:true`). Rend :
+///   - `Ok(None)`   : ligne vide / blanche (à ignorer) ;
+///   - `Ok(Some((delta, done)))` : le fragment `message.content` (vide toléré) + le flag `done` ;
+///   - `Err(msg)`   : ligne non-JSON (flux corrompu) — jamais un panic.
+pub fn parse_stream_line(line: &str) -> Result<Option<(String, bool)>, String> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let v: serde_json::Value =
+        serde_json::from_str(trimmed).map_err(|e| format!("ligne NDJSON illisible : {e}"))?;
+    let text = v
+        .get("message")
+        .and_then(|m| m.get("content"))
+        .and_then(|c| c.as_str())
+        .unwrap_or("")
+        .to_string();
+    let done = v.get("done").and_then(|d| d.as_bool()).unwrap_or(false);
+    Ok(Some((text, done)))
+}
+
+/// Traite UNE ligne NDJSON complète : émet un `Token` (si le delta est non vide) via `emit`, et rend
+/// `Ok(done)` (le flux est-il clos ?) ou `Err` (ligne illisible). Point d'unité partagé par le shell
+/// async et par `drive_ndjson` (tests) — la logique d'émission est donc prouvée SANS réseau.
+pub fn handle_ndjson_line<F: FnMut(StreamChunk)>(
+    line: &str,
+    emit: &mut F,
+) -> Result<bool, String> {
+    match parse_stream_line(line)? {
+        None => Ok(false),
+        Some((text, done)) => {
+            if !text.is_empty() {
+                emit(StreamChunk::Token { text });
+            }
+            Ok(done)
+        }
+    }
+}
+
+/// Déroule un lot de lignes NDJSON, émettant chaque token via `emit`, et clôt par `Done` dès qu'une
+/// ligne porte `done:true`. Rend `Ok(true)` si le flux a été clos proprement, `Ok(false)` si le lot
+/// s'épuise SANS `done` (incomplet — l'appelant en fait un aveu), `Err` sur ligne illisible. Pur,
+/// testable sans réseau — c'est le cœur de la discipline d'honnêteté du streaming.
+pub fn drive_ndjson<F: FnMut(StreamChunk)>(lines: &[&str], emit: &mut F) -> Result<bool, String> {
+    for line in lines {
+        if handle_ndjson_line(line, emit)? {
+            emit(StreamChunk::Done);
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/**
+ * Commande Tauri : inférence d'authoring **live en STREAMING** (Ollama `POST {host}/api/chat`,
+ * `stream:true`). ADDITIVE à `llm_complete` (bloquant, conservé). Même bornage (provider `ollama`
+ * seul, `host_allowed` vs `authoringEndpoint`, timeout dur). Lit la réponse **NDJSON ligne par
+ * ligne** et pousse chaque delta au front via `on_event` (Channel Tauri v2) : `Token` (fragment),
+ * puis `Done` (fin propre). Toute rupture (hôte refusé / réseau / flux coupé / ligne illisible / fin
+ * sans `done`) est un aveu honnête : `Err(String)` (jamais un panic), doublé d'un chunk `Error`
+ * quand le flux avait déjà commencé — le partiel n'est JAMAIS passé pour complet (AC-S2).
+ */
+#[tauri::command]
+pub async fn llm_complete_stream(
+    provider: String,
+    model: String,
+    host: String,
+    system: String,
+    user: String,
+    timeout_ms: u64,
+    format: Option<serde_json::Value>,
+    on_event: tauri::ipc::Channel<StreamChunk>,
+) -> Result<(), String> {
+    use futures_util::StreamExt;
+
+    // Provider : ollama SEUL (défense en profondeur, le front filtre déjà). Aveu clair sinon.
+    if provider.to_ascii_lowercase() != "ollama" {
+        return Err(format!("provider non supporte au MVP (ollama) : {provider}"));
+    }
+    // Garde d'hôte (CA9) : loopback OU endpoint d'authoring réglé — MÊME allow-list que llm_complete,
+    // aucun élargissement (le web live serait un autre hôte, hors périmètre).
+    let configured = crate::settings::read_authoring_endpoint(&resolve_settings_file());
+    if !host_allowed(&host, configured.as_deref()) {
+        return Err(format!(
+            "hote refuse (hors allow-list localhost + endpoint regle) : {host}"
+        ));
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms))
+        .build()
+        .map_err(|e| format!("client HTTP : {e}"))?;
+    let url = format!("{}/api/chat", host.trim_end_matches('/'));
+    let body = build_stream_chat_body(&model, &system, &user, format);
+
+    // Erreurs PRÉ-flux (connexion, statut) : `Err` sec, AUCUN chunk émis — le résolveur front
+    // retombe en repli honnête (rien n'a été affiché comme réponse).
+    let resp = client
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("appel Ollama echoue : {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("Ollama a repondu {} sur {url}", resp.status()));
+    }
+
+    // Lecture NDJSON incrémentale : on accumule les octets, on traite chaque ligne COMPLETE (\n),
+    // on garde le reste en tampon. `emit` pousse un chunk au front (le canal peut être fermé côté
+    // JS : `.ok()` ignore alors l'échec d'envoi sans paniquer).
+    let mut stream = resp.bytes_stream();
+    let mut buf = String::new();
+    let mut done = false;
+    let mut emit = |chunk: StreamChunk| {
+        on_event.send(chunk).ok();
+    };
+
+    while let Some(next) = stream.next().await {
+        let bytes = match next {
+            Ok(b) => b,
+            Err(e) => {
+                // Flux coupé en cours de route (réseau) : AVEU honnête, le partiel n'est pas complet.
+                let msg = format!("flux interrompu : {e}");
+                emit(StreamChunk::Error { message: msg.clone() });
+                return Err(msg);
+            }
+        };
+        buf.push_str(&String::from_utf8_lossy(&bytes));
+        while let Some(nl) = buf.find('\n') {
+            let line: String = buf.drain(..=nl).collect();
+            match handle_ndjson_line(&line, &mut emit) {
+                Ok(is_done) => {
+                    if is_done {
+                        done = true;
+                        break;
+                    }
+                }
+                Err(e) => {
+                    // Ligne illisible = flux corrompu : aveu, jamais un partiel passé pour fiable.
+                    emit(StreamChunk::Error { message: e.clone() });
+                    return Err(e);
+                }
+            }
+        }
+        if done {
+            break;
+        }
+    }
+
+    // Dernier objet éventuel sans `\n` terminal.
+    if !done && !buf.trim().is_empty() {
+        match handle_ndjson_line(&buf, &mut emit) {
+            Ok(is_done) => done = is_done,
+            Err(e) => {
+                emit(StreamChunk::Error { message: e.clone() });
+                return Err(e);
+            }
+        }
+    }
+
+    if !done {
+        // Flux terminé SANS objet `done:true` : incomplet → aveu (jamais passé pour complet).
+        let msg = "flux termine sans marqueur de fin (done)".to_string();
+        emit(StreamChunk::Error { message: msg.clone() });
+        return Err(msg);
+    }
+    emit(StreamChunk::Done);
+    Ok(())
+}
+
 /// Indirection du chemin settings (aligne sur `settings.rs`).
 fn resolve_settings_file() -> std::path::PathBuf {
     crate::paths::resolve_settings_file()
@@ -190,5 +402,108 @@ mod tests {
         assert_eq!(extract_content(&ok).unwrap(), "{\"intro\":\"x\"}");
         let ko = serde_json::json!({ "unexpected": true });
         assert!(extract_content(&ko).is_err());
+    }
+
+    // --- STREAMING (feanor-extensions-mvpb-streaming-web-live.md) ---
+
+    #[test]
+    fn build_stream_chat_body_active_stream_true() {
+        let b = build_stream_chat_body("qwen2.5-coder", "sys", "usr", None);
+        // Seule différence avec le bloquant : stream = true (le reste du contrat identique).
+        assert_eq!(b["stream"], serde_json::json!(true));
+        assert_eq!(b["model"], serde_json::json!("qwen2.5-coder"));
+        assert_eq!(b["messages"][0]["role"], serde_json::json!("system"));
+        assert_eq!(b["messages"][1]["role"], serde_json::json!("user"));
+        // Le bloquant reste bien stream:false (non-régression, chemin B).
+        assert_eq!(build_chat_body("m", "s", "u", None)["stream"], serde_json::json!(false));
+    }
+
+    #[test]
+    fn parse_stream_line_delta_done_et_vide() {
+        // Delta de contenu, pas encore fini.
+        let (t, d) = parse_stream_line("{\"message\":{\"content\":\"Salut\"},\"done\":false}")
+            .unwrap()
+            .unwrap();
+        assert_eq!(t, "Salut");
+        assert!(!d);
+        // Objet final Ollama : content vide + done:true.
+        let (t2, d2) = parse_stream_line("{\"message\":{\"content\":\"\"},\"done\":true}")
+            .unwrap()
+            .unwrap();
+        assert_eq!(t2, "");
+        assert!(d2);
+        // Ligne blanche → ignorée.
+        assert_eq!(parse_stream_line("   ").unwrap(), None);
+    }
+
+    #[test]
+    fn parse_stream_line_illisible_est_err_jamais_panic() {
+        let e = parse_stream_line("pas du json du tout").unwrap_err();
+        assert!(e.contains("illisible"));
+        assert!(!e.contains("panic"));
+    }
+
+    #[test]
+    fn drive_ndjson_emet_tokens_puis_done() {
+        let lines = [
+            "{\"message\":{\"content\":\"Bon\"},\"done\":false}",
+            "{\"message\":{\"content\":\"jour\"},\"done\":false}",
+            "{\"message\":{\"content\":\"\"},\"done\":true}",
+        ];
+        let mut chunks: Vec<StreamChunk> = Vec::new();
+        let closed = drive_ndjson(&lines, &mut |c| chunks.push(c)).unwrap();
+        assert!(closed, "le flux doit se clore proprement sur done:true");
+        assert_eq!(
+            chunks,
+            vec![
+                StreamChunk::Token { text: "Bon".into() },
+                StreamChunk::Token { text: "jour".into() },
+                StreamChunk::Done,
+            ]
+        );
+    }
+
+    #[test]
+    fn drive_ndjson_flux_coupe_sans_done_ne_ment_pas() {
+        // Des tokens arrivent mais le flux s'épuise SANS objet done:true → Ok(false), PAS de Done émis.
+        let lines = [
+            "{\"message\":{\"content\":\"partiel\"},\"done\":false}",
+        ];
+        let mut chunks: Vec<StreamChunk> = Vec::new();
+        let closed = drive_ndjson(&lines, &mut |c| chunks.push(c)).unwrap();
+        assert!(!closed, "sans done:true, le flux n'est PAS clos (partiel honnête)");
+        // Le token partiel est passé, mais AUCUN Done : l'appelant en fera un aveu (jamais complet).
+        assert_eq!(chunks, vec![StreamChunk::Token { text: "partiel".into() }]);
+        assert!(!chunks.contains(&StreamChunk::Done));
+    }
+
+    #[test]
+    fn drive_ndjson_ligne_illisible_propage_err() {
+        let lines = [
+            "{\"message\":{\"content\":\"ok\"},\"done\":false}",
+            "ligne corrompue",
+        ];
+        let mut chunks: Vec<StreamChunk> = Vec::new();
+        let res = drive_ndjson(&lines, &mut |c| chunks.push(c));
+        assert!(res.is_err(), "une ligne illisible interrompt le flux (aveu)");
+        // Le premier token valide a bien été émis avant l'erreur ; aucun Done fabriqué.
+        assert_eq!(chunks, vec![StreamChunk::Token { text: "ok".into() }]);
+    }
+
+    #[test]
+    fn stream_chunk_serialise_en_union_tagged() {
+        // Contrat de sérialisation vers l'union TS `LlmStreamChunk`.
+        assert_eq!(
+            serde_json::to_value(StreamChunk::Token { text: "x".into() }).unwrap(),
+            serde_json::json!({ "kind": "token", "text": "x" })
+        );
+        assert_eq!(
+            serde_json::to_value(StreamChunk::Done).unwrap(),
+            serde_json::json!({ "kind": "done" })
+        );
+        assert_eq!(
+            serde_json::to_value(StreamChunk::Error { message: "coupe".into() }).unwrap(),
+            serde_json::json!({ "kind": "error", "message": "coupe" })
+        );
     }
 }
