@@ -6,8 +6,8 @@
  * Apprentissage). Migration **PROGRESSIVE** (Fork A) : les ateliers existants sont **conservés
  * comme surfaces d'édition** derrière les entrées correspondantes ; les entrées
  * `frame`/`éléments`/`assemblage`/`persona`/`models` réutilisent leur écran dédié (`OpenFramePanel`,
- * `ElementPoolPanel`, `AssemblyView` du Lot 1, `PersonaReservoir` du Lot 3, `FramesGallery` du
- * Lot 4).
+ * `ElementsAuthoring` — réservoir authorable, chantier #3 Lot 1, ex-`ElementPoolPanel` read-only,
+ * `AssemblyView` du Lot 1, `PersonaReservoir` du Lot 3, `FramesGallery` du Lot 4).
  *
  * Chrome : la marque, la nav, un bouton **New** (crée une nouvelle entité du type courant, comme la
  * maquette), puis les utilitaires conservés (charte, Réglages, « Livrer au Cockpit → »). Les entrées
@@ -55,7 +55,7 @@ import { OpenFramePanel } from "../components/OpenFramePanel";
 import { AssemblyView } from "./AssemblyView";
 import { PersonaReservoir } from "./PersonaReservoir";
 import { FramesGallery } from "./FramesGallery";
-import { ElementPoolPanel } from "./ElementPoolPanel";
+import { ElementsAuthoring } from "./ElementsAuthoring";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
@@ -435,8 +435,8 @@ export function ForgeShell() {
           <OpenFramePanel />
         </div>
       ) : nav === "elements" ? (
-        <div className="settings-panel">
-          <ElementPoolPanel element="frame" />
+        <div className="nav-surface">
+          <ElementsAuthoring />
         </div>
       ) : nav === "models" ? (
         <div className="nav-surface">

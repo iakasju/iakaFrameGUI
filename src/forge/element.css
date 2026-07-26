@@ -1,14 +1,17 @@
 /* ============================================================================
-   persona.css — l'écran RÉSERVOIR DE PERSONAS (fiches à vignettes) + la FICHE d'édition.
+   element.css — l'hôte GÉNÉRIQUE des réservoirs d'éléments (fiches à vignettes) + la FICHE
+   d'édition, partagé par tous les pools (persona, principe, …) — scope `.element-reservoir`
+   (chantier #3 Lot 1, extension-feanor-en-tete-pages-elements.md). Anciennement `persona.css`
+   (Lot 3), généralisé : la persona n'est qu'un cas (classe modificatrice `.persona-reservoir`).
    Porté au style des maquettes validées specs/mock/gui/01-library.html (grille de fiches)
-   et 02-feanor-prompt-element.html (fiche en mode ✎ édition) — Lot 3.
+   et 02-feanor-prompt-element.html (fiche en mode ✎ édition).
 
-   CHARTE : Studio clair, imposée LOCALEMENT (tokens re-déclarés sur .persona-reservoir),
+   CHARTE : Studio clair, imposée LOCALEMENT (tokens re-déclarés sur .element-reservoir),
    même pattern que assembly.css (Lot 1). Les valeurs sont celles de la maquette
    (= tokens studio-clair). Aucun asset distant.
    ========================================================================== */
 
-.persona-reservoir {
+.element-reservoir {
   /* — Tokens Studio clair (locaux à cet écran) — */
   --bg-primary: #fbfbfc;
   --bg-card: #ffffff;
@@ -34,7 +37,7 @@
   line-height: 1.55;
 }
 
-.persona-reservoir .crumb {
+.element-reservoir .crumb {
   font: 600 0.72rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   letter-spacing: 0.04em;
   color: var(--text-muted);
@@ -44,10 +47,10 @@
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.persona-reservoir .crumb .cur {
+.element-reservoir .crumb .cur {
   color: var(--text-secondary);
 }
-.persona-reservoir .crumblink {
+.element-reservoir .crumblink {
   border: 0;
   background: none;
   padding: 0;
@@ -55,51 +58,51 @@
   color: var(--accent);
   font: inherit;
 }
-.persona-reservoir .crumblink:hover {
+.element-reservoir .crumblink:hover {
   text-decoration: underline;
 }
-.persona-reservoir .h1 {
+.element-reservoir .h1 {
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.persona-reservoir .sub {
+.element-reservoir .sub {
   color: var(--text-secondary);
   margin-top: 0.35rem;
   font-size: 0.96rem;
   max-width: 72ch;
 }
-.persona-reservoir .sub strong {
+.element-reservoir .sub strong {
   color: var(--text-primary);
 }
 
 /* — Pastille de mode (édition / création) sur la fiche — */
-.persona-reservoir .mode-pill {
+.element-reservoir .mode-pill {
   font: 700 0.62rem ui-monospace, monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.16rem 0.5rem;
   border-radius: 999px;
 }
-.persona-reservoir .mode-pill.edit {
+.element-reservoir .mode-pill.edit {
   color: var(--flame-ink);
   background: rgba(var(--flame-rgb), 0.1);
   border: 1px solid rgba(var(--flame-rgb), 0.3);
 }
-.persona-reservoir .mode-pill.create {
+.element-reservoir .mode-pill.create {
   color: #1f7a4d;
   background: rgba(48, 164, 108, 0.12);
   border: 1px solid rgba(48, 164, 108, 0.32);
 }
 
 /* — En-tête de section + bouton « Nouvelle persona » — */
-.persona-reservoir .rvhead {
+.element-reservoir .rvhead {
   display: flex;
   align-items: center;
   gap: 0.8rem;
   margin: 2rem 0 0.9rem;
 }
-.persona-reservoir .seclabel {
+.element-reservoir .seclabel {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -108,20 +111,20 @@
   letter-spacing: 0.06em;
   color: var(--accent);
 }
-.persona-reservoir .seclabel::before {
+.element-reservoir .seclabel::before {
   content: "";
   width: 22px;
   height: 2px;
   background: var(--grad);
   border-radius: 2px;
 }
-.persona-reservoir .seclabel .n {
+.element-reservoir .seclabel .n {
   font: 600 0.68rem ui-monospace, monospace;
   color: var(--text-muted);
   text-transform: none;
   letter-spacing: 0;
 }
-.persona-reservoir .newpersona {
+.element-reservoir .newpersona {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -135,11 +138,11 @@
   cursor: pointer;
   box-shadow: var(--shadow);
 }
-.persona-reservoir .newpersona:hover {
+.element-reservoir .newpersona:hover {
   border-color: rgba(var(--accent-rgb), 0.45);
   color: var(--accent);
 }
-.persona-reservoir .newpersona .plus {
+.element-reservoir .newpersona .plus {
   font-size: 1.05rem;
   line-height: 1;
   color: var(--accent);
@@ -147,12 +150,12 @@
 }
 
 /* ===== Grille de fiches à vignettes ===== */
-.persona-reservoir .pgrid {
+.element-reservoir .pgrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
   gap: 1rem;
 }
-.persona-reservoir .pcard {
+.element-reservoir .pcard {
   text-align: left;
   background: var(--bg-card);
   border: 1px solid var(--line);
@@ -166,21 +169,21 @@
   font: inherit;
   color: inherit;
 }
-.persona-reservoir .pcard:hover {
+.element-reservoir .pcard:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 26px rgba(20, 22, 28, 0.12);
   border-color: rgba(var(--accent-rgb), 0.35);
 }
-.persona-reservoir .pcard:focus-visible {
+.element-reservoir .pcard:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.persona-reservoir .pcard .top {
+.element-reservoir .pcard .top {
   display: flex;
   align-items: center;
   gap: 0.8rem;
 }
-.persona-reservoir .pcard .vg {
+.element-reservoir .pcard .vg {
   width: 50px;
   height: 50px;
   border-radius: 13px;
@@ -193,7 +196,7 @@
   flex: none;
   box-shadow: 0 3px 10px rgba(20, 22, 28, 0.18);
 }
-.persona-reservoir .pcard .nm {
+.element-reservoir .pcard .nm {
   font-weight: 750;
   font-size: 1.02rem;
   letter-spacing: -0.01em;
@@ -201,35 +204,35 @@
   align-items: center;
   gap: 0.4rem;
 }
-.persona-reservoir .pcard .ref {
+.element-reservoir .pcard .ref {
   font: 600 0.72rem ui-monospace, monospace;
   color: var(--text-muted);
   margin-top: 0.1rem;
 }
-.persona-reservoir .pcard .role {
+.element-reservoir .pcard .role {
   font: 600 0.66rem ui-monospace, monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--accent);
   margin-top: 1rem;
 }
-.persona-reservoir .pcard .role .ri {
+.element-reservoir .pcard .role .ri {
   color: var(--text-muted);
   text-transform: none;
 }
-.persona-reservoir .pcard .mission {
+.element-reservoir .pcard .mission {
   font-size: 0.84rem;
   color: var(--text-secondary);
   margin-top: 0.3rem;
   line-height: 1.45;
 }
-.persona-reservoir .pcard .chips {
+.element-reservoir .pcard .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
   margin-top: 0.7rem;
 }
-.persona-reservoir .pcard .chip {
+.element-reservoir .pcard .chip {
   font: 600 0.66rem ui-monospace, monospace;
   padding: 0.16rem 0.5rem;
   border-radius: 999px;
@@ -237,21 +240,26 @@
   color: var(--text-secondary);
   border: 1px solid var(--line);
 }
-.persona-reservoir .pcard .chip.sk {
+.element-reservoir .pcard .chip.sk {
   background: rgba(var(--accent-rgb), 0.08);
   color: var(--accent);
   border-color: transparent;
 }
-.persona-reservoir .pcard .chip.gd {
+.element-reservoir .pcard .chip.gd {
   background: rgba(48, 164, 108, 0.1);
   color: #1f7a4d;
   border-color: transparent;
 }
-.persona-reservoir .pcard .chip.muted {
+.element-reservoir .pcard .chip.meta {
+  background: rgba(var(--flame-rgb), 0.07);
+  color: var(--flame-ink);
+  border-color: rgba(var(--flame-rgb), 0.2);
+}
+.element-reservoir .pcard .chip.muted {
   color: var(--text-muted);
   font-style: italic;
 }
-.persona-reservoir .pcard .royaume {
+.element-reservoir .pcard .royaume {
   position: absolute;
   top: 0.7rem;
   right: 0.8rem;
@@ -261,7 +269,7 @@
 }
 
 /* — La fiche réutilise l'éditeur de persona existant (`.panel`) : léger recadrage — */
-.persona-reservoir.persona-fiche .panel {
+.element-reservoir.element-fiche .panel {
   margin-top: 0.9rem;
   max-width: 900px;
 }
@@ -270,9 +278,9 @@
    Fëanor EN TÊTE — composant partagé création / édition (Lot 6, Fork C).
    Porté au style de la maquette validée specs/mock/gui/02-feanor-prompt-element.html
    (Studio clair). Les tokens flamme (--flame, --flame-rgb, --flame-ink) sont déjà
-   déclarés sur .persona-reservoir. COQUILLE MVP : présent mais fonctionnellement INERTE.
+   déclarés sur .element-reservoir. COQUILLE MVP : présent mais fonctionnellement INERTE.
    ========================================================================== */
-.persona-reservoir .feanor-head {
+.element-reservoir .feanor-head {
   display: flex;
   gap: 1.1rem;
   align-items: stretch;
@@ -288,14 +296,14 @@
   margin: 0.9rem 0 0;
   max-width: 900px;
 }
-.persona-reservoir .fh-entity {
+.element-reservoir .fh-entity {
   display: flex;
   align-items: center;
   gap: 0.85rem;
   flex: none;
   max-width: 250px;
 }
-.persona-reservoir .fh-vg {
+.element-reservoir .fh-vg {
   width: 64px;
   height: 64px;
   border-radius: 17px;
@@ -307,7 +315,7 @@
   flex: none;
   box-shadow: 0 5px 14px rgba(20, 22, 28, 0.2);
 }
-.persona-reservoir .fh-name {
+.element-reservoir .fh-name {
   font-weight: 750;
   font-size: 1.1rem;
   letter-spacing: -0.01em;
@@ -315,25 +323,25 @@
   align-items: center;
   gap: 0.35rem;
 }
-.persona-reservoir .fh-type {
+.element-reservoir .fh-type {
   font: 600 0.64rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
   margin-top: 0.3rem;
 }
-.persona-reservoir .fh-div {
+.element-reservoir .fh-div {
   width: 1px;
   background: rgba(var(--flame-rgb), 0.16);
   flex: none;
 }
-.persona-reservoir .fh-feanor {
+.element-reservoir .fh-feanor {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.persona-reservoir .fh-flabel {
+.element-reservoir .fh-flabel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -341,7 +349,7 @@
   font-size: 0.86rem;
   color: var(--flame-ink);
 }
-.persona-reservoir .fh-badge {
+.element-reservoir .fh-badge {
   width: 26px;
   height: 26px;
   border-radius: 8px;
@@ -352,7 +360,7 @@
   justify-content: center;
   flex: none;
 }
-.persona-reservoir .fh-mode {
+.element-reservoir .fh-mode {
   margin-left: auto;
   font: 600 0.6rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   text-transform: uppercase;
@@ -363,7 +371,7 @@
   border-radius: 999px;
   padding: 0.14rem 0.5rem;
 }
-.persona-reservoir .fh-field {
+.element-reservoir .fh-field {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
@@ -374,11 +382,11 @@
   margin-top: 0.5rem;
   box-shadow: var(--shadow);
 }
-.persona-reservoir .fh-field:focus-within {
+.element-reservoir .fh-field:focus-within {
   border-color: rgba(var(--flame-rgb), 0.5);
   box-shadow: 0 0 0 3px rgba(var(--flame-rgb), 0.1);
 }
-.persona-reservoir .fh-field textarea {
+.element-reservoir .fh-field textarea {
   border: 0;
   outline: 0;
   resize: none;
@@ -388,10 +396,10 @@
   background: transparent;
   line-height: 1.45;
 }
-.persona-reservoir .fh-field textarea::placeholder {
+.element-reservoir .fh-field textarea::placeholder {
   color: var(--text-muted);
 }
-.persona-reservoir .fh-send {
+.element-reservoir .fh-send {
   width: 34px;
   height: 34px;
   border: 0;
@@ -402,13 +410,13 @@
   cursor: pointer;
   flex: none;
 }
-.persona-reservoir .fh-sugg {
+.element-reservoir .fh-sugg {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.55rem;
 }
-.persona-reservoir .fh-sugg .s {
+.element-reservoir .fh-sugg .s {
   font: 600 0.72rem inherit;
   color: var(--flame-ink);
   background: rgba(var(--flame-rgb), 0.06);
@@ -418,7 +426,7 @@
   cursor: pointer;
 }
 /* — État stub HONNÊTE : l'aveu d'inertie (jamais une fausse réponse d'IA) — */
-.persona-reservoir .fh-stub {
+.element-reservoir .fh-stub {
   margin-top: 0.55rem;
   font: 500 0.72rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color: var(--text-muted);
@@ -426,26 +434,26 @@
   align-items: flex-start;
   gap: 0.35rem;
 }
-.persona-reservoir .fh-stub.on {
+.element-reservoir .fh-stub.on {
   color: var(--flame-ink);
   font-weight: 600;
 }
 
 /* — Zone de réponse de Fëanor (conseil live) : badge d'ouverture, réponse, clôture — */
-.persona-reservoir .fh-answer {
+.element-reservoir .fh-answer {
   margin-top: 0.6rem;
   border: 1px solid rgba(var(--flame-rgb), 0.22);
   border-radius: 11px;
   background: rgba(var(--flame-rgb), 0.04);
   padding: 0.6rem 0.75rem;
 }
-.persona-reservoir .fh-open,
-.persona-reservoir .fh-prov {
+.element-reservoir .fh-open,
+.element-reservoir .fh-prov {
   font: 700 0.66rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   letter-spacing: 0.02em;
   color: var(--flame-ink);
 }
-.persona-reservoir .fh-reply {
+.element-reservoir .fh-reply {
   margin: 0.4rem 0;
   font-size: 0.88rem;
   font-weight: 500;
@@ -453,23 +461,115 @@
   line-height: 1.5;
   white-space: pre-wrap;
 }
-.persona-reservoir .fh-prov {
+.element-reservoir .fh-prov {
   color: var(--text-muted);
   font-weight: 600;
 }
-.persona-reservoir .fh-prov .fh-close {
+.element-reservoir .fh-prov .fh-close {
   color: var(--flame-ink);
   font-weight: 700;
 }
 
 @media (max-width: 820px) {
-  .persona-reservoir .feanor-head {
+  .element-reservoir .feanor-head {
     flex-direction: column;
   }
-  .persona-reservoir .fh-entity {
+  .element-reservoir .fh-entity {
     max-width: none;
   }
-  .persona-reservoir .fh-div {
+  .element-reservoir .fh-div {
     display: none;
+  }
+}
+
+/* ============================================================================
+   ElementsAuthoring — l'entrée « éléments » : sélecteur de type (rail) + réservoir authorable.
+   Studio clair, calé sur la maquette 01-library.html (rail « Pools d'éléments » à gauche).
+   ========================================================================== */
+.elements-authoring {
+  --bg-primary: #fbfbfc;
+  --bg-card: #ffffff;
+  --bg-deep: #f0f1f4;
+  --line: #e7e8ec;
+  --text-primary: #16181d;
+  --text-secondary: #5b6270;
+  --text-muted: #9aa0ad;
+  --accent: #5b5bd6;
+  --accent-rgb: 91, 91, 214;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100%;
+  background: var(--bg-primary);
+}
+.elements-authoring .ea-rail {
+  border-right: 1px solid var(--line);
+  padding: 1.4rem 1rem;
+}
+.elements-authoring .ea-rail-h {
+  font: 600 0.68rem ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 0 0.4rem 0.7rem;
+}
+.elements-authoring .ea-rail-h.upcoming {
+  margin-top: 1.4rem;
+}
+.elements-authoring .ea-pool {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font: 500 0.88rem inherit;
+}
+.elements-authoring .ea-pool:hover {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+.elements-authoring .ea-pool.on {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-weight: 650;
+}
+.elements-authoring .ea-pool.on .ea-icon {
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.25);
+}
+.elements-authoring .ea-pool.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.elements-authoring .ea-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex: none;
+}
+.elements-authoring .ea-main {
+  min-width: 0;
+}
+.elements-authoring .ea-main .element-reservoir {
+  padding-top: 1.4rem;
+}
+@media (max-width: 820px) {
+  .elements-authoring {
+    grid-template-columns: 1fr;
+  }
+  .elements-authoring .ea-rail {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
 }

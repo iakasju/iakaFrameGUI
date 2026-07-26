@@ -14,6 +14,11 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { parsePersona, type LlmTransport, type Persona } from "@iakaframe/core";
 import { FeanorHead, FEANOR_READY_HINT, FEANOR_NO_REPLY_PREFIX } from "./FeanorHead";
+import {
+  personaToAuthoredEntity,
+  PERSONA_BLANK_ENTITY,
+  type AuthoredEntity,
+} from "./feanorHeadModel";
 import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
 import { fakeLlm } from "./llm/transport";
 import type { Backend } from "../api/backend";
@@ -27,6 +32,8 @@ const gandalf: Persona = parsePersona({
   pastille: "🔵",
   roleIndex: 2,
 })!;
+/** L'entité générique de Gandalf (adaptateur persona → AuthoredEntity, § 4.1). */
+const gandalfEntity: AuthoredEntity = personaToAuthoredEntity(gandalf);
 
 const feanorReal: Persona = parsePersona({
   id: "feanor",
@@ -57,7 +64,7 @@ function spyLlm(reply = '{"reply":"ok"}'): { transport: LlmTransport; calls: () 
 
 describe("FeanorHead — fidélité de l'en-tête (vignettes, modes)", () => {
   it("mode ÉDITION : monte l'entité éditée + la vignette Fëanor (badge FË, flamme)", () => {
-    render(<FeanorHead mode="edit" entity={gandalf} feanorSource={[feanorReal, gandalf]} />);
+    render(<FeanorHead mode="edit" entity={gandalfEntity} feanorSource={[feanorReal, gandalf]} />);
     const head = document.querySelector(".feanor-head") as HTMLElement;
     expect(head).not.toBeNull();
     expect(head.querySelector(".fh-vg")?.textContent).toBe("GA");
@@ -69,7 +76,7 @@ describe("FeanorHead — fidélité de l'en-tête (vignettes, modes)", () => {
   });
 
   it("mode CRÉATION : même composant, placeholder honnête + « façonne » (✚)", () => {
-    render(<FeanorHead mode="create" entity={null} feanorSource={[feanorReal]} />);
+    render(<FeanorHead mode="create" entity={PERSONA_BLANK_ENTITY} feanorSource={[feanorReal]} />);
     const head = document.querySelector(".feanor-head") as HTMLElement;
     expect(head).not.toBeNull();
     expect(head.querySelector(".fh-vg")?.textContent).toBe("＋");
@@ -80,7 +87,7 @@ describe("FeanorHead — fidélité de l'en-tête (vignettes, modes)", () => {
   });
 
   it("la vignette Fëanor dérive du persona réel (pastille 🟠 quand déclarée)", () => {
-    render(<FeanorHead mode="edit" entity={gandalf} feanorSource={[feanorReal]} />);
+    render(<FeanorHead mode="edit" entity={gandalfEntity} feanorSource={[feanorReal]} />);
     expect(screen.getByText(/🟠 Fëanor édite cet élément/)).toBeTruthy();
   });
 });
@@ -91,7 +98,7 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     render(
       <FeanorHead
         mode="edit"
-        entity={gandalf}
+        entity={gandalfEntity}
         feanorSource={[feanorReal]}
         api={api([feanorMd])}
         llm={fakeLlm(live)}
@@ -119,7 +126,7 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     render(
       <FeanorHead
         mode="edit"
-        entity={gandalf}
+        entity={gandalfEntity}
         feanorSource={[feanorReal]}
         api={api([feanorMd])}
         llm={fakeLlm(new Error("ECONNREFUSED stacktrace…"))}
@@ -143,7 +150,7 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     render(
       <FeanorHead
         mode="edit"
-        entity={gandalf}
+        entity={gandalfEntity}
         feanorSource={[feanorReal]}
         api={api([feanorMd])}
         llm={fakeLlm("ceci n'est pas du json")}
@@ -164,7 +171,7 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     render(
       <FeanorHead
         mode="edit"
-        entity={gandalf}
+        entity={gandalfEntity}
         feanorSource={[feanorReal]}
         api={api([feanorMd])}
         llm={transport}
@@ -188,7 +195,7 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     render(
       <FeanorHead
         mode="edit"
-        entity={gandalf}
+        entity={gandalfEntity}
         feanorSource={[feanorReal]}
         api={api([feanorMd])}
         llm={transport}
@@ -208,7 +215,7 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     render(
       <FeanorHead
         mode="edit"
-        entity={gandalf}
+        entity={gandalfEntity}
         feanorSource={[feanorReal]}
         api={api([])}
         llm={fakeLlm('{"reply":"conseil anonyme"}')}
@@ -221,5 +228,55 @@ describe("FeanorHead — branché sur le LLM (MVP-A, conseil)", () => {
     // La réponse existe mais aucun badge « [FRAME][Fëanor] » n'est fabriqué sans fiche canon.
     expect(screen.queryByLabelText("Ouverture de Fëanor")).toBeNull();
     expect(document.querySelector(".fh-answer")?.textContent).not.toContain("[FRAME][Fëanor]");
+  });
+});
+
+describe("FeanorHead — AGNOSTIQUE (§ 4.1) : un autre type d'entité (principe)", () => {
+  const principleEntity: AuthoredEntity = {
+    type: "principle",
+    typeLabel: "principe",
+    newLabel: "Nouveau principe",
+    name: "MVP d'abord",
+    key: null,
+    roleIndex: 2,
+    pastille: null,
+  };
+
+  it("A1a : monte une entité NON-persona (vignette « principe · en édition », jamais « persona »)", () => {
+    render(<FeanorHead mode="edit" entity={principleEntity} feanorSource={[feanorReal]} />);
+    const head = document.querySelector(".feanor-head") as HTMLElement;
+    expect(head).not.toBeNull();
+    expect(screen.getByText(/MVP d'abord/)).toBeTruthy();
+    // Le typeLabel suit l'entité : « principe », pas « persona » en dur.
+    expect(screen.getByText(/principe · en édition/)).toBeTruthy();
+    expect(screen.queryByText(/persona · en édition/)).toBeNull();
+  });
+
+  it("A1a : le contexte passé au LLM porte le TYPE RÉEL (`principle`) et le nom du principe", async () => {
+    let captured: { user?: string } = {};
+    const capturing: LlmTransport = {
+      complete: async (req: { user: string }) => {
+        captured = req;
+        return '{"reply":"ok"}';
+      },
+    } as unknown as LlmTransport;
+
+    render(
+      <FeanorHead
+        mode="edit"
+        entity={principleEntity}
+        feanorSource={[feanorReal]}
+        api={api([feanorMd])}
+        llm={capturing}
+        model="ollama:llama3"
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Demander à Fëanor/), { target: { value: "conseille" } });
+    fireEvent.click(screen.getByLabelText(/Envoyer à Fëanor/));
+    await waitFor(() => expect(screen.getByText(/ok/)).toBeTruthy());
+
+    // Le prompt utilisateur décrit l'élément avec son type RÉEL et son nom (plus « persona » en dur).
+    expect(captured.user).toContain('"type": "principle"');
+    expect(captured.user).toContain("MVP d'abord");
   });
 });

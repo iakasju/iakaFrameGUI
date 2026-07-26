@@ -20,7 +20,7 @@
  */
 import { useEffect, useState } from "react";
 import type { LlmTransport, Persona } from "@iakaframe/core";
-import { buildFeanorVignette, buildEntityVignette } from "./feanorHeadModel";
+import { buildFeanorVignette, buildEntityVignette, type AuthoredEntity } from "./feanorHeadModel";
 import { resolveAdvice, type AdviceResult } from "./llm/advise";
 import {
   copiloteBadgeClose,
@@ -52,9 +52,12 @@ export function FeanorHead({
 }: {
   /** Mode d'authoring de la page hôte : `create` (✚) ou `edit` (✎). */
   mode: "create" | "edit";
-  /** L'entité en cours d'authoring (persona réelle en édition ; `null` en création vierge). */
-  entity: Persona | null;
-  /** Personas réelles du frame (source de la vignette Fëanor). Repli : `CANONICAL_ROSTER`. */
+  /**
+   * L'entité en cours d'authoring, **descripteur générique** (§ 4.1) : élément nommé en édition ;
+   * descripteur de création vierge (name vide) en création ; `null` = repli défensif « élément ».
+   */
+  entity: AuthoredEntity | null;
+  /** Personas réelles du frame (source de la vignette **Fëanor**). Repli : `CANONICAL_ROSTER`. */
   feanorSource?: readonly Persona[];
   /** Backend injectable (tests) — sert à lire l'identité + le modèle/endpoint d'authoring. */
   api?: Backend;
@@ -141,9 +144,10 @@ export function FeanorHead({
         trimmed,
         {
           mode,
-          entityType: "persona",
+          // Type RÉEL de l'élément (§ 4.1) — plus « persona » en dur : le contexte suit le pool hôte.
+          entityType: entity?.type ?? "element",
           entityName: entity && entity.name.trim().length > 0 ? entity.name : null,
-          entityRole: entity?.roleKey ?? null,
+          entityRole: entity?.key ?? null,
         },
         { llm, model: configuredModel, endpoint, identity },
       );
