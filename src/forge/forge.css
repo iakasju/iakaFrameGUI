@@ -42,6 +42,78 @@
   display: flex;
   gap: 2px;
 }
+
+/* ---------- Nav à 9 entrées (Lot 2, Fork B) — reprise du chrome maquette ---------- */
+.forge .nav {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  align-self: center;
+}
+.forge .nav::-webkit-scrollbar {
+  display: none;
+}
+.forge .navwrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+.forge .navsep {
+  color: var(--muted);
+  opacity: 0.4;
+  font-size: 12px;
+  user-select: none;
+}
+.forge .navlink {
+  font: 600 12.5px/1 var(--font-sans);
+  color: var(--muted);
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.forge .navlink:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.forge .navlink.on {
+  background: var(--panel-2);
+  color: var(--accent-ink);
+}
+
+/* ---------- Bouton New du chrome (crée une entité du type courant) ---------- */
+.forge .topbar-new {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font: 700 12px/1 var(--font-sans);
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.forge .topbar-new:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.forge .topbar-new:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.forge .topbar-new .np {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+}
 .forge .tab {
   font: 600 13px/1 var(--font-sans);
   color: var(--muted);
@@ -1154,6 +1226,63 @@
   color: var(--muted, rgba(255, 255, 255, 0.4));
   font-weight: 400;
 }
+/* ---------- Pastille de mode (édition / création) sous le titre de document ---------- */
+.doc-mode {
+  text-align: center;
+  padding: 0 22px 6px;
+}
+.doc-mode-pill {
+  display: inline-block;
+  font: 700 10px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 9px;
+  border-radius: 999px;
+}
+.doc-mode-pill.edit {
+  color: var(--accent-ink, #5b5bd6);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--panel));
+}
+.doc-mode-pill.create {
+  color: var(--green, #30a46c);
+  background: color-mix(in srgb, var(--green) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--green) 32%, var(--panel));
+}
+
+/* ---------- Surfaces de nav non documentaires ---------- */
+.forge .nav-surface {
+  flex: 1;
+  min-height: 0;
+}
+.forge .nav-placeholder {
+  padding: 40px 24px;
+  max-width: 720px;
+}
+.forge .nav-placeholder .lot {
+  display: inline-block;
+  font: 700 10px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-ink);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 12px;
+}
+.forge .nav-placeholder h2 {
+  font: 800 20px/1.1 var(--font-serif);
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.forge .nav-placeholder p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 60ch;
+}
+
 .settings-toggle {
   font: inherit;
   font-size: 12px;

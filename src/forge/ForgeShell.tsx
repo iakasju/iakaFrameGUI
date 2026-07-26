@@ -1,13 +1,20 @@
 /**
- * ForgeShell — la **coquille de la forge à trois ateliers** (E2b §9) : barre supérieure (marque +
- * onglets `Team · Méthode · Kit` + charte + Réglages + « Livrer au Cockpit → »), puis — sous les
- * onglets — la **barre de gestes fichier** (`DocBar`) et le **titre de document** (`DocTitle`) de
- * l'onglet actif, enfin l'atelier dans un `.workbench`.
+ * ForgeShell — la **coquille de la console** (Lot 2, alignement-gui-modele-de-frame.md § 4/§7).
+ * La barre supérieure porte désormais la **nav à 9 entrées**
+ * (`frame · méthode · team · persona · éléments · assemblage · models · kit · apprentissage`,
+ * Fork B) qui remplace l'ancienne coquille à 5 onglets-documents (Team·Méthode·Workflow·Kit·
+ * Apprentissage). Migration **PROGRESSIVE** (Fork A) : les ateliers existants sont **conservés
+ * comme surfaces d'édition** derrière les entrées correspondantes ; les entrées encore sans écran
+ * (`persona`, `models`) pointent vers un **placeholder « à venir »** (Lots 3/4) et les entrées
+ * `frame`/`éléments`/`assemblage` réutilisent l'écran existant le plus proche (`OpenFramePanel`,
+ * `ElementPoolPanel`, `AssemblyView` du Lot 1).
  *
- * Chaque onglet est un **document** (`useForgeDocument`, Q-1) : New/Open/Save/Save As/Close +
- * dirty + persistance `.md` dans la bibliothèque `iakaframe` (`IAKAFRAME_HOME`). Team/Méthode/Kit
- * s'instancient avec leur collection, leur gabarit vierge et leurs (dé)sérialiseurs frontmatter
- * (via `mappers`). Le « repart à zéro » de Méthode et Kit est **résolu** (persistance réelle).
+ * Chrome : la marque, la nav, un bouton **New** (crée une nouvelle entité du type courant, comme la
+ * maquette), puis les utilitaires conservés (charte, Réglages, « Livrer au Cockpit → »). Les entrées
+ * **documentaires** (team · méthode · kit) gardent leur **cycle de document** (`useForgeDocument`,
+ * DocBar : New/Open/Save/Save As/Close + dirty), et **sélectionner** un élément existant (via Open)
+ * l'ouvre en **mode ÉDITION** (pastille de mode ✎ édition / ✚ création). *Fëanor-en-tête = Lot 6,
+ * NON implémenté ici.*
  */
 import { useEffect, useRef, useState } from "react";
 import {
@@ -28,7 +35,7 @@ import {
   type Workflow,
 } from "@iakaframe/core";
 import { useForgeHandoff } from "../hooks/useForgeHandoff";
-import { useForgeDocument, type LibraryEntry } from "./useForgeDocument";
+import { useForgeDocument, type LibraryEntry, type UseForgeDocument } from "./useForgeDocument";
 import { serializeWorkflowDoc } from "./workflowSerialize";
 import { IAKAFRAME_STARTER_METHOD } from "./useForgeMethod";
 import { insertMethodRef, type MethodRef } from "./methodEdit";
@@ -47,36 +54,37 @@ import { SettingsRoot } from "../components/SettingsRoot";
 import { OpenFramePanel } from "../components/OpenFramePanel";
 import { AssemblyView } from "./AssemblyView";
 import { ElementPoolPanel } from "./ElementPoolPanel";
-import type { ElementPoolTarget } from "@iakaframe/core";
 import { DocBar } from "./DocBar";
 import { DocTitle } from "./DocTitle";
 import { TeamAtelier } from "./ateliers/TeamAtelier";
 import { MethodeAtelier } from "./ateliers/MethodeAtelier";
 import { KitAtelier } from "./ateliers/KitAtelier";
-import { WorkflowAtelier } from "./ateliers/WorkflowAtelier";
 import { LearningAtelier } from "./ateliers/LearningAtelier";
 import { useForgeLearning } from "../hooks/useForgeLearning";
 import { useForgeRetrait } from "../hooks/useForgeRetrait";
 
-type Tab = "team" | "methode" | "kit" | "workflow" | "apprentissage";
+/** Les 9 entrées de la nav (Fork B). L'ordre est celui de la maquette + Kit/Apprentissage conservés. */
+type NavKey =
+  | "frame"
+  | "methode"
+  | "team"
+  | "persona"
+  | "elements"
+  | "assemblage"
+  | "models"
+  | "kit"
+  | "apprentissage";
 
-/**
- * Élément dont on montre l'element pool (Volet A) pour l'onglet actif : Team→team, Méthode→method,
- * Kit→kit ; les onglets sans mapping direct (workflow/apprentissage) retombent sur le frame entier.
- */
-function elementPoolTargetForTab(tab: Tab): ElementPoolTarget {
-  if (tab === "team") return "team";
-  if (tab === "methode") return "method";
-  if (tab === "kit") return "kit";
-  return "frame";
-}
-
-const TABS: { key: Tab; label: string; sub: string }[] = [
-  { key: "team", label: "Team", sub: "casting pur" },
-  { key: "methode", label: "Méthode", sub: "discipline" },
-  { key: "workflow", label: "Workflow", sub: "phases · gates" },
-  { key: "kit", label: "Kit", sub: "assemblage total" },
-  { key: "apprentissage", label: "Apprentissage", sub: "réservoir · revue" },
+const NAV: { key: NavKey; label: string; title: string }[] = [
+  { key: "frame", label: "frame", title: "Un frame = une méthode + une team, mariées par un binding" },
+  { key: "methode", label: "méthode", title: "La méthode : workflow, principes, rôles abstraits" },
+  { key: "team", label: "team", title: "La team : le casting de personas" },
+  { key: "persona", label: "persona", title: "Fiche d'une persona (élément de 1er ordre)" },
+  { key: "elements", label: "éléments", title: "Le réservoir partagé — les pools de sous-éléments" },
+  { key: "assemblage", label: "assemblage", title: "Marier méthode + team (binding) — les deux frères" },
+  { key: "models", label: "models", title: "Catalogue des frames — les modèles instanciables" },
+  { key: "kit", label: "kit", title: "Le kit : assemblage total (méthode + team + binding)" },
+  { key: "apprentissage", label: "apprentissage", title: "Réservoir de propositions · revue" },
 ];
 
 /** Corps `.md` minimal généré au Save (renvoie au récit humain de la bibliothèque). */
@@ -89,11 +97,8 @@ const kitBody = (k: Kit): string =>
 
 export function ForgeShell() {
   const handoff = useForgeHandoff();
-  const [tab, setTab] = useState<Tab>("team");
+  const [nav, setNav] = useState<NavKey>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [frameOpen, setFrameOpen] = useState(false);
-  const [assemblyOpen, setAssemblyOpen] = useState(false);
-  const [elementPoolOpen, setElementPoolOpen] = useState(false);
 
   // Onglet « Apprentissage » (U2) : PILOTE de `iakaframe review` (aucun document, pas de DocBar).
   const learning = useForgeLearning();
@@ -151,8 +156,10 @@ export function ForgeShell() {
     nameOf: (k) => k.id,
   });
 
-  // P6b : 4ᵉ document — Workflow (collection `workflows/`). Blank = **deep-clone du canonique gelé**
-  // (EW-8, jamais muté) ; (dé)sérialisation `.md` = frontmatter plat + phases dans le corps (Q-8).
+  // P6b : le document Workflow (collection `workflows/`) est **conservé** — la Méthode le référence
+  // (`workflowId`) et son sélecteur liste les workflows de la collection. Son atelier d'édition
+  // dédié n'est PAS routé dans la nav 9 (il se fond dans « méthode » — cf. Lot 5, workflow
+  // agnostique) ; le document reste néanmoins semé pour alimenter le sélecteur de la Méthode.
   const workflowDoc = useForgeDocument<Workflow>({
     collection: "workflows",
     blank: () => cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW),
@@ -163,7 +170,7 @@ export function ForgeShell() {
     withName: (w, name) => ({ ...w, name }),
   });
 
-  // Sème un artefact vierge dans chaque onglet au premier montage (un élément à éditer).
+  // Sème un artefact vierge dans chaque document au premier montage (un élément à éditer).
   const seeded = useRef(false);
   useEffect(() => {
     if (seeded.current) return;
@@ -180,16 +187,16 @@ export function ForgeShell() {
   const workflowArtifact = workflowDoc.artifact;
 
   // P6b : la Méthode **référence** un workflow (`workflowId`) de la collection. Le sélecteur de
-  // l'onglet Méthode liste les workflows de `workflows/` ; le diagramme reflète le **résolu**
+  // l'entrée Méthode liste les workflows de `workflows/` ; le diagramme reflète le **résolu**
   // (collection → objet, sinon canonique — EW-7). Résolution isolée dans `resolveMethodWorkflow`.
   const [workflowOptions, setWorkflowOptions] = useState<LibraryEntry[]>([]);
   const [resolvedMethodWorkflow, setResolvedMethodWorkflow] = useState<Workflow>(
     IAKAFRAME_CANONICAL_WORKFLOW,
   );
 
-  // Rafraîchit la liste des workflows de la collection quand on entre dans l'onglet Méthode.
+  // Rafraîchit la liste des workflows de la collection quand on entre dans l'entrée Méthode.
   useEffect(() => {
-    if (tab !== "methode") return;
+    if (nav !== "methode") return;
     let alive = true;
     void workflowDoc.listEntries().then((entries) => {
       if (alive) setWorkflowOptions(entries);
@@ -197,7 +204,7 @@ export function ForgeShell() {
     return () => {
       alive = false;
     };
-  }, [tab, workflowDoc, workflowArtifact]);
+  }, [nav, workflowDoc, workflowArtifact]);
 
   // Résout le workflow référencé par la Méthode (pour le diagramme + le rail read-only).
   useEffect(() => {
@@ -219,15 +226,16 @@ export function ForgeShell() {
     methodDoc.edit(next);
   };
 
-  const activeDoc = (
-    tab === "team"
-      ? teamDoc
-      : tab === "methode"
-        ? methodDoc
-        : tab === "workflow"
-          ? workflowDoc
-          : kitDoc
-  ) as unknown as import("./useForgeDocument").UseForgeDocument<unknown>;
+  // Les entrées **documentaires** (team · méthode · kit) portent un cycle de document (DocBar,
+  // mode édition/création). Les autres entrées sont des surfaces read-only ou des placeholders.
+  const activeDoc: UseForgeDocument<unknown> | null =
+    nav === "team"
+      ? (teamDoc as unknown as UseForgeDocument<unknown>)
+      : nav === "methode"
+        ? (methodDoc as unknown as UseForgeDocument<unknown>)
+        : nav === "kit"
+          ? (kitDoc as unknown as UseForgeDocument<unknown>)
+          : null;
 
   return (
     <div className="forge">
@@ -235,52 +243,44 @@ export function ForgeShell() {
         <span className="brand">
           iaka<span className="f">Frame</span>GUI
         </span>
-        <div className="tabs" role="tablist" aria-label="Ateliers de la forge">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.key}
-              className={`tab${tab === t.key ? " on" : ""}`}
-              onClick={() => setTab(t.key)}
-            >
-              {t.label}
-              <span className="subl">{t.sub}</span>
-            </button>
+        <nav className="nav" role="tablist" aria-label="Architecture du produit">
+          {NAV.map((n, i) => (
+            <span key={n.key} className="navwrap">
+              {i > 0 && <span className="navsep" aria-hidden="true">·</span>}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={nav === n.key}
+                className={`navlink${nav === n.key ? " on" : ""}`}
+                title={n.title}
+                onClick={() => setNav(n.key)}
+              >
+                {n.label}
+              </button>
+            </span>
           ))}
-        </div>
+        </nav>
         <span className="spacer" />
+        <button
+          type="button"
+          className="topbar-new"
+          aria-label="Nouvelle entité"
+          disabled={activeDoc === null}
+          title={
+            activeDoc
+              ? "Créer une nouvelle entité du type courant"
+              : "Aucune entité créable sur cette entrée (à venir)"
+          }
+          onClick={() => activeDoc?.requestNew()}
+        >
+          <span className="np" aria-hidden="true">
+            +
+          </span>{" "}
+          New
+        </button>
         <span className="charte-pick">
           <CharteSelector />
         </span>
-        <button
-          type="button"
-          className="settings-toggle"
-          aria-pressed={assemblyOpen}
-          title="Assemblage — le frame et ses deux frères (méthode + team), mariés par le binding"
-          onClick={() => setAssemblyOpen((v) => !v)}
-        >
-          Assemblage
-        </button>
-        <button
-          type="button"
-          className="settings-toggle"
-          aria-pressed={frameOpen}
-          title="Ouvrir un frame — charger et compter les 11 types"
-          onClick={() => setFrameOpen((v) => !v)}
-        >
-          Ouvrir un frame
-        </button>
-        <button
-          type="button"
-          className="settings-toggle"
-          aria-pressed={elementPoolOpen}
-          title="Briques — le stock des sous-éléments de l'élément courant"
-          onClick={() => setElementPoolOpen((v) => !v)}
-        >
-          Briques
-        </button>
         <button
           type="button"
           className="settings-toggle"
@@ -302,9 +302,8 @@ export function ForgeShell() {
         </button>
       </div>
 
-      {/* Barre de gestes fichier + titre de document de l'onglet actif. L'onglet « Apprentissage »
-          n'est PAS un document (pilote de `review`, pas de New/Open/Save) : on masque DocBar/DocTitle. */}
-      {tab !== "apprentissage" && (
+      {/* Entrées documentaires : gestes fichier + titre + pastille de mode (édition/création). */}
+      {activeDoc !== null && (
         <>
           <DocBar doc={activeDoc} />
           <DocTitle
@@ -313,21 +312,16 @@ export function ForgeShell() {
             onNameChange={activeDoc.canRename ? activeDoc.setName : undefined}
             disabled={activeDoc.artifact === null}
           />
+          {activeDoc.artifact !== null && (
+            <div className="doc-mode">
+              {activeDoc.source === "library" ? (
+                <span className="doc-mode-pill edit">✎ édition</span>
+              ) : (
+                <span className="doc-mode-pill create">✚ création</span>
+              )}
+            </div>
+          )}
         </>
-      )}
-
-      {assemblyOpen && <AssemblyView />}
-
-      {frameOpen && (
-        <div className="settings-panel">
-          <OpenFramePanel />
-        </div>
-      )}
-
-      {elementPoolOpen && (
-        <div className="settings-panel">
-          <ElementPoolPanel element={elementPoolTargetForTab(tab)} />
-        </div>
       )}
 
       {settingsOpen && (
@@ -336,17 +330,20 @@ export function ForgeShell() {
         </div>
       )}
 
-      <div className="workbench">
-        {tab === "team" ? (
-          team === null ? (
+      {/* ---- Surface de l'entrée courante ---- */}
+      {nav === "team" ? (
+        <div className="workbench">
+          {team === null ? (
             <div className="edit">
               <p className="empty">Aucun artefact ouvert — New ou Open.</p>
             </div>
           ) : (
             <TeamAtelier team={team} onTeamChange={(t) => teamDoc.edit(t)} />
-          )
-        ) : tab === "methode" ? (
-          method === null ? (
+          )}
+        </div>
+      ) : nav === "methode" ? (
+        <div className="workbench">
+          {method === null ? (
             <div className="edit">
               <p className="empty">Aucun artefact ouvert — New ou Open.</p>
             </div>
@@ -360,35 +357,42 @@ export function ForgeShell() {
                 methodDoc.edit(insertMethodRef(method, ref, id))
               }
             />
-          )
-        ) : tab === "workflow" ? (
-          workflowArtifact === null ? (
+          )}
+        </div>
+      ) : nav === "kit" ? (
+        <div className="workbench">
+          {kit === null ? (
             <div className="edit">
               <p className="empty">Aucun artefact ouvert — New ou Open.</p>
             </div>
           ) : (
-            <WorkflowAtelier
-              workflow={workflowArtifact}
-              onWorkflowChange={(w) => workflowDoc.edit(w)}
+            <KitAtelier
+              method={method ?? { ...IAKAFRAME_STARTER_METHOD }}
+              team={team ?? buildTeamFromRoster("Team iakaframe", "iakaframe")}
+              kit={kit}
+              onKitChange={(updater) =>
+                kitDoc.edit(typeof updater === "function" ? updater(kit) : updater)
+              }
             />
-          )
-        ) : tab === "apprentissage" ? (
-          <LearningAtelier learning={learning} retrait={retrait} />
-        ) : kit === null ? (
-          <div className="edit">
-            <p className="empty">Aucun artefact ouvert — New ou Open.</p>
-          </div>
-        ) : (
-          <KitAtelier
-            method={method ?? { ...IAKAFRAME_STARTER_METHOD }}
-            team={team ?? buildTeamFromRoster("Team iakaframe", "iakaframe")}
-            kit={kit}
-            onKitChange={(updater) =>
-              kitDoc.edit(typeof updater === "function" ? updater(kit) : updater)
-            }
-          />
-        )}
-      </div>
+          )}
+        </div>
+      ) : nav === "assemblage" ? (
+        <div className="nav-surface">
+          <AssemblyView />
+        </div>
+      ) : nav === "frame" ? (
+        <div className="settings-panel">
+          <OpenFramePanel />
+        </div>
+      ) : nav === "elements" ? (
+        <div className="settings-panel">
+          <ElementPoolPanel element="frame" />
+        </div>
+      ) : nav === "apprentissage" ? (
+        <LearningAtelier learning={learning} retrait={retrait} />
+      ) : (
+        <NavPlaceholder navKey={nav} />
+      )}
 
       {handoff.result && (
         <div style={{ padding: "8px 22px" }}>
@@ -404,6 +408,39 @@ export function ForgeShell() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * NavPlaceholder — surface « à venir » des entrées dont l'écran complet relève d'un lot ultérieur
+ * (`persona` → Lot 3, `models` → Lot 4). Lot 2 pose la nav + le câblage, PAS ces écrans (§ 4).
+ */
+function NavPlaceholder({ navKey }: { navKey: NavKey }) {
+  const COPY: Partial<Record<NavKey, { title: string; lot: string; note: string }>> = {
+    persona: {
+      title: "Fiches persona",
+      lot: "à venir · Lot 3",
+      note:
+        "La persona deviendra un élément de 1er ordre (library/personas/) éditable hors team, avec fiches à vignettes. Pour l'instant, les personas se travaillent depuis l'entrée « team ».",
+    },
+    models: {
+      title: "Catalogue des frames",
+      lot: "à venir · Lot 4",
+      note:
+        "Une galerie dédiée pour parcourir et choisir un des frames du réservoir. En attendant, l'entrée « frame » ouvre et compte les types d'un frame chargé.",
+    },
+  };
+  const c = COPY[navKey] ?? {
+    title: navKey,
+    lot: "à venir",
+    note: "Écran non encore fabriqué.",
+  };
+  return (
+    <div className="nav-placeholder">
+      <span className="lot">{c.lot}</span>
+      <h2>{c.title}</h2>
+      <p>{c.note}</p>
     </div>
   );
 }
