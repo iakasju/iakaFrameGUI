@@ -150,10 +150,12 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   `backend.ts`, sous-titre d'onglet). Découvert en exécutant le renommage AR-2 : **aucun cadrage ne
   couvre ce sens**, il a donc été laissé intact. À trancher — le garder (sens distinct assumé) ou
   l'aligner. *Sans décision, le mot porte deux sens dans l'interface.*
-- [ ] **Arbitrage** : afficher la section phases/workflow aussi dans les kits **Claude Code /
-  Open WebUI** (addition assumée + golden dédié). *Mesuré le 2026-07-25 : toujours ouvert —
-  `grep -c phase` donne `0` sur `adapters/claudeCode.ts` et `adapters/openwebui.ts`, `1` sur
-  `adapters/agentsMd.ts`.*
+- [ ] **Open WebUI : porter le workflow d'équipe ?** — *écarté le 2026-07-26 comme addition simple,
+  avec sa raison* : cet adaptateur ne produit **aucun fichier-contrat d'équipe**, seulement un Model
+  JSON **par persona** (`params.system` = « qui es-tu »). Y mettre le workflow dupliquerait une donnée
+  d'équipe dans chaque persona et mélangerait les registres. Le porter supposerait un **artefact
+  d'équipe séparé** qui n'existe pas dans ce format — **chantier distinct**, à cadrer si le besoin
+  se confirme. Réf. `specs/instructions/phases-workflow-kits-claude.md` § 1.2.
 - [ ] **Arbitrage reporté — « que doit produire New ? »** `requestNew` recharge un starter
   identique à celui semé au montage : dans l'état pristine, le geste est un **no-op visuel**.
   Décision de produit, pas de code. *(Réserve ouverte depuis le 2026-07-15, à re-vérifier.)*
@@ -229,6 +231,13 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
 - ~~Réserve P6b « total front consolidé non re-mesuré / `ForgeShell.test.tsx` à reconfirmer »~~ —
   **close** : `npm run test:all` → `56 passed (56)` / `518 passed (518)`, et le run ciblé
   `npx vitest run src/forge/ForgeShell.test.tsx` → `Test Files 1 passed (1) / Tests 3 passed (3)`.
+- ~~Phases/workflow absentes du kit Claude Code~~ — **close, LIVRÉ 2026-07-26** : `CLAUDE.md` porte
+  la section, au même rang que dans `AGENTS.md`, **via le même rendu** (`renderWorkflowMarkdown`) et
+  le même ordre de résolution (workflow injecté → Méthode → canonique). Un kit Claude Code déployé ne
+  perd plus l'information de workflow. **Trou révélé au passage : rien ne verrouillait la sortie de
+  `renderClaudeMd`** — 5 gardes ajoutées, dont la comparaison du bloc avec celui d'`AGENTS.md`.
+  Gate : `lint:all` `0`, `test:all` `0`, **`61 passed (61)` / `551 passed (551)`**, `cargo test`
+  `83 passed`. Instruction : `specs/instructions/phases-workflow-kits-claude.md`.
 - ~~Pointeur de frame active (cadré, non codé)~~ — **close, LIVRÉ 2026-07-26** : le pointeur vit
   dans `<projet>/iakaframe.json` (clé `frame`), le projet étant réglé dans les Settings. Écriture
   **non destructive** côté Rust, qui **refuse d'écrire** sur un JSON illisible plutôt que d'écraser
