@@ -211,6 +211,39 @@ export function setAuthoringEndpoint(endpoint: string): Promise<void> {
   return call<void>("set_authoring_endpoint", { endpoint });
 }
 
+/**
+ * **Dossier de projet** courant — réglage de la forge (`<workspace>/settings.json`, clé
+ * `projectDir`). Il dit **où est le projet**, pas quelle frame y est active : le pointeur de frame,
+ * lui, vit dans `<projectDir>/iakaframe.json` et appartient au **lieu**, pas à la GUI.
+ */
+export function projectDir(): Promise<string | null> {
+  return call<string | null>("project_dir");
+}
+
+/** Définit (ou retire, si vide) le dossier de projet. Suit le pattern de `setIakaframeHome`. */
+export function setProjectDir(dir: string): Promise<void> {
+  return call<void>("set_project_dir", { dir });
+}
+
+/**
+ * **Pointeur de frame active** du projet réglé : la clé `frame` de `<projectDir>/iakaframe.json`.
+ * `null` si aucun projet réglé, pas de fichier, ou pas de clé — l'assemblage retombe alors sur la
+ * frame `default` du réservoir. **Source unique partagée avec le CLI** : jamais de miroir dans
+ * `settings.json` (deux copies divergeraient sans qu'aucune garde ne le voie).
+ */
+export function activeFrameId(): Promise<string | null> {
+  return call<string | null>("active_frame_id");
+}
+
+/**
+ * Pose (ou retire, si vide) le pointeur de frame active. **Écriture non destructive** : le backend
+ * relit `iakaframe.json`, ne touche que la clé `frame`, et **refuse d'écrire** si le fichier existe
+ * mais est illisible — l'écraser perdrait les clés du CLI (`runner`/`node`/`target`/`note`).
+ */
+export function setActiveFrameId(frameId: string): Promise<void> {
+  return call<void>("set_active_frame_id", { frameId });
+}
+
 // ============================================================================================
 // Inférence d'authoring LIVE — commande Rust `llm_complete` (copilote-inference-live.md, D1)
 // --------------------------------------------------------------------------------------------
@@ -618,6 +651,10 @@ export const backend = {
   authoringModel,
   setAuthoringModel,
   authoringEndpoint,
+  projectDir,
+  setProjectDir,
+  activeFrameId,
+  setActiveFrameId,
   setAuthoringEndpoint,
   llmComplete,
   kitDeploy,
