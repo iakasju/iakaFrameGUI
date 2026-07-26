@@ -26,9 +26,9 @@ import { parseFrontmatter } from "./frontmatter";
 import { parseMethodMd, parseTeamMd, type MethodMd, type TeamMd } from "./frontmatter";
 import { parseBinding, parseTools } from "./binding";
 import { parsePersona, type Persona } from "./persona";
-import { parsePrinciple } from "./principle";
-import { parseRitual } from "./ritual";
-import { parseScaffold, PORTFOLIO_SCAFFOLD } from "./scaffold";
+import { parsePrinciple, type Principle } from "./principle";
+import { parseRitual, type Ritual } from "./ritual";
+import { parseScaffold, PORTFOLIO_SCAFFOLD, type Scaffold } from "./scaffold";
 import { parseWorkflow, workflowById } from "./workflow";
 
 // ---------------------------------------------------------------------------
@@ -211,6 +211,17 @@ export interface Frame {
    * synthétique. Ordre = ordre de chargement du pool. Vide si aucune persona (jamais inventée).
    */
   personas: Persona[];
+  /**
+   * Les **principes réels parsés** du pool `principles` (Lot 5b — promotion, à la manière de
+   * `personas`). **Pure addition dérivée** : source unique des fiches du réservoir de principes
+   * (label/policy/trigger viennent des `.md`, jamais du catalogue synthétique). Ordre = ordre de
+   * chargement. Vide si aucun principe.
+   */
+  principles: Principle[];
+  /** Les **rituels réels parsés** du pool `rituals` (Lot 5b, même promotion que `principles`). */
+  rituals: Ritual[];
+  /** Les **scaffolds réels parsés** du pool `scaffolds` (Lot 5b, même promotion que `principles`). */
+  scaffolds: Scaffold[];
   /** L'assemblage résolu (method + team + binding). */
   assembly: FrameAssembly;
   /**
@@ -622,6 +633,17 @@ export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame 
   const personaList = (raw.pools.personas ?? [])
     .map((md) => parsePersona(parseFrontmatter(md).data))
     .filter((p): p is Persona => p !== null);
+  // Lot 5b — promotion des 3 pools plats à parseur (même patron que `personaList`) : source réelle
+  // des fiches de leurs réservoirs, dérivée des `.md`, jamais du catalogue synthétique.
+  const principleList = (raw.pools.principles ?? [])
+    .map((md) => parsePrinciple(parseFrontmatter(md).data))
+    .filter((p): p is Principle => p !== null);
+  const ritualList = (raw.pools.rituals ?? [])
+    .map((md) => parseRitual(parseFrontmatter(md).data))
+    .filter((r): r is Ritual => r !== null);
+  const scaffoldList = (raw.pools.scaffolds ?? [])
+    .map((md) => parseScaffold(parseFrontmatter(md).data))
+    .filter((s): s is Scaffold => s !== null);
   const workflowRefs = (raw.pools.workflows ?? [])
     .map((md) => parseWorkflowRefs(md))
     .filter((w): w is WorkflowRefs => w !== null);
@@ -640,6 +662,9 @@ export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame 
     poolIds,
     // AR-2 : la liste riche déjà parsée pour l'intégrité est PROMUE (plus jetée) — source des fiches.
     personas: personaList,
+    principles: principleList,
+    rituals: ritualList,
+    scaffolds: scaffoldList,
     frames,
     assembly: resolveAssembly(methods, teams, bindings, frames, activeFrameId),
     portfolio: detectPortfolioFacet(raw),
@@ -727,9 +752,13 @@ export function parseFrame(raw: unknown): Frame | null {
     root: typeof raw.root === "string" ? raw.root : null,
     counts,
     poolIds,
-    // Garde défensif : ni les descripteurs ni les personas riches ne sont dans son schéma d'entrée
-    // (Frame déjà sérialisé) — listes vides, jamais inventées (symétrie avec `frames`).
+    // Garde défensif : ni les descripteurs ni les listes riches (personas/principles/rituals/
+    // scaffolds) ne sont dans son schéma d'entrée (Frame déjà sérialisé) — listes vides, jamais
+    // inventées (symétrie avec `frames`).
     personas: [],
+    principles: [],
+    rituals: [],
+    scaffolds: [],
     frames: [],
     assembly: { frame: null, binding: null, method: null, team: null },
     portfolio: coercePortfolio(raw.portfolio),

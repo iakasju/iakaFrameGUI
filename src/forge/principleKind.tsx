@@ -5,8 +5,9 @@
  * mais un `buildCards` + un `Editor` + un `toAuthoredEntity` propres au principe — écrits une fois,
  * branchés sans toucher l'hôte. Un lot suivant clonera exactement ce fichier pour skill/rituel/…
  *
- * Source = catalogue canonique vendoré `CATALOG_PRINCIPLES` (étiqueté, honnête) ; édition = état
- * local de session (aucune écriture disque — Lot 5 différé). AUCUN contrat cœur touché.
+ * Source (Lot 5b) = `frame.principles`, les `.md` RÉELS dérivés du disque (via `loadElements`) ;
+ * `CATALOG_PRINCIPLES` (`fallback`) reste le repli hors-ligne. Édition/création persistées sur disque
+ * (`persistPrinciple` → `poolWrite`, patch non-destructif). AUCUN contrat cœur touché.
  */
 import { type Principle } from "@iakaframe/core";
 import {
@@ -31,7 +32,8 @@ export const principleKind: ElementKind<Principle> = {
     <>
       Les <strong>politiques de la méthode</strong> — chaque principe est une règle{" "}
       <code>{"{ label · policy · trigger }"}</code>, référencée (jamais copiée) par les méthodes.
-      Ouvrez une fiche pour l'éditer. Source : le catalogue canonique (édition locale de session).
+      Ouvrez une fiche pour l'éditer. Source : les <code>.md</code> réels du réservoir (persistés sur
+      disque).
     </>
   ),
   sectionLabel: "Principes",

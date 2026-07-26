@@ -4,8 +4,10 @@
  * **sans toucher l'hôte** ni FeanorHead. Le champ riche `entries` est simplifié au MVP (cf.
  * `ScaffoldEditor`, simplification remontée).
  *
- * Source = catalogue canonique vendoré `CATALOG_SCAFFOLDS` (étiqueté, honnête) ; édition = état local
- * de session (aucune écriture disque — Lot 5 différé). AUCUN contrat cœur touché.
+ * Source (Lot 5b) = `frame.scaffolds`, les `.md` RÉELS dérivés du disque (via `loadElements`) ;
+ * `CATALOG_SCAFFOLDS` (`fallback`) reste le repli hors-ligne. Édition (le seul champ éditable au MVP
+ * est `level` ; `entries` préservées à l'octet) persistée sur disque (`persistScaffold` → `poolWrite`,
+ * patch non-destructif). AUCUN contrat cœur touché.
  */
 import { type Scaffold } from "@iakaframe/core";
 import {
@@ -30,8 +32,8 @@ export const scaffoldKind: ElementKind<Scaffold> = {
     <>
       Les <strong>échafaudages de dossiers</strong> qu'un projet reçoit — chaque scaffold est un{" "}
       <code>{"{ id · level · entries[] }"}</code>, matérialisé (jamais destructif) par le rituel{" "}
-      <code>init</code>. Ouvrez une fiche pour l'éditer. Source : le catalogue canonique (édition
-      locale de session).
+      <code>init</code>. Ouvrez une fiche pour l'éditer. Source : les <code>.md</code> réels du
+      réservoir (persistés sur disque).
     </>
   ),
   sectionLabel: "Scaffolds",

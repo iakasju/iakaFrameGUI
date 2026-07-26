@@ -769,6 +769,78 @@ export function serializePersonaMd(
   );
 }
 
+/**
+ * Sérialise un **principe** `.md` (création, forme canonique) — Lot 5b. Ordre de champ des fichiers
+ * réels `id, label, policy, trigger`. Réservé à la **création** (fichier neuf) : l'édition passe par
+ * `patchFrontmatter` + `principleFrontmatterPatch` (non-destructif). `policy`/`trigger` sont de la
+ * prose : `renderScalar` ne les quote que si l'absence de quotes casserait la relecture (le colon
+ * interne est sans risque — `KEY_RE` capture toute la fin de ligne). `body` = prose optionnelle.
+ */
+export function serializePrincipleMd(
+  p: { id: string; label: string; policy: string; trigger: string },
+  body = "",
+): string {
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: p.id },
+      { key: "label", kind: "scalar", value: p.label },
+      { key: "policy", kind: "scalar", value: p.policy },
+      { key: "trigger", kind: "scalar", value: p.trigger },
+    ],
+    body,
+  );
+}
+
+/**
+ * Sérialise un **rituel** `.md` (création, forme canonique) — Lot 5b. Ordre de champ
+ * `id, label, triggers, actions, side` ; `triggers`/`actions` en **flow-list** canonique (l'édition
+ * préserve la forme bloc du canon via `patchFrontmatter`, qui ne réécrit une liste que si ses
+ * valeurs changent). Réservé à la **création**. `body` = prose optionnelle.
+ */
+export function serializeRitualMd(
+  r: {
+    id: string;
+    label: string;
+    triggers: readonly string[];
+    actions: readonly string[];
+    side: string;
+  },
+  body = "",
+): string {
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: r.id },
+      { key: "label", kind: "scalar", value: r.label },
+      { key: "triggers", kind: "list", value: [...r.triggers] },
+      { key: "actions", kind: "list", value: [...r.actions] },
+      { key: "side", kind: "scalar", value: r.side },
+    ],
+    body,
+  );
+}
+
+/**
+ * Sérialise un **scaffold** `.md` (création, forme canonique) — Lot 5b. Ordre de champ
+ * `id, level, nonDestructive, entries`. Au MVP les `entries` (tableau `{path, role, createIfAbsent}`)
+ * ne sont **pas éditables** : une création part d'une liste vide (`entries: []`). `nonDestructive`
+ * est l'invariant d'onboarding (toujours `true`). L'édition d'un scaffold existant passe par
+ * `patchFrontmatter` + `scaffoldFrontmatterPatch`, qui **préserve** les `entries` réelles à l'octet.
+ */
+export function serializeScaffoldMd(
+  s: { id: string; level: string; nonDestructive?: boolean },
+  body = "",
+): string {
+  return buildDocument(
+    [
+      { key: "id", kind: "scalar", value: s.id },
+      { key: "level", kind: "scalar", value: s.level },
+      { key: "nonDestructive", kind: "scalar", value: s.nonDestructive ?? true },
+      { key: "entries", kind: "list", value: [] },
+    ],
+    body,
+  );
+}
+
 // --- workflow (étape 3bis : réconciliation GUI ← frame) ----------------------
 
 /**
