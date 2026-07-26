@@ -20,6 +20,12 @@ import {
 } from "./skillCards";
 import type { ElementKind } from "./elementKind";
 import { SkillEditor } from "../components/SkillEditor";
+import { resolveSkillProposition } from "./skillProposition";
+
+/** Skill **vierge** complète (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
+function blankSkill(): SkillAtom {
+  return { id: "", name: "", description: "", subskills: [] };
+}
 
 /** Le pool **skill** de l'hôte générique (rebranché sur `SkillAtom` — Lot C). */
 export const skillKind: ElementKind<SkillAtom> = {
@@ -49,4 +55,8 @@ export const skillKind: ElementKind<SkillAtom> = {
   Editor: ({ element, existingIds, onSubmit, onCancel }) => (
     <SkillEditor element={element} existingIds={existingIds} onSubmit={onSubmit} onCancel={onCancel} />
   ),
+  // Brique B : Fëanor propose les champs éditables (description/subskills) — `id`/`name` et le corps
+  // `SKILL.md` (différé) jamais proposés. Repli honnête `null`+`reason` ; écriture inchangée (`persistSkill`).
+  proposeElement: resolveSkillProposition,
+  blankElement: blankSkill,
 };

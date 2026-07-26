@@ -10,16 +10,27 @@
  * ré-émission verbatim si inchangé). **Même vérité unique** que la surface « méthode »
  * (`WorkflowAtelier`) — plus aucune écriture collection. AUCUN contrat cœur touché.
  */
-import { type Workflow } from "@iakaframe/core";
+import { cloneWorkflow, type Workflow } from "@iakaframe/core";
 import {
   buildWorkflowReservoir,
   cloneWorkflowCatalog,
   workflowToAuthoredEntity,
   WORKFLOW_BLANK_ENTITY,
+  WORKFLOW_STARTER,
   WORKFLOW_TYPE_LABEL,
 } from "./workflowCards";
 import type { ElementKind } from "./elementKind";
 import { WorkflowElementEditor } from "../components/WorkflowElementEditor";
+import { resolveWorkflowProposition } from "./workflowProposition";
+
+/**
+ * Workflow **vierge** complet (brique B) — base de fusion en création : l'amorce `WORKFLOW_STARTER`
+ * (workflow valide minimal), deep-clonée (le canonique gelé n'est jamais muté). Miroir de la semence
+ * de `WorkflowElementEditor`. `id`/`name` restent vides → dérivés/saisis à la création (jamais proposés).
+ */
+function blankWorkflow(): Workflow {
+  return cloneWorkflow(WORKFLOW_STARTER);
+}
 
 /** Le pool **workflow** de l'hôte générique (Lot 3, cas riche — éditeur `WorkflowAtelier` réutilisé). */
 export const workflowKind: ElementKind<Workflow> = {
@@ -53,4 +64,9 @@ export const workflowKind: ElementKind<Workflow> = {
       onCancel={onCancel}
     />
   ),
+  // Brique B (cas riche) : Fëanor propose les champs éditables (name/kind/phases) — `id` jamais proposé
+  // (C-1), `kind`/rôles/gates validés au canon. La proposition pré-remplit l'éditeur riche
+  // `WorkflowAtelier` ; l'écriture reste `persistWorkflow` inchangé (ré-émission verbatim si inchangé).
+  proposeElement: resolveWorkflowProposition,
+  blankElement: blankWorkflow,
 };

@@ -33,15 +33,19 @@ export function ScaffoldEditor({
   );
   // Champ « nom » libre en création (le scaffold n'a pas de label → l'id naît du nom saisi).
   const [nameDraft, setNameDraft] = useState(draft.id);
+  // Un id est « committé » (verrouillé) dès qu'il est non vide — vrai en édition, mais AUSSI faux en
+  // création-avec-proposition (brique B) où l'hôte seede un élément vierge (id "") : le champ nom reste
+  // alors saisissable (sans quoi le save serait bloqué). Aligne le patron sur `PersonaEditor`.
+  const hasCommittedId = draft.id.length > 0;
 
   function patch(p: Partial<Scaffold>) {
     setDraft((d) => ({ ...d, ...p }));
   }
 
   function submit() {
-    const name = editing ? draft.id : nameDraft.trim();
+    const name = hasCommittedId ? draft.id : nameDraft.trim();
     if (name.length === 0) return;
-    const id = editing && draft.id ? draft.id : uniqueId(slugify(name) || "scaffold", existingIds);
+    const id = hasCommittedId ? draft.id : uniqueId(slugify(name) || "scaffold", existingIds);
     onSubmit({
       id,
       level: draft.level,
@@ -55,13 +59,13 @@ export function ScaffoldEditor({
     }
   }
 
-  const nameOk = (editing ? draft.id : nameDraft.trim()).length > 0;
+  const nameOk = (hasCommittedId ? draft.id : nameDraft.trim()).length > 0;
 
   return (
     <div className="panel">
       <h3>{editing ? "Éditer le scaffold" : "Nouveau scaffold"}</h3>
 
-      {editing ? (
+      {hasCommittedId ? (
         <div className="field">
           <label>id</label>
           <input className="locked" value={draft.id} disabled />

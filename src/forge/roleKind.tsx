@@ -18,6 +18,12 @@ import {
 } from "./roleCards";
 import type { ElementKind } from "./elementKind";
 import { RoleEditor } from "../components/RoleEditor";
+import { resolveRoleProposition } from "./roleProposition";
+
+/** Rôle **vierge** complet (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
+function blankRole(): Role {
+  return { key: "", label: "", roleIndex: 0, scope: "team" };
+}
 
 /** Le pool **rôle** de l'hôte générique (Lot 2). */
 export const roleKind: ElementKind<Role> = {
@@ -45,4 +51,8 @@ export const roleKind: ElementKind<Role> = {
   Editor: ({ element, existingIds, onSubmit, onCancel }) => (
     <RoleEditor element={element} existingIds={existingIds} onSubmit={onSubmit} onCancel={onCancel} />
   ),
+  // Brique B : Fëanor propose les champs éditables (label/scope) — `key`/`roleIndex` (identité/index)
+  // jamais proposés (C-1). Repli honnête `null`+`reason` ; écriture inchangée (`persistRole`).
+  proposeElement: resolveRoleProposition,
+  blankElement: blankRole,
 };
