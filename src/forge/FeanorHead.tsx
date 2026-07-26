@@ -21,7 +21,8 @@
 import { useEffect, useState } from "react";
 import type { LlmTransport, Persona } from "@iakaframe/core";
 import { buildFeanorVignette, buildEntityVignette, type AuthoredEntity } from "./feanorHeadModel";
-import { resolveAdvice, type AdviceResult } from "./llm/advise";
+import { resolveAdvice, type AdviceResult, type FeanorContext } from "./llm/advise";
+import type { ElementProposeDeps } from "./elementKind";
 import {
   copiloteBadgeClose,
   copiloteBadgeOpen,
@@ -39,6 +40,29 @@ export const FEANOR_READY_HINT =
 /** Préfixe honnête d'un repli : Fëanor n'a PAS répondu (jamais une fausse réponse d'IA). */
 export const FEANOR_NO_REPLY_PREFIX = "Fëanor n'a pas répondu";
 
+/** Confirmation d'une proposition acheminée : l'éditeur est pré-rempli, RIEN n'est encore écrit. */
+export const FEANOR_PROPOSAL_DONE =
+  "Fëanor a pré-rempli l'éditeur — relisez, corrigez, puis « Enregistrer » (rien n'est écrit avant).";
+
+/** Préfixe honnête d'un repli de proposition : Fëanor n'a PAS proposé (jamais une fausse proposition). */
+export const FEANOR_NO_PROPOSAL_PREFIX = "Fëanor n'a pas proposé d'élément";
+
+/**
+ * Capability de **proposition d'élément** (brique B) — OPTIONNELLE. Fournie par l'hôte
+ * `ElementReservoir` quand le pool l'équipe (persona pilote). `run` = le résolveur honnête (calqué
+ * `resolveAdvice`, ne lève jamais, repli `null`+`reason`) ; `onProposal` = l'acheminement vers
+ * l'éditeur (l'hôte re-seede par remontage `key`). Proposition typée `unknown` ici : FeanorHead
+ * reste **agnostique** du type de pool (le typage concret est tenu à la frontière de l'hôte).
+ */
+export interface FeanorProposeCapability {
+  run: (
+    prompt: string,
+    ctx: FeanorContext,
+    deps: ElementProposeDeps,
+  ) => Promise<{ proposition: unknown; source: "live" | "mock"; reason?: string }>;
+  onProposal: (proposition: unknown) => void;
+}
+
 /** Suggestions de la maquette : cliquer pré-remplit le champ (aucun envoi tant que l'on n'envoie pas). */
 const SUGGESTIONS = ["Réécris la mission", "Ajoute un garde-fou", "Génère une variante"];
 
@@ -46,6 +70,7 @@ export function FeanorHead({
   mode,
   entity,
   feanorSource,
+  propose,
   api = backend,
   llm = realLlm(backend),
   model,
@@ -59,6 +84,12 @@ export function FeanorHead({
   entity: AuthoredEntity | null;
   /** Personas réelles du frame (source de la vignette **Fëanor**). Repli : `CANONICAL_ROSTER`. */
   feanorSource?: readonly Persona[];
+  /**
+   * Capability de **proposition d'élément** (brique B) — OPTIONNELLE. Absente ⇒ conseil seul
+   * (MVP-A, comportement historique des 6 autres pools). Présente (persona pilote) ⇒ Fëanor peut
+   * PROPOSER les champs de l'élément, qui pré-remplissent l'éditeur (l'utilisateur relit + enregistre).
+   */
+  propose?: FeanorProposeCapability;
   /** Backend injectable (tests) — sert à lire l'identité + le modèle/endpoint d'authoring. */
   api?: Backend;
   /** Transport LLM injectable (tests : `fakeLlm`) — défaut = `realLlm(backend)` (commande Rust). */
@@ -71,6 +102,9 @@ export function FeanorHead({
   const [prompt, setPrompt] = useState("");
   const [pending, setPending] = useState(false);
   const [answer, setAnswer] = useState<AdviceResult | null>(null);
+  // État de la dernière PROPOSITION (brique B) : succès (pré-remplissage acheminé) ou repli honnête
+  // (aucune proposition fabriquée). `null` = aucune proposition demandée dans cette session de fiche.
+  const [proposal, setProposal] = useState<{ ok: boolean; reason?: string } | null>(null);
   // Identité DÉRIVÉE du canon (jamais fabriquée) : null = fiche introuvable → réponse anonyme (dite).
   const [identity, setIdentity] = useState<CopiloteIdentity | null>(null);
   // Endpoint d'authoring optionnel : hôte Ollama LAN. Vide → localhost (résolu par le résolveur).
@@ -133,6 +167,17 @@ export function FeanorHead({
   const modeLabel = mode === "edit" ? "🔥 édition" : "🔥 création";
   const modeWord = mode === "edit" ? "édition" : "création";
 
+  // Contexte de l'élément, partagé par le conseil ET la proposition (mode/type/nom/rôle réels).
+  function feanorContext(): FeanorContext {
+    return {
+      mode,
+      // Type RÉEL de l'élément (§ 4.1) — plus « persona » en dur : le contexte suit le pool hôte.
+      entityType: entity?.type ?? "element",
+      entityName: entity && entity.name.trim().length > 0 ? entity.name : null,
+      entityRole: entity?.key ?? null,
+    };
+  }
+
   async function handleSend() {
     const trimmed = prompt.trim();
     if (trimmed.length === 0 || pending) return; // garde anti-double-appel (un seul appel en vol)
@@ -140,18 +185,42 @@ export function FeanorHead({
     try {
       // Chemin de conseil : le résolveur oriente LIVE (transport injecté) ou repli honnête. Il NE
       // lève jamais — modèle absent / réseau KO deviennent un aveu propre, jamais une fausse réponse.
-      const result = await resolveAdvice(
-        trimmed,
-        {
-          mode,
-          // Type RÉEL de l'élément (§ 4.1) — plus « persona » en dur : le contexte suit le pool hôte.
-          entityType: entity?.type ?? "element",
-          entityName: entity && entity.name.trim().length > 0 ? entity.name : null,
-          entityRole: entity?.key ?? null,
-        },
-        { llm, model: configuredModel, endpoint, identity },
-      );
+      const result = await resolveAdvice(trimmed, feanorContext(), {
+        llm,
+        model: configuredModel,
+        endpoint,
+        identity,
+      });
       setAnswer(result);
+      setProposal(null); // le conseil chasse l'état de proposition (deux registres distincts).
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function handlePropose() {
+    const trimmed = prompt.trim();
+    // Garde anti-double-appel partagée (un seul appel LLM en vol, conseil OU proposition).
+    if (trimmed.length === 0 || pending || !propose) return;
+    setPending(true);
+    try {
+      // Résolveur de proposition : LIVE (transport injecté) ou repli HONNÊTE. Ne lève jamais.
+      const res = await propose.run(trimmed, feanorContext(), {
+        llm,
+        model: configuredModel,
+        endpoint,
+        identity,
+      });
+      if (res.proposition !== null && res.proposition !== undefined) {
+        // Acheminement : l'hôte pré-remplit l'éditeur (remontage `key`). RIEN n'est encore écrit —
+        // l'écriture reste le clic « Enregistrer » de l'éditeur (chemin `persist<Pool>` existant).
+        propose.onProposal(res.proposition);
+        setProposal({ ok: true });
+        setAnswer(null);
+      } else {
+        // Repli honnête : Fëanor n'a PAS proposé — on le DIT (reason), aucune proposition fabriquée.
+        setProposal({ ok: false, reason: res.reason });
+      }
     } finally {
       setPending(false);
     }
@@ -221,6 +290,19 @@ export function FeanorHead({
           >
             ↥
           </button>
+          {/* — Action de PROPOSITION (brique B) : présente SEULEMENT si le pool l'équipe. — */}
+          {propose && (
+            <button
+              type="button"
+              className="fh-propose"
+              aria-label="Proposer un élément"
+              title="Demander à Fëanor de PROPOSER les champs — il pré-remplit l'éditeur (rien n'est écrit)"
+              onClick={() => void handlePropose()}
+              disabled={prompt.trim().length === 0 || pending}
+            >
+              ✎+
+            </button>
+          )}
         </div>
 
         <div className="fh-sugg">
@@ -273,6 +355,19 @@ export function FeanorHead({
             {configuredModel ? FEANOR_READY_HINT : NO_AUTHORING_MODEL_HINT}
           </p>
         )}
+
+        {/* — État de la dernière PROPOSITION (brique B) — jamais une fausse proposition. — */}
+        {proposal &&
+          (proposal.ok ? (
+            <p className="fh-proposal ok" role="status">
+              {FEANOR_PROPOSAL_DONE}
+            </p>
+          ) : (
+            // Repli HONNÊTE : Fëanor n'a pas proposé — on le DIT (reason), aucune proposition fabriquée.
+            <p className="fh-proposal on" role="status">
+              {FEANOR_NO_PROPOSAL_PREFIX} — {proposal.reason}
+            </p>
+          ))}
       </div>
     </div>
   );

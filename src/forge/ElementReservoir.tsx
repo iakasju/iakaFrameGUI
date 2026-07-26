@@ -21,7 +21,7 @@
  */
 import { useEffect, useState } from "react";
 import type { Persona } from "@iakaframe/core";
-import { FeanorHead } from "./FeanorHead";
+import { FeanorHead, type FeanorProposeCapability } from "./FeanorHead";
 import type { AuthoredEntity } from "./feanorHeadModel";
 import type { ElementCardVM, ElementKind } from "./elementKind";
 
@@ -61,6 +61,11 @@ export function ElementReservoir<T>({
   const [mode, setMode] = useState<Mode>("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Proposition de Fëanor acheminée (brique B) : champs à pré-remplir dans l'éditeur. `null` = aucune.
+  // Le `nonce` force le **remontage par `key`** de l'éditeur (FORK D-a) à chaque nouvelle proposition
+  // — l'éditeur seede son `draft` par un initialiseur `useState`, seul un remontage le re-seede.
+  const [seed, setSeed] = useState<Partial<T> | null>(null);
+  const [seedNonce, setSeedNonce] = useState(0);
 
   useEffect(() => {
     if (!loadElements) return;
@@ -77,10 +82,27 @@ export function ElementReservoir<T>({
   const selected = items.find((e) => kind.idOf(e) === selectedId) ?? null;
   const feanorSource: readonly Persona[] | undefined = kind.feanorSourceFrom?.(items);
 
+  const clearSeed = () => setSeed(null);
+
   const backToGrid = () => {
     setMode("grid");
     setSelectedId(null);
+    clearSeed();
   };
+
+  // Capability de proposition (brique B) transmise à Fëanor-en-tête — SEULEMENT si le pool l'équipe.
+  // `run` est le résolveur honnête du pool (typé `Partial<T>` — sûr à la frontière de l'hôte) ;
+  // `onProposal` acheminé re-seede l'éditeur (fusion + remontage `key`). C-1 : `id`/`roleIndex` ne
+  // sont jamais dans la proposition (le parseur du pool ne les lit pas), l'id réel est donc préservé.
+  const propose: FeanorProposeCapability | undefined = kind.proposeElement
+    ? {
+        run: kind.proposeElement,
+        onProposal: (p: unknown) => {
+          setSeed(p as Partial<T>);
+          setSeedNonce((n) => n + 1);
+        },
+      }
+    : undefined;
 
   const onSubmit = (next: T) => {
     // Optimiste : la session reflète l'édition immédiatement (rendu synchrone, non-régression).
@@ -103,6 +125,10 @@ export function ElementReservoir<T>({
   // Fëanor-en-tête monté SEULEMENT dans ces deux modes d'authoring (jamais sur la grille).
   if (mode === "edit" && selected) {
     const entity: AuthoredEntity = kind.toAuthoredEntity(selected);
+    // Re-seed (FORK D-a) : la proposition se fusionne SUR l'élément réel (id/roleIndex préservés,
+    // C-1) ; sans proposition, l'éditeur reçoit l'élément tel quel. La `key` inclut le nonce → une
+    // NOUVELLE proposition remonte l'éditeur pré-rempli (l'édition en cours est repartie du réel).
+    const edited: T = seed ? { ...selected, ...seed } : selected;
     return (
       <ElementFiche
         kind={kind}
@@ -110,10 +136,12 @@ export function ElementReservoir<T>({
         label={kind.idOf(selected)}
         entity={entity}
         feanorSource={feanorSource}
+        propose={propose}
         onBack={backToGrid}
       >
         <kind.Editor
-          element={selected}
+          key={`edit-${kind.idOf(selected)}-${seedNonce}`}
+          element={edited}
           existingIds={items
             .filter((x) => kind.idOf(x) !== kind.idOf(selected))
             .map((x) => kind.idOf(x))}
@@ -124,6 +152,11 @@ export function ElementReservoir<T>({
     );
   }
   if (mode === "create") {
+    // Re-seed en création : la proposition se fusionne sur un élément VIERGE complet (`blankElement`),
+    // pour qu'une proposition partielle ne casse pas l'éditeur. Sans seed (ou pool non équipé),
+    // l'éditeur reçoit `null` (création vierge normale). L'id reste dérivé/généré au save (jamais proposé).
+    const created: T | null =
+      seed && kind.blankElement ? { ...kind.blankElement(), ...seed } : null;
     return (
       <ElementFiche
         kind={kind}
@@ -131,10 +164,12 @@ export function ElementReservoir<T>({
         label="nouvelle"
         entity={kind.blankEntity}
         feanorSource={feanorSource}
+        propose={propose}
         onBack={backToGrid}
       >
         <kind.Editor
-          element={null}
+          key={`create-${seedNonce}`}
+          element={created}
           existingIds={items.map((x) => kind.idOf(x))}
           onSubmit={onSubmit}
           onCancel={backToGrid}
@@ -168,6 +203,7 @@ export function ElementReservoir<T>({
           className="newpersona"
           onClick={() => {
             setSelectedId(null);
+            clearSeed();
             setMode("create");
           }}
         >
@@ -182,6 +218,7 @@ export function ElementReservoir<T>({
         {cards.map((c) => (
           <ElementCard key={c.id} card={c} typeLabel={kind.typeLabel} onOpen={() => {
             setSelectedId(c.id);
+            clearSeed();
             setMode("edit");
           }} />
         ))}
@@ -256,6 +293,7 @@ function ElementFiche<T>({
   label,
   entity,
   feanorSource,
+  propose,
   onBack,
   children,
 }: {
@@ -264,6 +302,8 @@ function ElementFiche<T>({
   label: string;
   entity: AuthoredEntity | null;
   feanorSource?: readonly Persona[];
+  /** Capability de proposition (brique B) — transmise à Fëanor-en-tête ; absente ⇒ conseil seul. */
+  propose?: FeanorProposeCapability;
   onBack: () => void;
   children: React.ReactNode;
 }) {
@@ -279,7 +319,7 @@ function ElementFiche<T>({
         / {kind.crumbCollection} / <span className="cur">{label}</span>
         <span className={`mode-pill ${mode}`}>{mode === "edit" ? "✎ édition" : "✚ création"}</span>
       </div>
-      <FeanorHead mode={mode} entity={entity} feanorSource={feanorSource} />
+      <FeanorHead mode={mode} entity={entity} feanorSource={feanorSource} propose={propose} />
       {children}
     </section>
   );
