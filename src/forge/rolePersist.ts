@@ -5,9 +5,9 @@
  *
  * Lecture : la grille amorce sur `frame.roles` (les `.md` réels dérivés par `buildFrame`), le
  * `fallback` synthétique (`CANONICAL_ROLES`) restant le **repli hors-ligne**. Écriture : édition →
- * `patchFrontmatter` (ne touche que `label` ; `id`/`key`/`roleIndex`/`scope` + corps préservés à
- * l'octet) ; création → `serializeRoleMd` canonique (`id == key`, `roleIndex` tel quel, `scope` repli
- * `team`). `roleIndex` n'est **jamais recalculé**.
+ * `patchFrontmatter` (touche `label` **et `scope`** — champs éditables du Lot B ; `id`/`key`/`roleIndex`
+ * + corps préservés à l'octet, `roleIndex` **jamais recalculé**) ; création → `serializeRoleMd`
+ * canonique (`id == key`, `roleIndex` tel quel, `scope` repli `team`).
  */
 import {
   patchFrontmatter,
