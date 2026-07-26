@@ -30,14 +30,14 @@ async function idsOf(api: Backend, poolType: PoolType): Promise<Set<string>> {
 }
 
 /**
- * Ids des workflows de la **collection éditable** `<home>/workflows/` (P6b, EW-13) — **distincte**
- * du pool d'atomes `library/workflows/` (Q-9). Lit via `libraryList("workflows")` (même source que
- * la résolution EW-7, `resolveMethodWorkflow`) puis parse chaque `.md`. Défensif : `∅` en cas
- * d'erreur / collection absente.
+ * Ids des workflows du **pool** `library/workflows/` (Lot 5c, Option A — **vérité unique**). Lit via
+ * `poolReadAll("workflows")` (même source que la résolution `resolveMethodWorkflow`) puis parse
+ * chaque `.md`. Remplace l'ancienne lecture de la collection `<home>/workflows/` (retirée). Défensif :
+ * `∅` en cas d'erreur / pool absent.
  */
-async function collectionWorkflowIds(api: Backend): Promise<Set<string>> {
+async function poolWorkflowIds(api: Backend): Promise<Set<string>> {
   try {
-    const raw = await api.libraryList("workflows");
+    const raw = await api.poolReadAll("workflows");
     return new Set(
       raw
         .map((t) => parseWorkflowMd(t))
@@ -77,13 +77,12 @@ export function makeTeamValidateRefs(
 }
 
 /**
- * `validateRefs` de l'onglet **Méthode**. Deux sources distinctes (Q-9) :
- *   - **`workflowId`** → validé contre la **collection éditable** `workflows/` (P6b, EW-13), en
- *     **miroir EXACT** de la résolution EW-7 (`resolveMethodWorkflow`) : valide si (aucune
- *     référence), OU présent dans la collection, OU présent au **catalogue du cœur** (ex.
- *     `iakaframe-canonical`, repli canonique par défaut). Cette vérif est **indépendante du pool**
- *     (une référence de collection ne doit jamais être jugée « cassée » parce que le pool d'atomes
- *     est absent) — sinon faux-négatif : Save refusé à tort sur un workflow réellement créé.
+ * `validateRefs` de l'onglet **Méthode**. Deux sources (Lot 5c : le workflow est un atome de pool) :
+ *   - **`workflowId`** → validé contre le **pool** `library/workflows/` (Option A — vérité unique),
+ *     en **miroir EXACT** de la résolution `resolveMethodWorkflow` : valide si (aucune référence),
+ *     OU présent dans le pool, OU présent au **catalogue du cœur** (ex. `iakaframe-canonical`).
+ *     Vérif **indépendante du gate `poolPresent`** (une référence ne doit pas être jugée « cassée »
+ *     parce que le scan du pool échoue) — sinon faux-négatif : Save refusé à tort.
  *   - **principe/rituel/garde/rôle/scaffold** → scan du **pool d'atomes** `library/<type>/` (I1) ;
  *     pool absent → **warning NON bloquant** (Q-4).
  */
@@ -93,11 +92,11 @@ export function makeMethodValidateRefs(
   return async (method: Method): Promise<RefsReport> => {
     const missing: MissingRef[] = [];
 
-    // --- workflowId : collection `workflows/` (ou catalogue du cœur), indépendant du pool. ---
+    // --- workflowId : pool `library/workflows/` (ou catalogue du cœur), indépendant du gate pool. ---
     const wfId = method.workflowId?.trim();
     if (wfId && workflowById(wfId) === undefined) {
-      const collectionIds = await collectionWorkflowIds(api);
-      if (!collectionIds.has(wfId)) {
+      const poolIds = await poolWorkflowIds(api);
+      if (!poolIds.has(wfId)) {
         missing.push({ field: "workflowId", id: wfId, collection: "workflows" });
       }
     }

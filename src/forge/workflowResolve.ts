@@ -2,15 +2,14 @@
  * workflowResolve — **résolution de la référence workflow** d'une Méthode (P6b §4.2, EW-7).
  *
  * Le cœur reste **sans I/O** (comme le Binding P7) : c'est la **forge** qui, AVANT génération, lit
- * `workflows/<id>.md` via la façade `library_*`, le parse (`parseWorkflowMd`) et **injecte** l'objet
- * `Workflow` dans `KitGenOptions.workflow`. Cette résolution est **isolée ici** (testable, pure de
- * tout rendu). Ordre de résolution (§4.1) :
- *   1. `method.workflowId` → **collection** `<home>/workflows/<id>.md` (source prioritaire, P6b) ;
+ * `library/workflows/<id>.md` via la façade `pool_*`, le parse (`parseWorkflowMd`) et **injecte**
+ * l'objet `Workflow` dans `KitGenOptions.workflow`. Cette résolution est **isolée ici** (testable,
+ * pure de tout rendu). Ordre de résolution :
+ *   1. `method.workflowId` → **pool** `library/workflows/<id>.md` (Lot 5c, Option A — vérité unique) ;
  *   2. à défaut, **catalogue du cœur** (`resolveWorkflow`) ;
  *   3. à défaut, **canonique** (`IAKAFRAME_CANONICAL_WORKFLOW`).
  * Référence **absente/illisible** → **repli canonique + signal NON bloquant** (Q-7, jamais d'échec).
- * NB (Q-9) : la collection éditable `<home>/workflows/` est **distincte** du pool d'atomes I1
- * `<home>/library/workflows/` — on lit bien la **collection** ici.
+ * NB : la collection éditable `<home>/workflows/` est **retirée** (Option A) — on lit le **pool**.
  */
 import {
   parseWorkflowMd,
@@ -39,10 +38,10 @@ export async function resolveMethodWorkflow(
   // Pas de référence → catalogue du cœur, sinon canonique (repli pur, aucun I/O).
   if (!id) return { workflow: resolveWorkflow(method) };
 
-  // 1) Collection `workflows/` (source prioritaire P6b).
+  // 1) Pool `library/workflows/` (source prioritaire — Option A, vérité unique).
   let text: string | null = null;
   try {
-    text = await api.libraryRead("workflows", id);
+    text = await api.poolRead("workflows", id);
   } catch {
     text = null;
   }
@@ -56,7 +55,7 @@ export async function resolveMethodWorkflow(
     };
   }
 
-  // 2) Absent de la collection : peut-être un id du catalogue du cœur (ex. iakaframe-canonical).
+  // 2) Absent du pool : peut-être un id du catalogue du cœur (ex. iakaframe-canonical).
   const fromCatalog = resolveWorkflow(method);
   if (fromCatalog.id === id) return { workflow: fromCatalog };
 

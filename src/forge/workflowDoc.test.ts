@@ -12,27 +12,27 @@ import {
   parseWorkflowMd,
   type Workflow,
 } from "@iakaframe/core";
-import { useForgeDocument, type DocConfig } from "./useForgeDocument";
+import { useForgeDocument, poolStorage, type DocConfig } from "./useForgeDocument";
 import type { Backend } from "../api/backend";
 
-/** Backend mock : un magasin id → texte `.md` pour la collection `workflows`. */
+/** Backend mock : un magasin id → texte `.md` pour le POOL `library/workflows/` (Lot 5c, Option A). */
 function fakeBackend(): { api: Backend; store: Record<string, string> } {
   const store: Record<string, string> = {};
   const api = {
     isTauri: () => false,
-    libraryExists: async (_c: string, id: string) => id in store,
-    libraryWrite: async (_c: string, id: string, text: string) => {
+    poolExists: async (_p: string, id: string) => id in store,
+    poolWrite: async (_p: string, id: string, text: string) => {
       store[id] = text;
     },
-    libraryRead: async (_c: string, id: string) => store[id] ?? null,
-    libraryList: async () => Object.values(store),
+    poolRead: async (_p: string, id: string) => store[id] ?? null,
+    poolReadAll: async () => Object.values(store),
   } as unknown as Backend;
   return { api, store };
 }
 
 function workflowConfig(api: Backend): DocConfig<Workflow> {
   return {
-    collection: "workflows",
+    storage: (a) => poolStorage("workflows", a),
     blank: () => ({
       ...IAKAFRAME_CANONICAL_WORKFLOW,
       phases: IAKAFRAME_CANONICAL_WORKFLOW.phases.map((p) => ({ ...p })),
@@ -68,8 +68,8 @@ describe("EW-3 — document Workflow : 5 gestes + dirty + renommage", () => {
   });
 });
 
-describe("EW-4 — persistance round-trip de la collection", () => {
-  it("Save As écrit workflows/<id>.md ; Open réhydrate un workflow structurellement égal", async () => {
+describe("EW-4 — persistance round-trip du pool (Lot 5c, Option A)", () => {
+  it("Save As écrit library/workflows/<id>.md ; Open réhydrate un workflow structurellement égal", async () => {
     const { api, store } = fakeBackend();
     const { result } = renderHook(() => useForgeDocument(workflowConfig(api)));
     act(() => result.current.requestNew());

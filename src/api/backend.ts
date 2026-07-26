@@ -80,15 +80,17 @@ export function workspacePath(): Promise<string> {
 // --- Bibliothèque iakaframe (P5 : artefacts `.md`-frontmatter sous `IAKAFRAME_HOME`) ---
 
 /**
- * Collections gérées par la forge (les 4 onglets, Q-6 + P6b). `workflows` = la collection
- * **éditable** `<home>/workflows/` (P6b) — **distincte** du pool d'atomes read-only
- * `<home>/library/workflows/` (`PoolType`, cf. Q-9 : même nom, deux espaces séparés au MVP).
+ * Collections gérées par la forge (les onglets, Q-6). **Lot 5c (sous-lot 5c-workflow, Option A)** :
+ * `workflows` est **RETIRÉ** de cette liste — le workflow n'a plus de seconde maison éditable
+ * `<home>/workflows/` ; sa **vérité unique** est l'atome de pool `library/workflows/` (`PoolType`),
+ * écrit via `pool_write("workflows")` par les deux surfaces d'authoring (AC-W1 : aucune double
+ * écriture). Le backend Rust `library_write` accepte encore `"workflows"` (compat), mais **aucun
+ * appelant TS ne l'emprunte**.
  */
 export type LibraryCollection =
   | "teams"
   | "methods"
   | "kits"
-  | "workflows"
   | "bindings"
   | "frames";
 
@@ -164,9 +166,10 @@ export function poolRead(poolType: PoolType, id: string): Promise<string | null>
  * Écrit (ou remplace) l'atome de pool `<home>/library/<type>/<id>.md` (E2, Lot 5a — persistance de
  * l'authoring). `text` = `.md` sérialisé (frontmatter). Calque de `libraryWrite`, réorienté sous
  * `library/<pool>/` (symétrique de `poolRead`). Le cœur (`@iakaframe/core`) tient la **préservation
- * non-destructive** (`patchFrontmatter` en édition, `serializePersonaMd` en création) ; Rust est un
- * passe-plat. `skills` (dossier `<id>/SKILL.md`) est refusé côté Rust (hors périmètre 5a). Racine non
- * résolue → rejet (via `call`) ; hors Tauri → `BACKEND_UNAVAILABLE_MSG` (jamais une stack).
+ * non-destructive** (`patchFrontmatter` en édition, `serialize<Pool>Md` en création) ; Rust est un
+ * passe-plat. `skills` est écrit en **dossier** `library/skills/<id>/SKILL.md` (Lot 5c : création du
+ * sous-dossier, non destructif). Racine non résolue → rejet (via `call`) ; hors Tauri →
+ * `BACKEND_UNAVAILABLE_MSG` (jamais une stack).
  */
 export function poolWrite(poolType: PoolType, id: string, text: string): Promise<void> {
   return call<void>("pool_write", { poolType, id, text });

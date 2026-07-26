@@ -11,12 +11,12 @@
 import { describe, it, expect } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { parseWorkflowMd, type Workflow } from "@iakaframe/core";
-import { useForgeDocument, type DocConfig } from "./useForgeDocument";
+import { useForgeDocument, poolStorage, type DocConfig } from "./useForgeDocument";
 import { serializeWorkflowDoc } from "./workflowSerialize";
 import type { Backend } from "../api/backend";
 import frameWorkflow from "../../packages/core/__tests__/fixtures/workflow.iakaframe-3phases.md?raw";
 
-/** Backend bibliothèque en mémoire (une Map par `<collection>/<id>`). */
+/** Backend POOL en mémoire (Lot 5c, Option A) — une Map par `<poolType>/<id>`. */
 function fakeBackend(seed: Record<string, string> = {}): {
   api: Backend;
   files: Map<string, string>;
@@ -26,21 +26,21 @@ function fakeBackend(seed: Record<string, string> = {}): {
   const writes: string[] = [];
   const api = {
     isTauri: () => false,
-    libraryList: async (c: string) =>
-      [...files.entries()].filter(([k]) => k.startsWith(`${c}/`)).map(([, v]) => v),
-    libraryRead: async (c: string, id: string) => files.get(`${c}/${id}`) ?? null,
-    libraryWrite: async (c: string, id: string, text: string) => {
-      writes.push(`${c}/${id}.md`);
-      files.set(`${c}/${id}`, text);
+    poolReadAll: async (p: string) =>
+      [...files.entries()].filter(([k]) => k.startsWith(`${p}/`)).map(([, v]) => v),
+    poolRead: async (p: string, id: string) => files.get(`${p}/${id}`) ?? null,
+    poolWrite: async (p: string, id: string, text: string) => {
+      writes.push(`${p}/${id}.md`);
+      files.set(`${p}/${id}`, text);
     },
-    libraryExists: async (c: string, id: string) => files.has(`${c}/${id}`),
+    poolExists: async (p: string, id: string) => files.has(`${p}/${id}`),
   } as unknown as Backend;
   return { api, files, writes };
 }
 
-/** Config Workflow = miroir EXACT de la closure `workflowDoc` de ForgeShell (serializeWorkflowDoc). */
+/** Config Workflow = miroir EXACT de la closure `workflowDoc` de ForgeShell (pool storage + serializeWorkflowDoc). */
 const workflowConfig = (api: Backend): DocConfig<Workflow> => ({
-  collection: "workflows",
+  storage: (a) => poolStorage("workflows", a),
   blank: () => ({ id: "", name: "", methodId: "iakaframe", phases: [] }),
   serialize: (w, o) => serializeWorkflowDoc(w, o),
   parse: (t) => parseWorkflowMd(t),

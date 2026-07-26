@@ -14,7 +14,50 @@
  */
 import { useCallback, useMemo, useRef, useState } from "react";
 import { readListLayout, verbatimBody, type ListLayout } from "@iakaframe/core";
-import { backend, type Backend, type LibraryCollection } from "../api/backend";
+import { backend, type Backend, type LibraryCollection, type PoolType } from "../api/backend";
+
+/**
+ * **Adaptateur de stockage** d'un document (Lot 5c). Découple les 5 gestes fichier du hook du
+ * BACKEND concret : par défaut la **collection** library (`library_*`, teams/methods/kits/frames) ;
+ * pour le **workflow** (sous-lot 5c-workflow, Option A) le **pool** `library/workflows/` (`pool_*`),
+ * de sorte que les deux surfaces d'authoring convergent sur `pool_write("workflows")` — plus aucune
+ * écriture collection divergente (AC-W1). `label` = chemin logique affiché (`savedPath`).
+ */
+export interface DocStorage {
+  list(): Promise<string[]>;
+  read(id: string): Promise<string | null>;
+  write(id: string, text: string): Promise<void>;
+  exists(id: string): Promise<boolean>;
+  label: string;
+}
+
+/** Stockage **collection** library (défaut historique — teams/methods/kits/frames). */
+export function libraryStorage(collection: LibraryCollection, api: Backend): DocStorage {
+  return {
+    list: () => api.libraryList(collection),
+    read: (id) => api.libraryRead(collection, id),
+    write: (id, text) => api.libraryWrite(collection, id, text),
+    exists: (id) => api.libraryExists(collection, id),
+    label: collection,
+  };
+}
+
+/** Stockage **pool** d'atomes `library/<poolType>/` (workflow → vérité unique, Option A). */
+export function poolStorage(poolType: PoolType, api: Backend): DocStorage {
+  return {
+    list: () => api.poolReadAll(poolType),
+    read: (id) => api.poolRead(poolType, id),
+    write: (id, text) => api.poolWrite(poolType, id, text),
+    exists: (id) => api.poolExists(poolType, id),
+    label: `library/${poolType}`,
+  };
+}
+
+/** Résout le stockage d'une config : override `storage` si fourni, sinon la collection library. */
+function resolveDocStorage<T>(cfg: DocConfig<T>, api: Backend): DocStorage {
+  if (cfg.storage) return cfg.storage(api);
+  return libraryStorage(cfg.collection as LibraryCollection, api);
+}
 
 /**
  * Capture d'origine d'un document **ouvert** (défaut 2+3, étendue 3bis) : le corps markdown réel
@@ -60,8 +103,16 @@ type PendingKind = { action: "new" } | { action: "open"; id: string } | { action
 
 /** Configuration d'une instance de document (une par onglet). */
 export interface DocConfig<T> {
-  /** Collection cible de la bibliothèque (`teams` / `methods` / `kits`). */
-  collection: LibraryCollection;
+  /**
+   * Collection cible de la bibliothèque (`teams` / `methods` / `kits` / `frames`). **Requis sauf
+   * si `storage` est fourni** (le workflow passe par `storage` = pool, cf. Option A 5c-workflow).
+   */
+  collection?: LibraryCollection;
+  /**
+   * **Override de stockage** (Lot 5c) : le workflow écrit/lit le **pool** `library/workflows/` au
+   * lieu de la collection `<home>/workflows/` (retirée). Absent ⇒ stockage collection par défaut.
+   */
+  storage?: (api: Backend) => DocStorage;
   /** Gabarit vierge (New). */
   blank: () => T;
   /**
@@ -245,14 +296,15 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
         if (report.warning) setLastWarning(report.warning);
       }
       const text = cfg.serialize(target, originRef.current);
+      const store = resolveDocStorage(cfg, api);
       try {
-        await api.libraryWrite(cfg.collection, targetId, text);
+        await store.write(targetId, text);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setLastError(msg);
         return { ok: false, error: msg };
       }
-      const path = `${cfg.collection}/${targetId}.md`;
+      const path = `${store.label}/${targetId}.md`;
       setArtifact(target);
       setId(targetId);
       setSource("library");
@@ -288,7 +340,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
       // Non-destructif : refuse d'écraser un id existant (garde §4.4).
       let exists = false;
       try {
-        exists = await api.libraryExists(cfg.collection, targetId);
+        exists = await resolveDocStorage(cfg, api).exists(targetId);
       } catch {
         exists = false;
       }
@@ -318,7 +370,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
       setLastWarning(null);
       let text: string | null = null;
       try {
-        text = await api.libraryRead(cfg.collection, openId);
+        text = await resolveDocStorage(cfg, api).read(openId);
       } catch (e) {
         setLastError(e instanceof Error ? e.message : String(e));
         return;
@@ -409,7 +461,7 @@ export function useForgeDocument<T>(config: DocConfig<T>): UseForgeDocument<T> {
     const cfg = configRef.current;
     let raw: string[] = [];
     try {
-      raw = await api.libraryList(cfg.collection);
+      raw = await resolveDocStorage(cfg, api).list();
     } catch {
       raw = [];
     }

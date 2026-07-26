@@ -35,7 +35,7 @@ import {
   type Workflow,
 } from "@iakaframe/core";
 import { useForgeHandoff } from "../hooks/useForgeHandoff";
-import { useForgeDocument, type LibraryEntry, type UseForgeDocument } from "./useForgeDocument";
+import { useForgeDocument, poolStorage, type LibraryEntry, type UseForgeDocument } from "./useForgeDocument";
 import { serializeWorkflowDoc } from "./workflowSerialize";
 import { IAKAFRAME_STARTER_METHOD } from "./useForgeMethod";
 import { insertMethodRef, type MethodRef } from "./methodEdit";
@@ -163,12 +163,13 @@ export function ForgeShell() {
     nameOf: (k) => k.id,
   });
 
-  // P6b : le document Workflow (collection `workflows/`) est **conservé** — la Méthode le référence
-  // (`workflowId`) et son sélecteur liste les workflows de la collection. Son atelier d'édition
-  // dédié n'est PAS routé dans la nav 9 (il se fond dans « méthode » — cf. Lot 5, workflow
-  // agnostique) ; le document reste néanmoins semé pour alimenter le sélecteur de la Méthode.
+  // Lot 5c (sous-lot 5c-workflow, Option A) : le document Workflow écrit désormais le **POOL**
+  // `library/workflows/` (vérité unique) via `poolStorage("workflows")`, **plus** la collection
+  // `<home>/workflows/` (chemin retiré — AC-W1 : aucune double écriture). La surface « éléments »
+  // (`workflowPersist`) et la surface « méthode » (ci-dessous) convergent sur `pool_write`. Le
+  // sélecteur de la Méthode liste donc les workflows du pool ; la résolution du diagramme aussi.
   const workflowDoc = useForgeDocument<Workflow>({
-    collection: "workflows",
+    storage: (api) => poolStorage("workflows", api),
     blank: () => cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW),
     serialize: (w, o) => serializeWorkflowDoc(w, o),
     parse: (txt) => parseWorkflowMd(txt),
