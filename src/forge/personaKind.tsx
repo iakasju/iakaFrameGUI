@@ -9,11 +9,30 @@
  * Réutilise l'existant SANS le réimplémenter : `personaCards` (projection), `PersonaEditor`
  * (éditeur), `personaToAuthoredEntity` (adaptateur Fëanor). AUCUN contrat cœur touché.
  */
-import { cloneCanonicalRoster, type Persona } from "@iakaframe/core";
+import { CANONICAL_ROLES, cloneCanonicalRoster, type Persona } from "@iakaframe/core";
 import { buildPersonaReservoir } from "./personaCards";
 import { personaToAuthoredEntity, PERSONA_BLANK_ENTITY } from "./feanorHeadModel";
 import type { ElementCardVM, ElementKind } from "./elementKind";
 import { PersonaEditor } from "../components/PersonaEditor";
+import { resolvePersonaProposition } from "./personaProposition";
+
+/**
+ * Persona **vierge** complète (brique B) — base de fusion en création : `{ ...blankPersona(),
+ * ...proposition }` garantit que l'éditeur reçoit tous les champs même si la proposition est
+ * partielle. Miroir de l'`EMPTY` interne de `PersonaEditor` (id vide → l'id est généré au save,
+ * jamais proposé, C-1). `roleIndex` = 0 (dérivé du rôle par l'éditeur ensuite).
+ */
+function blankPersona(): Persona {
+  return {
+    id: "",
+    name: "",
+    roleKey: CANONICAL_ROLES[0].key,
+    royaume: CANONICAL_ROLES[0].key.toUpperCase(),
+    roleIndex: 0,
+    skills: [],
+    guardrails: [],
+  };
+}
 
 /** Projette une persona (via `personaCards`) vers le view-model de fiche **unifié** de l'hôte. */
 function personaCards(personas: readonly Persona[]): ElementCardVM[] {
@@ -67,4 +86,9 @@ export const personaKind: ElementKind<Persona> = {
       onCancel={onCancel}
     />
   ),
+  // Brique B (pilote persona) : Fëanor peut PROPOSER les champs d'une persona (résolveur honnête,
+  // repli `null`+`reason`). La proposition pré-remplit l'éditeur ; l'utilisateur relit + « Enregistrer »
+  // (chemin `persistPersona` inchangé). `blankElement` = base de fusion en création.
+  proposeElement: resolvePersonaProposition,
+  blankElement: blankPersona,
 };

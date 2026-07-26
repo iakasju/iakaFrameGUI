@@ -12,8 +12,10 @@
  * addition `src/` au-dessus des catalogues déjà vendorés.
  */
 import type { ReactElement, ReactNode } from "react";
-import type { Persona } from "@iakaframe/core";
+import type { LlmTransport, Persona } from "@iakaframe/core";
 import type { AuthoredEntity } from "./feanorHeadModel";
+import type { FeanorContext } from "./llm/advise";
+import type { CopiloteIdentity } from "./llm/identity";
 
 /** Une puce d'une fiche : skill (`sk`), garde-fou (`gd`) ou méta (`meta`, ex. déclencheur). */
 export interface ElementChip {
@@ -68,6 +70,46 @@ export interface ElementEditorProps<T> {
 }
 
 /**
+ * Dépendances d'un résolveur de **proposition d'élément** (brique B). Même forme que `AdviceDeps` :
+ * le transport LLM injecté + le modèle/endpoint/timeout + l'identité Fëanor dérivée du canon. Le
+ * résolveur ne lève jamais et ne fabrique jamais de proposition (repli `null` + `reason`).
+ */
+export interface ElementProposeDeps {
+  llm: LlmTransport;
+  /** Modèle d'authoring PARTAGÉ (`authoringModel`) — vide/absent ⇒ repli honnête « pas de modèle ». */
+  model?: string | null;
+  /** Endpoint d'authoring optionnel (`authoringEndpoint`) — vide ⇒ hôte Ollama par défaut. */
+  endpoint?: string | null;
+  /** Budget de temps de l'appel (défaut du résolveur). */
+  timeoutMs?: number;
+  /** Identité Fëanor **dérivée du canon** — absente ⇒ prompt système anonyme (jamais fabriquée). */
+  identity?: CopiloteIdentity | null;
+}
+
+/**
+ * Résultat d'un résolveur de proposition : les **champs proposés** (`Partial<T>`) ou `null` sur
+ * repli honnête (aucune proposition fabriquée), sa provenance et la raison éventuelle du repli.
+ */
+export interface ElementProposalResult<T> {
+  /** Champs éditables proposés, ou `null` si repli (jamais de proposition fabriquée). */
+  proposition: Partial<T> | null;
+  source: "live" | "mock";
+  /** Raison du repli (affichée) ; `undefined` uniquement sur succès live. */
+  reason?: string;
+}
+
+/**
+ * Résolveur de **proposition d'élément** d'un pool (brique B). Calqué sur `resolveAdvice` : oriente
+ * live/repli, **ne lève jamais**, repli honnête `null`+`reason`. Optionnel sur `ElementKind` : seul
+ * un pool équipé (persona pilote) le fournit — les autres pools n'affichent aucune action « proposer ».
+ */
+export type ElementProposeRun<T> = (
+  prompt: string,
+  ctx: FeanorContext,
+  deps: ElementProposeDeps,
+) => Promise<ElementProposalResult<T>>;
+
+/**
  * Le **contrat d'un pool authorable** consommé par `ElementReservoir`. `T` = le type concret de
  * l'élément (`Persona`, `Principle`, …). Tout ce qui varie d'un type à l'autre est injecté ici ;
  * l'hôte reste agnostique.
@@ -110,4 +152,16 @@ export interface ElementKind<T> {
   feanorSourceFrom?: (elements: readonly T[]) => readonly Persona[];
   /** L'éditeur de champs injecté (réutilise l'éditeur existant du type — jamais réimplémenté). */
   Editor: (props: ElementEditorProps<T>) => ReactElement;
+  /**
+   * Résolveur de **proposition d'élément** (brique B) — OPTIONNEL. Présent ⇒ l'hôte expose l'action
+   * « proposer » dans Fëanor-en-tête (la proposition pré-remplit l'éditeur, l'utilisateur relit puis
+   * enregistre). Absent (les 6 autres pools au pilote) ⇒ aucune action « proposer » (conseil seul).
+   */
+  proposeElement?: ElementProposeRun<T>;
+  /**
+   * Élément **vierge** complet (tous champs par défaut), requis SI `proposeElement` est fourni : en
+   * création, l'hôte fusionne `{ ...blankElement(), ...proposition }` avant de re-seeder l'éditeur
+   * (une proposition partielle ne casse pas l'éditeur). En édition, la fusion part de l'élément réel.
+   */
+  blankElement?: () => T;
 }
