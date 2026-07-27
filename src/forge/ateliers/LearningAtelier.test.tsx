@@ -144,4 +144,60 @@ describe("LearningAtelier — onglet Apprentissage, pilote de review (U2)", () =
     expect(await screen.findByText(/Hors contexte forge/)).toBeTruthy();
     expect(api.reviewList).not.toHaveBeenCalled();
   });
+
+  // --- États explicites : vide / chargement / erreur (lot « apprentissage n'affiche rien ») ---
+
+  it("état VIDE : 0 proposition → message franc + explication de la page (jamais un blanc)", async () => {
+    const api = makeApi({ reviewList: vi.fn(async () => ({ ok: true, proposals: [] })) });
+    render(<Harness api={api} />);
+    // Message franc (l'absence n'est pas une panne)…
+    expect(await screen.findByText(/Aucune proposition en attente/)).toBeTruthy();
+    // …+ une phrase qui dit ce QU'EST la page (réservoir de review, geste humain).
+    expect(screen.getByText(/de nouvelles propositions apparaîtront ici/i)).toBeTruthy();
+  });
+
+  it("état de CHARGEMENT : affiche « Chargement des propositions… » tant que le pilote n'a pas répondu", async () => {
+    let resolveList!: (v: { ok: boolean; proposals: ReviewProposal[] }) => void;
+    const pending = new Promise<{ ok: boolean; proposals: ReviewProposal[] }>((r) => {
+      resolveList = r;
+    });
+    const api = makeApi({ reviewList: vi.fn(() => pending) });
+    render(<Harness api={api} />);
+    // Pendant l'attente : feedback explicite, pas l'état vide prématuré.
+    expect(await screen.findByText(/Chargement des propositions/)).toBeTruthy();
+    expect(screen.queryByText(/Aucune proposition/)).toBeNull();
+    // À la réponse (vide) : le chargement laisse place à l'état vide franc.
+    resolveList({ ok: true, proposals: [] });
+    await waitFor(() => expect(screen.queryByText(/Chargement des propositions/)).toBeNull());
+    expect(await screen.findByText(/Aucune proposition en attente/)).toBeTruthy();
+  });
+
+  it("état d'ERREUR : le pilote rejette → aveu honnête clair (aucun blanc, aucune stack)", async () => {
+    const api = makeApi({
+      reviewList: vi.fn(async () => {
+        throw new Error("iakaframe introuvable (PATH)");
+      }),
+    });
+    render(<Harness api={api} />);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/Impossible de charger le réservoir/);
+    // Le message brut du pilote est relayé verbatim (pas noyé).
+    expect(alert.textContent).toMatch(/iakaframe introuvable \(PATH\)/);
+  });
+
+  it("NON-RÉGRESSION : la liste s'affiche toujours quand il Y A une proposition en attente", async () => {
+    const STUB: ReviewProposal = {
+      id: "2026-07-27T09-00-00--registre--stub",
+      type: "memory",
+      target: "registre",
+      status: "en-attente",
+      policy: "auto",
+    };
+    const api = makeApi({ reviewList: vi.fn(async () => ({ ok: true, proposals: [STUB] })) });
+    render(<Harness api={api} />);
+    expect(await screen.findByText(STUB.id)).toBeTruthy();
+    // Ni état vide, ni chargement résiduel quand il y a de la matière.
+    expect(screen.queryByText(/Aucune proposition/)).toBeNull();
+    expect(screen.queryByText(/Chargement des propositions/)).toBeNull();
+  });
 });
