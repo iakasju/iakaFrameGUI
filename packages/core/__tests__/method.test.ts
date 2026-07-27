@@ -280,8 +280,8 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
   const refs = unresolvedRefsForMethod(parsed);
   const byField = (f: string) => refs.filter((r) => r.field === f).map((r) => r.id);
 
-  it("10 entrées sur la fixture telle qu'elle est vendorée aujourd'hui (roleKeys canon résolus par B2)", () => {
-    expect(refs).toHaveLength(10);
+  it("11 entrées sur la fixture telle qu'elle est vendorée aujourd'hui (roleKeys canon résolus par B2)", () => {
+    expect(refs).toHaveLength(11);
   });
 
   it("décomposition par champ, id par id", () => {
@@ -292,7 +292,7 @@ describe("A-5 — références non résolues du cas réel (fixture vendorée)", 
       "canon-avant-citation",
       "preuve-avant-declaration",
     ]);
-    expect(byField("scaffoldIds")).toEqual(["portefeuille", "projet"]);
+    expect(byField("scaffoldIds")).toEqual(["portefeuille", "projet", "recette-guidee"]);
     expect(byField("guardrailIds")).toEqual(["identity", "perimeter", "delegation"]);
     // B2 : les 8 roleKeys canon résolvent tous désormais (dont les 5 alignés) → aucun non résolu.
     expect(byField("roleKeys")).toEqual([]);

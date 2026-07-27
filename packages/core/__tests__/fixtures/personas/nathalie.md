@@ -77,7 +77,12 @@ document d'évaluation complète de la version. Ni l'un ni l'autre ne le produit
 **Sa part — documentaire, pas évaluative :**
 - l'**état de la doc** de la version : docs d'API générées à jour, état des lieux, guides
   utilisateurs, et les **écarts** entre ce qui est livré et ce qui est documenté ;
-- la **rédaction et la lisibilité** du document : structure, clarté, **trace des écarts** relevés.
+- la **rédaction et la lisibilité** du document : structure, clarté, **trace des écarts** relevés ;
+- l'**assemblage de la recette guidée** de la version (gabarit `recette-guidee` →
+  `specs/recettes/_TEMPLATE.recette.html`) : elle **dérive les scénarios des critères
+  d'acceptation** (**1 AC → 1 scénario**) — geste documentaire structuré, proche de ses guides —
+  que 🏹 Legolas **valide en couverture**. Le décideur la déroule ; le **verdict et le jalon
+  restent à Legolas** (canon ci-dessus). Réf. : `library/scaffolds/recette-guidee.md`.
 
 **Ce qu'elle ne fait pas dans la RQV.** Elle ne porte **pas** l'évaluation qualité (code,
 couverture, exécution des tests, traçabilité, KPI — part de Legolas), elle ne **rend pas** le
