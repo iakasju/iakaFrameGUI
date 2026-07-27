@@ -41,8 +41,8 @@ function roundTrip(md: string): string {
 describe("Lot A — scaffold.entries round-trip byte-préservant (AC3)", () => {
   const scaffolds = entries(scaffoldMds);
 
-  it("inventaire : les 2 scaffolds vendorés sont chargés", () => {
-    expect(scaffolds.length).toBe(2);
+  it("inventaire : les 3 scaffolds vendorés sont chargés", () => {
+    expect(scaffolds.length).toBe(3);
   });
 
   for (const [id, md] of scaffolds) {
