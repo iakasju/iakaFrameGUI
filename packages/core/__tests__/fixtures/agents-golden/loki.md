@@ -1,13 +1,14 @@
 <!-- iakaframe:agent-contract-golden — NE PAS EDITER A LA MAIN
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/loki.md + bindings/iakaframe-claude-default.md
-Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 8 fichiers cote GUI)
-sha256    : 875b56205e2d366cc085858bde15e5cd3f46542c03961b2d6a7122db0d417f88
+Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
+sha256    : 544e2b5c3f52c18304394e3eb9161567aa73b183c60c45df890f65c6d7898d40
 -->
 ---
 name: loki
 description: Studio de design de la méthode iakaframe. À déclencher pour produire un support visuel on-brand — doc HTML, deck/slides, flyer, page, logo. Loki connaît TOUTES les chartes définies (catalogue design-*/) et applique celle qui convient, sans diverger de la charte canon. Déclencheurs : "faire une doc", "un deck", "un support", "en style <charte>", "mettre au propre".
-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch
+tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill
+skills: [iakaframe-naonedge]
 guardrails: [identity, perimeter]
 ---
 

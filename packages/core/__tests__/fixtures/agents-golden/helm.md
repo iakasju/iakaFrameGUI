@@ -1,13 +1,14 @@
 <!-- iakaframe:agent-contract-golden — NE PAS EDITER A LA MAIN
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/helm.md + bindings/iakaframe-claude-default.md
-Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 8 fichiers cote GUI)
-sha256    : f851065acf3b0317ee622fe752ae1c1e4f0e15b2f32e39b5ba4d0ffcb0c1fe03
+Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
+sha256    : 557e0b12481fe01b1d07a6a3ab563d0e57bd87ddf1b1c4d383af330577f89478
 -->
 ---
 name: helm
 description: Squad prod de la méthode iakaframe (équipe séparée, hors les 3 phases de dev qui ciblent le staging). À déclencher pour promouvoir une version recettée de stage vers la production (bascule d'alias, rollback prêt), gérer les accès (proxy inversé, SSO), surveiller la prod (health-checks, endpoints, charge) et émettre les alertes. Validation humaine OBLIGATOIRE avant toute bascule en prod.
-tools: Read, Grep, Glob, Write, Bash
+tools: Read, Grep, Glob, Write, Bash, Skill
+skills: [iakaframe-deploiement]
 guardrails: [identity, perimeter]
 ---
 

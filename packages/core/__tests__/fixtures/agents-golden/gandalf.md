@@ -1,13 +1,14 @@
 <!-- iakaframe:agent-contract-golden — NE PAS EDITER A LA MAIN
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/gandalf.md + bindings/iakaframe-claude-default.md
-Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 8 fichiers cote GUI)
-sha256    : 94db7954bd2f104d2ccf40c667ce60e16860a28868a612f47846dd6305826459
+Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
+sha256    : 93918e561cb82654d33f35ba1c5d47e4a3178d826f854e23a58825320262e452
 -->
 ---
 name: gandalf
 description: Architecte-cadreur de la méthode iakaframe (P1 - Cadrage). À déclencher dès qu'un besoin doit être transformé en instruction de travail écrite, fermée et vérifiable, avant tout développement. Gandalf invente la solution ET ferme le périmètre. Il travaille en lecture seule sur le code, s'appuie sur le web pour vérifier l'état de l'art / les versions / la compatibilité, et n'écrit que dans specs/instructions/.
-tools: Read, Grep, Glob, Write, Edit, WebSearch, WebFetch
+tools: Read, Grep, Glob, Write, Edit, WebSearch, WebFetch, Skill
+skills: [iakaframe-cadrage, iakaframe-jalon, iakaframe-lecture-maquettes]
 guardrails: [identity, perimeter]
 ---
 

@@ -27,16 +27,24 @@ const DEFAULT_NAMES: Readonly<Record<string, string>> = {
   frame: "Fëanor",
 };
 
-/** Skills proposées par défaut par rôle (gabarit — reclassé par rôle, pas par nom). */
+/**
+ * Skills proposées par défaut par rôle (gabarit — reclassé par rôle, pas par nom).
+ *
+ * ALIGNÉ SUR LE CANON (R8 D7/C21) : ce sont les `skills:` **déclarées** des personas canon
+ * (`library/personas/<persona>.md`), rôle par rôle — MULTI-skills inclus (Odin porte iakastart,
+ * Gandalf la lecture de maquettes, Nathalie la mémoire humaine). Gimli (dev) porte
+ * `iakaframe-fabrication` : fin du « pas de skill ». La garde `roster.test.ts` compare ce gabarit
+ * aux personas VENDORÉES et rougit à toute divergence (empêche la 3ᵉ table de re-diverger).
+ */
 const DEFAULT_SKILLS: Readonly<Record<string, string[]>> = {
-  portefeuille: ["iakaframe-odin"],
+  portefeuille: ["iakaframe-odin", "iakastart"],
   coordination: ["iakaframe-aragorn"],
-  cadrage: ["iakaframe-cadrage"],
-  dev: [],
+  cadrage: ["iakaframe-cadrage", "iakaframe-lecture-maquettes"],
+  dev: ["iakaframe-fabrication"],
   qualite: ["iakaframe-qualite"],
   deploiement: ["iakaframe-deploiement"],
   design: ["iakaframe-naonedge"],
-  documentation: ["iakaframe-nathalie"],
+  documentation: ["iakaframe-nathalie", "iakaframe-memoire-humaine"],
   frame: ["iakaframe-frame"],
 };
 

@@ -89,14 +89,53 @@ function loadBinding(): Binding {
   };
 }
 
+// --- carte des subskills, tirée des skills VENDORÉES (miroir byte du canon) -----------------------
+// Le contrat déployé porte la liste RÉSOLUE (R8 § 5.2). Pour la reproduire byte-à-byte sans
+// hand-coder, on lit les `subskills:` des SKILL.md vendorées (import.meta.glob = un seul point de
+// vérité, pas 19 imports) et on résout transitivement (même algorithme que le CLI resolveSkills).
+const SKILL_RAW = import.meta.glob("./fixtures/skills/*/SKILL.md", {
+  query: "?raw", import: "default", eager: true,
+}) as Record<string, string>;
+
+const SUBSKILLS: Record<string, string[]> = (() => {
+  const map: Record<string, string[]> = {};
+  for (const [p, raw] of Object.entries(SKILL_RAW)) {
+    const m = p.match(/\/skills\/([^/]+)\/SKILL\.md$/);
+    if (!m) continue;
+    const { data } = parseFrontmatter(raw);
+    map[m[1]] = Array.isArray(data.subskills)
+      ? (data.subskills as string[])
+      : data.subskills ? [String(data.subskills)] : [];
+  }
+  return map;
+})();
+
+// Résolution transitive déterministe (dédoublonnage 1re occurrence) — miroir de cli resolve-skills.
+function resolveSkills(declared: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const path: string[] = [];
+  const visit = (s: string) => {
+    if (path.includes(s)) throw new Error(`cycle: ${[...path, s].join(" -> ")}`);
+    if (!seen.has(s)) { seen.add(s); out.push(s); }
+    path.push(s);
+    for (const sub of SUBSKILLS[s] ?? []) visit(sub);
+    path.pop();
+  };
+  for (const s of declared) visit(s);
+  return out;
+}
+
 // --- loader de fixture canon : persona .md → entrée de renderAgentContract ------------------------
 function loadCanon(id: string, binding: Binding) {
   const raw = PERSONAS[id];
   const { data } = parseFrontmatter(raw);
+  const declaredSkills = Array.isArray(data.skills) ? (data.skills as string[]) : [];
   return {
     id,
     description: typeof data.description === "string" ? data.description : "",
     tools: toolsForPersona(binding, id),
+    skills: resolveSkills(declaredSkills),
     guardrails: Array.isArray(data.guardrails) ? (data.guardrails as string[]) : [],
     body: verbatimBody(raw),
   };
@@ -169,12 +208,26 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (9 personas)", () =>
       expect(toolsForPersona(binding, id), `${id}: tools != binding`).toEqual(expectedTools[id]);
     }
     // C-AC2 : ancre littérale anti-tautologie (attrape une altération de `loadBinding` qu'un test
-    // 100 % dérivé du binding ne verrait pas) + forme scalaire-virgule du contrat.
+    // 100 % dérivé du binding ne verrait pas) + forme scalaire-virgule du contrat. `Skill` en fin
+    // de liste des 9 assignments (R8 § 5.3, Fait 3).
     expect(toolsForPersona(binding, "gimli")).toEqual([
-      "Read", "Edit", "Write", "Bash", "Grep", "Glob",
+      "Read", "Edit", "Write", "Bash", "Grep", "Glob", "Skill",
     ]);
     expect(renderAgentContract(loadCanon("gimli", binding))).toMatch(
-      /^tools: Read, Edit, Write, Bash, Grep, Glob$/m,
+      /^tools: Read, Edit, Write, Bash, Grep, Glob, Skill$/m,
+    );
+  });
+
+  it("skills: projeté (liste résolue transitive) APRÈS tools, AVANT guardrails (R8 § 5.2)", () => {
+    const gimli = renderAgentContract(loadCanon("gimli", binding));
+    // chaîne fabrication résolue (7, jalon inclus) — parité avec le CLI resolveSkills.
+    expect(gimli).toMatch(
+      /^skills: \[iakaframe-fabrication, iakaframe-gestion-de-source, iakaframe-git, iakaframe-forgejo, iakaframe-conteneurisation, iakaframe-docker, iakaframe-jalon\]$/m,
+    );
+    expect(gimli).toMatch(/tools: [^\n]+\nskills: \[[^\n]+\]\nguardrails: \[/);
+    // legolas : une seule skill déclarée, sans subskill → liste résolue = [iakaframe-qualite].
+    expect(renderAgentContract(loadCanon("legolas", binding))).toMatch(
+      /^skills: \[iakaframe-qualite\]$/m,
     );
   });
 });
