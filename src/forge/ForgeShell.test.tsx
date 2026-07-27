@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
 import { ForgeShell } from "./ForgeShell";
 
 describe("ForgeShell — nav à 9 entrées (Lot 2, Fork B)", () => {
@@ -85,6 +85,46 @@ describe("ForgeShell — nav à 9 entrées (Lot 2, Fork B)", () => {
   it("le bouton « Livrer au Cockpit » est présent dans la barre", async () => {
     render(<ForgeShell />);
     expect(await screen.findByRole("button", { name: /Livrer au Cockpit/ })).toBeTruthy();
+  });
+
+  // --- Correctif recette #1 : le New du chrome unifié (documents ET réservoirs) ---
+  it("correctif #1 — le New du chrome CRÉE sur « persona » (réservoir, pas document)", async () => {
+    render(<ForgeShell />);
+    fireEvent.click(screen.getByRole("tab", { name: "persona" }));
+    expect(await screen.findByText("Le réservoir de personas")).toBeTruthy();
+    const newBtn = screen.getByRole("button", { name: "Nouvelle entité" }) as HTMLButtonElement;
+    // N'est plus inerte : le réservoir a publié son geste ✚ au chrome.
+    await waitFor(() => expect(newBtn.disabled).toBe(false));
+    fireEvent.click(newBtn);
+    // Déclenche le MÊME geste que le New interne : passage en mode création.
+    expect(await screen.findByText(/✚ création/)).toBeTruthy();
+  });
+
+  it("correctif #1 — le New du chrome CRÉE sur « éléments » (réservoir authorable)", async () => {
+    render(<ForgeShell />);
+    fireEvent.click(screen.getByRole("tab", { name: "éléments" }));
+    expect(await screen.findByText("Le réservoir de principes")).toBeTruthy();
+    const newBtn = screen.getByRole("button", { name: "Nouvelle entité" }) as HTMLButtonElement;
+    await waitFor(() => expect(newBtn.disabled).toBe(false));
+    fireEvent.click(newBtn);
+    expect(await screen.findByText(/✚ création/)).toBeTruthy();
+  });
+
+  it("correctif #1 — le New du chrome reste HONNÊTEMENT désactivé sur une entrée read-only (assemblage)", async () => {
+    render(<ForgeShell />);
+    fireEvent.click(screen.getByRole("tab", { name: "assemblage" }));
+    const newBtn = screen.getByRole("button", { name: "Nouvelle entité" }) as HTMLButtonElement;
+    await waitFor(() => expect(newBtn.disabled).toBe(true));
+  });
+
+  it("correctif #1 — quitter un réservoir pour une entrée read-only redésactive le New (pas de handler fantôme)", async () => {
+    render(<ForgeShell />);
+    fireEvent.click(screen.getByRole("tab", { name: "persona" }));
+    expect(await screen.findByText("Le réservoir de personas")).toBeTruthy();
+    const newBtn = screen.getByRole("button", { name: "Nouvelle entité" }) as HTMLButtonElement;
+    await waitFor(() => expect(newBtn.disabled).toBe(false));
+    fireEvent.click(screen.getByRole("tab", { name: "models" }));
+    await waitFor(() => expect(newBtn.disabled).toBe(true));
   });
 
   // --- Anti-boucle (garde de non-régression) : l'entrée Méthode ne doit PAS reboucler ---

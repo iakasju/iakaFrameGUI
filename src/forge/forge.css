@@ -1130,6 +1130,12 @@
 .docstatus.err {
   color: #e06c6c;
 }
+/* Conteneur de dismiss (correctif recette #2) : englobe déclencheur + panneau pour le clic-away.
+   `display: contents` → aucune boîte propre : le bouton reste dans le flux de la barre et le panneau
+   garde son positionnement absolu relatif à `.docbar` (aucun changement visuel). */
+.docmenu {
+  display: contents;
+}
 .docpanel {
   position: absolute;
   top: 100%;

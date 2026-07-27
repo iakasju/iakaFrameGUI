@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { DocBar } from "./DocBar";
 import type { UseForgeDocument } from "./useForgeDocument";
 
@@ -90,5 +90,66 @@ describe("DocBar — barre de gestes fichier (§4)", () => {
   it("affiche l'erreur I1 et l'avertissement d'état", () => {
     render(<DocBar doc={makeDoc({ lastError: "références cassées : personas → x" })} />);
     expect(screen.getByRole("alert").textContent).toMatch(/références cassées/);
+  });
+});
+
+describe("DocBar — dismiss des menus (correctif recette #2 : clic-away + Escape)", () => {
+  it("la liste Open se ferme au clic EXTÉRIEUR", async () => {
+    const doc = makeDoc({ listEntries: vi.fn(async () => [{ id: "a", name: "Alpha" }]) });
+    render(
+      <div>
+        <button type="button">dehors</button>
+        <DocBar doc={doc} />
+      </div>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(await screen.findByRole("listbox", { name: "Ouvrir un artefact" })).toBeTruthy();
+    fireEvent.mouseDown(screen.getByRole("button", { name: "dehors" }));
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  });
+
+  it("la liste Open se ferme sur Escape", async () => {
+    const doc = makeDoc({ listEntries: vi.fn(async () => []) });
+    render(<DocBar doc={doc} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(await screen.findByRole("listbox")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  });
+
+  it("un clic DANS la liste Open ne la ferme pas", async () => {
+    const doc = makeDoc({ listEntries: vi.fn(async () => [{ id: "a", name: "Alpha" }]) });
+    render(<DocBar doc={doc} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    const list = await screen.findByRole("listbox");
+    fireEvent.mouseDown(list);
+    expect(screen.getByRole("listbox")).toBeTruthy();
+  });
+
+  it("l'invite Save As se ferme au clic EXTÉRIEUR (appelle closeSaveAs)", () => {
+    const doc = makeDoc({ saveAsOpen: true });
+    render(
+      <div>
+        <button type="button">dehors</button>
+        <DocBar doc={doc} />
+      </div>,
+    );
+    expect(screen.getByRole("dialog", { name: "Enregistrer sous" })).toBeTruthy();
+    fireEvent.mouseDown(screen.getByRole("button", { name: "dehors" }));
+    expect(doc.closeSaveAs).toHaveBeenCalledTimes(1);
+  });
+
+  it("l'invite Save As se ferme sur Escape (appelle closeSaveAs)", () => {
+    const doc = makeDoc({ saveAsOpen: true });
+    render(<DocBar doc={doc} />);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(doc.closeSaveAs).toHaveBeenCalledTimes(1);
+  });
+
+  it("un clic DANS l'invite Save As ne la ferme pas (closeSaveAs non appelé)", () => {
+    const doc = makeDoc({ saveAsOpen: true });
+    render(<DocBar doc={doc} />);
+    fireEvent.mouseDown(screen.getByLabelText("id de l'artefact"));
+    expect(doc.closeSaveAs).not.toHaveBeenCalled();
   });
 });

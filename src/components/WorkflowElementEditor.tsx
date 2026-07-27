@@ -10,7 +10,9 @@
  * session** (seed = le workflow ouvert, ou l'amorce `WORKFLOW_STARTER` en création), passe
  * `onWorkflowChange = setDraft`, ajoute le **nom/id** (que `WorkflowAtelier` n'édite pas) et la
  * **barre Annuler/Enregistrer** qui remonte `onSubmit(draft)`. L'`id` est dérivé du nom à la création
- * (`slugify`, unique) puis **verrouillé** (C-1). Ne persiste rien (Lot 5 différé) : remonte à `onSubmit`.
+ * (`slugify`, unique) puis **verrouillé** (C-1). L'adaptateur lui-même n'écrit pas sur disque : il
+ * **remonte** `onSubmit(draft)` à l'hôte `ElementReservoir`, qui **persiste** le workflow via
+ * `persistWorkflow`→`poolWrite` (câblé Lot 5c) ; l'éditeur reste agnostique de l'I/O.
  */
 import { useState } from "react";
 import { cloneWorkflow, slugify, type Workflow } from "@iakaframe/core";

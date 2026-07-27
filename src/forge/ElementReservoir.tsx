@@ -11,19 +11,23 @@
  * L'hôte ne connaît AUCUN type concret — un lot suivant branche un nouveau pool en fournissant son
  * `ElementKind` (un `buildCards` + un `Editor` + un `toAuthoredEntity`), **sans toucher ce fichier**.
  *
- * Persistance (Lot 5a, persistance-disque-authoring-elements.md) : la prop **optionnelle** `persist`
- * bascule l'`onSubmit` de l'état de session vers l'**écriture disque non-destructive** (persona
- * pilote — `PersonaReservoir` la fournit). Le save reste **optimiste** (la session reflète l'édition
+ * Persistance (Lots 5a→5c, persistance-disque-authoring-elements.md) : la prop **optionnelle**
+ * `persist` bascule l'`onSubmit` de l'état de session vers l'**écriture disque non-destructive**.
+ * Elle est désormais **câblée pour TOUS les pools de 1er ordre** — persona (`PersonaReservoir`) **et**
+ * les pools de catalogue (`ElementsAuthoring` : principe, skill, rituel, garde-fou, rôle, scaffold,
+ * workflow), chacun via son `persist*`. Le save reste **optimiste** (la session reflète l'édition
  * immédiatement), écrit sur disque en arrière-plan, puis **réconcilie** depuis le disque (relecture).
  * Un échec (hors Tauri, racine non résolue…) **dégrade proprement** : l'édition reste en session +
- * un message clair (jamais une stack). Les pools **sans** `persist` gardent l'état de session (MVP,
- * 5b/5c différés). Fëanor reste **honnête** (aucun appel LLM au montage ; repli/aveu du #1).
+ * un message clair (jamais une stack). La branche **sans** `persist` reste un repli propre (montage
+ * hors provider / tests) — plus aucun pool de production ne s'y limite. Fëanor reste **honnête**
+ * (aucun appel LLM au montage ; repli/aveu du #1).
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Persona } from "@iakaframe/core";
 import { FeanorHead, type FeanorProposeCapability } from "./FeanorHead";
 import type { AuthoredEntity } from "./feanorHeadModel";
 import type { ElementCardVM, ElementKind } from "./elementKind";
+import { useRegisterCreate } from "./forgeCreate";
 
 type Mode = "grid" | "edit" | "create";
 
@@ -49,9 +53,10 @@ export function ElementReservoir<T>({
   /** Chargeur des éléments réels (injectable en test). Défaut : le repli hors-ligne du type. */
   loadElements?: () => Promise<T[]>;
   /**
-   * Écriture disque non-destructive d'un élément (Lot 5a). **Absente** ⇒ édition en état de session
-   * (comportement historique, pools 5b/5c différés). **Présente** (persona) ⇒ save optimiste +
-   * écriture disque + réconciliation ; un échec dégrade en session + message (jamais une stack).
+   * Écriture disque non-destructive d'un élément (Lots 5a→5c). **Absente** ⇒ édition en état de
+   * session (repli : montage hors provider / tests). **Présente** (cas nominal de tous les pools :
+   * persona + catalogue) ⇒ save optimiste + écriture disque + réconciliation ; un échec dégrade en
+   * session + message (jamais une stack).
    */
   persist?: (element: T) => Promise<void>;
 }) {
@@ -84,6 +89,17 @@ export function ElementReservoir<T>({
 
   const clearSeed = () => setSeed(null);
 
+  // Geste de création UNIFIÉ (correctif recette #1) : réinitialise sélection + seed puis passe en
+  // mode ✚ création. Utilisé par le New INTERNE (rvhead) ET publié au chrome via `useRegisterCreate`
+  // — le New de la barre supérieure déclenche exactement le même geste sur persona ET sur éléments
+  // (les setters d'état sont stables, `startCreate` a donc une identité stable pour l'enregistrement).
+  const startCreate = useCallback(() => {
+    setSelectedId(null);
+    setSeed(null);
+    setMode("create");
+  }, []);
+  useRegisterCreate(startCreate);
+
   const backToGrid = () => {
     setMode("grid");
     setSelectedId(null);
@@ -109,7 +125,7 @@ export function ElementReservoir<T>({
     setItems((prev) => upsertById(prev, next, kind.idOf));
     setSaveError(null);
     backToGrid();
-    if (!persist) return; // pool sans persistance disque (MVP) → état de session seul.
+    if (!persist) return; // repli sans persistance disque (hors provider / tests) → session seule.
     // Écriture disque non-destructive, puis réconciliation depuis le disque (relecture).
     void persist(next)
       .then(() => loadElements?.())
@@ -201,11 +217,7 @@ export function ElementReservoir<T>({
         <button
           type="button"
           className="newpersona"
-          onClick={() => {
-            setSelectedId(null);
-            clearSeed();
-            setMode("create");
-          }}
+          onClick={startCreate}
         >
           <span className="plus" aria-hidden="true">
             +
