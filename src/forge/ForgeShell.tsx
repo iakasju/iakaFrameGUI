@@ -49,7 +49,6 @@ import {
   kitToMd,
   mdToKit,
 } from "./mappers";
-import { CharteSelector } from "../components/CharteSelector";
 import { SettingsRoot } from "../components/SettingsRoot";
 import { OpenFramePanel } from "../components/OpenFramePanel";
 import { AssemblyView } from "./AssemblyView";
@@ -306,9 +305,6 @@ export function ForgeShell() {
           </span>{" "}
           New
         </button>
-        <span className="charte-pick">
-          <CharteSelector />
-        </span>
         <button
           type="button"
           className="settings-toggle"
