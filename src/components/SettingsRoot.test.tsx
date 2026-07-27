@@ -75,6 +75,30 @@ describe("SettingsRoot — modèle d'authoring global (§ Volet B)", () => {
   });
 });
 
+describe("SettingsRoot — charte graphique (déplacée du chrome)", () => {
+  it("expose le sélecteur de charte dans les Réglages", async () => {
+    render(<SettingsRoot api={fakeApi()} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    // Le libellé propre au bloc Réglages + le sélecteur de CharteSelector.
+    expect(screen.getByRole("heading", { name: "Charte graphique" })).toBeTruthy();
+    expect(screen.getByLabelText(/Charte visuelle/)).toBeTruthy();
+  });
+
+  it("changer la charte depuis Réglages commute et persiste (useCharte / data-theme)", async () => {
+    render(<SettingsRoot api={fakeApi()} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    const select = screen.getByLabelText(/Charte visuelle/) as HTMLSelectElement;
+    // Il y a au moins deux chartes disponibles pour pouvoir basculer.
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options.length).toBeGreaterThan(1);
+    const target = options.find((v) => v !== select.value) ?? options[0];
+    fireEvent.change(select, { target: { value: target } });
+    // La bascule réelle : data-theme posé sur <html> + persistance localStorage.
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe(target));
+    expect(localStorage.getItem("forge_charte")).toBe(target);
+  });
+});
+
 describe("SettingsRoot — endpoint d'authoring optionnel (§ D3)", () => {
   it("affiche l'endpoint configuré quand il est défini", async () => {
     render(<SettingsRoot api={fakeApi({ authoringEndpoint: async () => "http://192.168.2.11:11434" })} />);

@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { backend, type Backend } from "../api/backend";
+import { CharteSelector } from "./CharteSelector";
 
 /** Aucun dossier de projet réglé : la forge ne sait pas où lire le pointeur de frame active. */
 export const NO_PROJECT_HINT =
@@ -200,6 +201,17 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
         <button type="button" className="docbtn" disabled={busy} onClick={() => void reset()}>
           Réinitialiser (auto)
         </button>
+      </div>
+
+      {/* Charte graphique : préférence d'apparence de l'UI (thème visuel). Déplacée du chrome
+          vers les Réglages — la bascule/persistance reste portée par `useCharte` (aucun backend). */}
+      <div className="settings-block" aria-label="Charte graphique de l'interface">
+        <h3>Charte graphique</h3>
+        <p className="settings-hint">
+          Le <b>thème visuel</b> de l'interface (Studio clair par défaut). La bascule est{" "}
+          <b>instantanée</b> et persiste localement — sans rechargement ni requête réseau.
+        </p>
+        <CharteSelector />
       </div>
 
       {/* § Volet B : modèle d'authoring UNIQUE et global (tous les étages, pas par persona). */}

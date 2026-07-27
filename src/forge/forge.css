@@ -142,9 +142,6 @@
 .forge .topbar .spacer {
   flex: 1;
 }
-.forge .topbar .charte-pick {
-  align-self: center;
-}
 .forge .to-cockpit {
   align-self: center;
   background: var(--text);
