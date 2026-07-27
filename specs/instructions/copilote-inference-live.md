@@ -6,6 +6,13 @@
 >
 > Statut : **à valider** (jalon en fin de doc). Ne code rien avant « JALON VALIDÉ ».
 
+> ⚠️ **RÉVISÉ le 2026-07-27 (option C) — le repli n'est plus le mock.** Sur décision décideur,
+> le comportement de repli défini ici est **remplacé** par `copilote-honnete-mock-opt-in.md` :
+> modèle absent / provider non supporté / réseau KO / réponse illisible → **aveu honnête**
+> (`proposition: null` + `reason`), **jamais** une proposition mockée fabriquée ; le mock devient
+> un **mode démo opt-in étiqueté**. **Sections révisées : §3.5, §3.6, §6 (CA2-CA5).** Le reste de
+> cette instruction (§2, §3.1-§3.4, §4, §5, §7) **reste valable**.
+
 ---
 
 ## 1. Besoin
@@ -163,22 +170,29 @@ Nouveau parseur **défensif** `parseLiveProposition(raw, intention, context)` da
 
 ### 3.5 Résolveur + repli — la logique d'orientation
 
-`resolveProposition(intention, context, { llm, mock, onFallback? }): Promise<Proposition>` :
+> ⚠️ **RÉVISÉ le 2026-07-27 (option C).** Le repli n'est **plus** le mock : c'est un **aveu
+> honnête**. Voir `copilote-honnete-mock-opt-in.md` §2.2 pour le mapping complet. Résumé :
 
-1. `model` vide/absent → **mock** `propose()` (comportement actuel inchangé ; hint signale
-   l'absence via `NO_AUTHORING_MODEL_HINT`).
-2. `provider:model` → provider ≠ `ollama` (MVP) → **mock** + message « provider non supporté
-   au MVP (ollama) — repli mock ».
-3. Sinon : construire `LlmRequest` (prompt §3.4 + réservoir + `present`), `await llm.complete`.
-   - **rejet** (réseau KO / timeout / indispo) → **mock** + message « modèle indisponible —
-     repli mock » (même esprit que la garde `isTauri` / `BACKEND_UNAVAILABLE_MSG` :
-     message clair, **jamais une stack**).
-   - succès → `parseLiveProposition(raw, …)` ; `null` → **mock** + message « réponse du
-     modèle illisible — repli mock » ; sinon → la Proposition **live** (diff recalculé).
+`resolveProposition(intention, context, { llm, mock, endpoint, identity }): Promise<ResolveResult>`
+avec `ResolveResult.proposition: Proposition | null` et `source: "live" | "mock" | "none"` :
 
-Le repli passe **toujours** par le **même** `propose()` mocké → **déterminisme du fallback
-intact**. Le message de repli s'affiche dans le `hint` / l'en-tête (canal existant), pas de
-nouvelle UI lourde au MVP.
+1. `model` vide/absent → **aveu** (`proposition: null`, `source: "none"`, `reason:
+   NO_AUTHORING_MODEL_HINT`). *Plus de proposition fabriquée.*
+2. **Mode démo opt-in** (`model = "mock"`, valeur réservée) → **mock** `propose()`
+   (`source: "mock"`, `reason: MOCK_DEMO_LABEL`) — proposition **étiquetée**. Ce test passe
+   **avant** le test provider.
+3. `provider:model` → provider ≠ `ollama` (MVP) → **aveu** (`null`, `"none"`,
+   `FALLBACK_UNSUPPORTED`).
+4. Sinon : construire `LlmRequest` (prompt §3.4 + réservoir + `present`), `await llm.complete`.
+   - **rejet** (réseau KO / timeout / indispo) → **aveu** (`null`, `"none"`,
+     `FALLBACK_UNAVAILABLE` ; message clair, **jamais une stack**).
+   - succès → `parseLiveProposition(raw, …)` ; `null` → **aveu** (`null`, `"none"`,
+     `FALLBACK_UNREADABLE`) ; sinon → la Proposition **live** (diff recalculé).
+
+Aligné **byte pour byte** sur le socle honnête `resolveAdvice`/`resolveElementProposition`. Le mock
+reste **injectable en test** (`deps.mock`) et **déterministe** — seul son **déclenchement runtime**
+devient opt-in (cas 2). L'aveu et l'étiquette s'affichent dans les canaux existants
+(`hint`/`who`/bandeau) — cf. §3.6 révisé.
 
 ### 3.6 UI `CopiloteShell` (impact minimal)
 

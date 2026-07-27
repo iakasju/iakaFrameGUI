@@ -8,7 +8,13 @@
  *
  * ⚠️ **Le copilote n'écrit RIEN lui-même** : « Valider » délègue la matérialisation à l'atelier via
  * `onApply` (les **mêmes chemins d'insertion** que le `+` du rail). « Rejeter » jette sans rien
- * changer. Le **LLM réel est [différé]** (§8/§11) : ici tout vient du mock déterministe `propose`.
+ * changer.
+ *
+ * 🛡️ **Honnête par défaut (option C, `copilote-honnete-mock-opt-in.md`).** Le résolveur infère avec le
+ * modèle d'authoring réglé, ou **avoue** (`proposition === null` → miroir de `FeanorHead`, sans
+ * Valider/Rejeter ni diff). Le mock n'apparaît **que** sur opt-in explicite (`authoringModel = "mock"`)
+ * ET **toujours étiqueté** (`MOCK_DEMO_LABEL`, bandeau + ligne `who`). Le sélecteur `AUTHORING_RUNNERS`
+ * est **décoratif/legacy** (il ne pilote pas le résolveur) — sa copie ne prétend plus « mocké par défaut ».
  */
 import { useEffect, useState } from "react";
 import type { LlmTransport } from "@iakaframe/core";
@@ -20,7 +26,11 @@ import {
   type MaterializeOp,
   type Proposition,
 } from "./mock/copilote";
-import { resolveProposition, type PropositionSource } from "./llm/resolve";
+import {
+  resolveProposition,
+  MOCK_DEMO_LABEL,
+  type PropositionSource,
+} from "./llm/resolve";
 import {
   copiloteBadgeClose,
   copiloteBadgeOpen,
@@ -37,6 +47,12 @@ import { backend, type Backend } from "../api/backend";
  */
 export const IDENTITY_MISSING_HINT =
   "identité indisponible (fiche du rôle « frame » introuvable dans la racine bibliothèque)";
+
+/**
+ * Préfixe honnête d'un **aveu** (miroir de `FEANOR_NO_REPLY_PREFIX`) : le copilote n'a pas proposé
+ * d'artefact — on le DIT (`+ " — " + reason`), on ne fabrique **jamais** une proposition de substitution.
+ */
+export const COPILOTE_NO_PROPOSAL_PREFIX = "Le copilote n'a pas proposé d'artefact";
 
 export function CopiloteShell({
   subject,
@@ -187,9 +203,11 @@ export function CopiloteShell({
           )}
         </span>
         <span className="runner">
-          <span className="tagme">runner d'authoring · build-time · LLM mocké</span>
+          <span className="tagme">
+            runner d'authoring · build-time · sélecteur legacy (décoratif — ne pilote pas l'inférence)
+          </span>
           <select
-            aria-label="Runner d'authoring (build-time, mocké)"
+            aria-label="Runner d'authoring (build-time, sélecteur legacy décoratif)"
             value={runner}
             onChange={(e) => setRunner(e.target.value as AuthoringRunner)}
           >
@@ -217,7 +235,7 @@ export function CopiloteShell({
             <div className="who">Vous · au copilote</div>
             {proposition.intention}
           </div>
-          <div className="amsg">
+          <div className="amsg" data-source={source ?? undefined}>
             <div className="who">
               {identity ? copiloteBadgeOpen(identity) : "Copilote de forge"} · proposition ·{" "}
               {proposition.model ? (
@@ -227,9 +245,14 @@ export function CopiloteShell({
               ) : (
                 <em className="no-model">{NO_AUTHORING_MODEL_HINT}</em>
               )}{" "}
-              · {source === "live" ? "LLM live" : reason ? "LLM mocké (repli)" : "LLM mocké"}
-              {reason ? <> · {reason}</> : null}
+              · {source === "live" ? "LLM live" : MOCK_DEMO_LABEL}
             </div>
+            {source === "mock" && (
+              // H-2 — étiquetage NON négociable : toute proposition mockée porte le bandeau, visible.
+              <div className="mock-demo-banner" role="note">
+                {MOCK_DEMO_LABEL}
+              </div>
+            )}
             <p>{proposition.intro}</p>
             {proposition.artefacts.map((a, i) => (
               <div className="arte" key={`arte-${i}`}>
@@ -263,24 +286,44 @@ export function CopiloteShell({
             )}
           </div>
         </div>
+      ) : source === "none" && reason && done === null ? (
+        // AVEU honnête (miroir de `FeanorHead`) : le copilote n'a pas proposé — on le DIT, sans
+        // artefacts, sans diff, sans Valider/Rejeter (il n'y a rien à matérialiser). H-1.
+        <div className="copilote-aveu" role="status" data-source="none">
+          {identity && (
+            <div className="who" aria-label="Ouverture du copilote">
+              {copiloteBadgeOpen(identity)}
+            </div>
+          )}
+          <p className="aveu-text">
+            {COPILOTE_NO_PROPOSAL_PREFIX} — {reason}
+          </p>
+          {identity && (
+            <div className="who close" aria-label="Clôture du copilote">
+              {copiloteBadgeClose(identity)}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="shell-note">
           {done === "validated" ? (
             <>
               <b>Matérialisé.</b> Les artefacts ont été insérés par l'atelier via le{" "}
-              <b>chemin d'insertion réel</b> (le même que le <code>+</code> du rail). Copilote{" "}
-              <b>LLM mocké</b> — le runner d'authoring réel est <b>différé</b>.
+              <b>chemin d'insertion réel</b> (le même que le <code>+</code> du rail). La forge
+              n'écrit rien sans votre validation.
             </>
           ) : done === "rejected" ? (
             <>
               <b>Proposition rejetée</b> — aucune écriture. La forge n'écrit rien sans votre
-              validation. Copilote <b>LLM mocké</b> (runner réel <b>différé</b>).
+              validation.
             </>
           ) : (
             <>
-              <b>Boucle intention → proposition → diff → valider/rejeter.</b> Le copilote est{" "}
-              <b>mocké</b> (déterministe, sans réseau) ; le runner d'authoring réel est{" "}
-              <b>différé</b>. La forge n'écrira jamais sans votre validation.
+              <b>Boucle intention → proposition → diff → valider/rejeter.</b> Le copilote{" "}
+              <b>infère</b> avec le modèle d'authoring réglé, ou <b>avoue</b> s'il ne peut pas —
+              jamais de proposition fabriquée présentée comme réelle. Saisissez <code>mock</code>{" "}
+              dans les Réglages pour un <b>mode démo hors-ligne</b> (propositions étiquetées). La
+              forge n'écrira jamais sans votre validation.
             </>
           )}
         </div>

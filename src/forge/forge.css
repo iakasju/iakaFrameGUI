@@ -521,6 +521,47 @@
 .forge .copilote .shell-note b {
   color: #f0b8b4;
 }
+
+/* ---------- Aveu honnête (proposition === null) — miroir de `FeanorHead` ---------- */
+.forge .copilote .copilote-aveu {
+  font: 500 12px/1.55 var(--font-sans);
+  color: #c7c7cf;
+  background: #18181d;
+  border: 1px dashed #4a3b2e;
+  border-left: 3px solid #d08a3a;
+  border-radius: 3px 12px 12px 12px;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.forge .copilote .copilote-aveu .who {
+  font: 600 9px/1.2 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #d0a06a;
+}
+.forge .copilote .copilote-aveu .aveu-text {
+  margin: 0;
+}
+
+/* ---------- Bandeau MOCK · démo hors-ligne (H-2, non négociable) — toujours visible ---------- */
+.forge .copilote .amsg .mock-demo-banner {
+  font: 700 9.5px/1.3 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1a1207;
+  background: repeating-linear-gradient(
+    -45deg,
+    #e6b34a,
+    #e6b34a 9px,
+    #d99f2e 9px,
+    #d99f2e 18px
+  );
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 0 0 8px;
+}
 .forge .cprompt {
   display: flex;
   gap: 9px;

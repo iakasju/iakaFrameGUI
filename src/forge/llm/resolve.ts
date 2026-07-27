@@ -1,18 +1,23 @@
 /**
- * resolve.ts — le **résolveur** d'authoring : oriente vers l'inférence **live** ou le **mock**.
+ * resolve.ts — le **résolveur** d'authoring : **honnête par défaut** (option C,
+ * `copilote-honnete-mock-opt-in.md`). Aligné byte-à-byte sur le socle honnête
+ * `resolveAdvice`/`resolveElementProposition` : hors mode démo, l'échec d'inférence **avoue**
+ * (`proposition: null` + `reason`) — **jamais** une proposition fabriquée présentée comme réelle.
  *
- * Logique d'orientation (copilote-inference-live.md §3.5), défensive de bout en bout :
- *   1. modèle vide/absent               → **mock** (comportement inchangé ; aucune « raison »).
- *   2. provider ≠ `ollama` (MVP, D2)    → **mock** + message « provider non supporté ».
- *   3. live : `await llm.complete`
- *        - rejet (réseau KO / timeout)  → **mock** + message « modèle indisponible » (jamais de stack).
- *        - `parseLiveProposition` null  → **mock** + message « réponse illisible ».
+ * Logique d'orientation (mapping §2.2), défensive de bout en bout :
+ *   1. modèle vide/absent               → **aveu** (`null`, `"none"`, `NO_AUTHORING_MODEL_HINT`).
+ *   2. **mode démo opt-in** (`authoringModel === "mock"`, valeur réservée) → **mock ÉTIQUETÉ**
+ *      (`propose()`, `"mock"`, `MOCK_DEMO_LABEL`) — **AVANT** le test provider (`mock` n'a pas
+ *      de `:` : sans cet ordre il tomberait en « provider non supporté »).
+ *   3. provider ≠ `ollama` (MVP, D2)    → **aveu** (`null`, `"none"`, `FALLBACK_UNSUPPORTED`).
+ *   4. live : `await llm.complete`
+ *        - rejet (réseau KO / timeout)  → **aveu** (`null`, `"none"`, `FALLBACK_UNAVAILABLE` ; jamais de stack).
+ *        - `parseLiveProposition` null  → **aveu** (`null`, `"none"`, `FALLBACK_UNREADABLE`).
  *        - succès                       → Proposition **live** (diff/model/hint/diffFile RECALCULÉS).
  *
- * Le repli passe **toujours** par le **même** `propose()` mocké (déterminisme du fallback intact) :
- * la `Proposition` de repli est **strictement égale** à `propose(intention, context)` ; la « raison »
- * est délivrée **à côté** (champ `reason`), sans jamais muter la Proposition. Le LLM ne pilote QUE
- * `intro/artefacts/ops` — `diff`, `model`, `hint`, `diffFile` sont posés par notre code (frontière).
+ * Le mock reste **injectable en test** (`deps.mock`) et **déterministe** — seul son **déclenchement
+ * runtime** devient opt-in (cas 2). Le LLM ne pilote QUE `intro/artefacts/ops` — `diff`, `model`,
+ * `hint`, `diffFile` sont posés par notre code (frontière). **Ne lève JAMAIS**.
  */
 import {
   parseLiveProposition,
@@ -21,6 +26,7 @@ import {
 } from "@iakaframe/core";
 import {
   buildDiff,
+  NO_AUTHORING_MODEL_HINT,
   propose,
   type CopiloteContext,
   type MaterializeOp,
@@ -42,22 +48,46 @@ export const DEFAULT_AUTHORING_HOST = "http://localhost:11434";
 /** Budget de temps par défaut d'un appel d'inférence d'authoring. */
 export const DEFAULT_LLM_TIMEOUT_MS = 20000;
 
-/** Provider supporté au MVP (D2) — tout autre ⇒ repli mock. */
+/** Provider supporté au MVP (D2) — tout autre ⇒ aveu honnête. */
 export const MVP_PROVIDER = "ollama";
 
-/** Messages de repli (canal `reason`, affichés dans l'en-tête — jamais une stack brute). */
-export const FALLBACK_UNSUPPORTED = "provider non supporté au MVP (ollama) — repli mock";
-export const FALLBACK_UNAVAILABLE = "modèle indisponible — repli mock";
-export const FALLBACK_UNREADABLE = "réponse du modèle illisible — repli mock";
+/**
+ * Valeur réservée d'opt-in du **mode démo** (D1) : saisie dans le réglage existant `authoringModel`
+ * (insensible à la casse, trimée ; provider `mock` accepté : `mock` ou `mock:<libellé>`). Sa détection
+ * route vers `propose()` — **toujours étiqueté** `MOCK_DEMO_LABEL`, jamais confondu avec une inférence.
+ */
+export const MOCK_DEMO_MODEL = "mock";
 
-/** D'où vient la Proposition rendue : inférence réelle vs mock déterministe (repli). */
-export type PropositionSource = "live" | "mock";
+/**
+ * Étiquette **non négociable** (H-2) portée par TOUTE proposition de source `"mock"` (bandeau + ligne
+ * `who`) : la proposition est fabriquée, ce n'est pas une vraie inférence.
+ */
+export const MOCK_DEMO_LABEL =
+  "MOCK · démo hors-ligne — proposition fabriquée, pas une vraie inférence";
 
-/** Résultat du résolveur : la Proposition + sa provenance + la raison éventuelle du repli. */
+/**
+ * Messages d'**aveu** (canal `reason`, affichés dans l'en-tête — jamais une stack brute). Reformulés
+ * (option C) : plus de « — repli mock » (mensonger dès lors que le défaut est l'aveu). PARTAGÉS par le
+ * socle honnête (`advise.ts`/`elementProposition.ts`) — le reformulage améliore aussi leurs aveux.
+ */
+export const FALLBACK_UNSUPPORTED = "provider non supporté au MVP (ollama seul)";
+export const FALLBACK_UNAVAILABLE = "modèle indisponible (réseau ou hôte injoignable)";
+export const FALLBACK_UNREADABLE = "réponse du modèle illisible";
+
+/**
+ * D'où vient (ou non) la Proposition rendue :
+ *  - `"live"` = inférence réelle (proposition non-null) ;
+ *  - `"mock"` = mode démo OPT-IN (proposition non-null, TOUJOURS étiquetée `MOCK_DEMO_LABEL`) ;
+ *  - `"none"` = **aveu honnête** (`proposition === null` — aucune proposition fabriquée).
+ */
+export type PropositionSource = "live" | "mock" | "none";
+
+/** Résultat du résolveur : la Proposition (ou `null` = aveu) + sa provenance + la raison éventuelle. */
 export interface ResolveResult {
-  proposition: Proposition;
+  /** `null` ⇔ aveu (`source: "none"`) : aucune proposition fabriquée présentée comme réelle. */
+  proposition: Proposition | null;
   source: PropositionSource;
-  /** Raison du repli hors cas normal « pas de modèle » (affichée) ; `undefined` = cas nominal. */
+  /** Raison d'un aveu (repli) OU étiquette d'une démo mock (affichée) ; `undefined` = succès live. */
   reason?: string;
 }
 
@@ -98,8 +128,9 @@ function buildLiveHint(context: CopiloteContext, model: string): string {
 }
 
 /**
- * Oriente vers live ou mock et rend la `Proposition` finale. **Ne lève jamais** (tout rejet du
- * transport est capté → repli mock). Le diff live est **recalculé** par `buildDiff` (jamais dicté).
+ * Oriente vers l'inférence live, le mode démo opt-in ou l'**aveu honnête**, et rend le `ResolveResult`.
+ * **Ne lève jamais** (tout rejet du transport est capté → aveu, jamais une stack). Le diff live est
+ * **recalculé** par `buildDiff` (jamais dicté). Hors mode démo, **aucune** proposition n'est fabriquée.
  */
 export async function resolveProposition(
   intention: string,
@@ -109,22 +140,26 @@ export async function resolveProposition(
   const mock = deps.mock ?? propose;
   const rawModel = typeof context.model === "string" ? context.model.trim() : "";
 
-  // 1. Modèle vide/absent → mock direct (comportement actuel inchangé ; aucune raison).
+  // 1. Modèle vide/absent → AVEU honnête (aucune proposition fabriquée ; l'absence est signalée).
   if (rawModel.length === 0) {
-    return { proposition: mock(intention, context), source: "mock" };
+    return { proposition: null, source: "none", reason: NO_AUTHORING_MODEL_HINT };
   }
 
-  // 2. Provider non supporté au MVP → repli mock + message.
   const { provider, model } = parseProviderModel(rawModel);
-  if (provider !== MVP_PROVIDER || model.length === 0) {
-    return {
-      proposition: mock(intention, context),
-      source: "mock",
-      reason: FALLBACK_UNSUPPORTED,
-    };
+
+  // 2. Mode démo OPT-IN (valeur réservée `mock`, insensible à la casse) — **AVANT** le test provider :
+  //    `mock` n'a pas de `:` (provider vide), il tomberait sinon en « provider non supporté ». La
+  //    proposition mockée est TOUJOURS étiquetée (`MOCK_DEMO_LABEL`) — jamais confondue avec du live.
+  if (rawModel.toLowerCase() === MOCK_DEMO_MODEL || provider === MOCK_DEMO_MODEL) {
+    return { proposition: mock(intention, context), source: "mock", reason: MOCK_DEMO_LABEL };
   }
 
-  // 3. Chemin live.
+  // 3. Provider non supporté au MVP → AVEU honnête (aucune proposition fabriquée).
+  if (provider !== MVP_PROVIDER || model.length === 0) {
+    return { proposition: null, source: "none", reason: FALLBACK_UNSUPPORTED };
+  }
+
+  // 4. Chemin live.
   const surface = context.surface;
   const elementPool = buildSurfaceElementPool(surface);
   const host =
@@ -145,12 +180,8 @@ export async function resolveProposition(
   try {
     raw = await deps.llm.complete(req);
   } catch {
-    // Réseau KO / timeout / provider indispo → repli mock + message clair (jamais une stack).
-    return {
-      proposition: mock(intention, context),
-      source: "mock",
-      reason: FALLBACK_UNAVAILABLE,
-    };
+    // Réseau KO / timeout / provider indispo → AVEU honnête (message clair, jamais une stack).
+    return { proposition: null, source: "none", reason: FALLBACK_UNAVAILABLE };
   }
 
   const live = parseLiveProposition(raw, {
@@ -158,11 +189,8 @@ export async function resolveProposition(
     elementPool,
   });
   if (!live) {
-    return {
-      proposition: mock(intention, context),
-      source: "mock",
-      reason: FALLBACK_UNREADABLE,
-    };
+    // Réponse illisible / zéro op valide → AVEU honnête (aucune proposition fabriquée).
+    return { proposition: null, source: "none", reason: FALLBACK_UNREADABLE };
   }
 
   // Succès live : le LLM ne pilote QUE intro/artefacts/ops ; tout le reste est recalculé par nous.

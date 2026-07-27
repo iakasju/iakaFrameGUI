@@ -12,6 +12,7 @@ import {
   FALLBACK_UNAVAILABLE,
   FALLBACK_UNREADABLE,
   FALLBACK_UNSUPPORTED,
+  MOCK_DEMO_LABEL,
   DEFAULT_AUTHORING_HOST,
 } from "./resolve";
 
@@ -28,80 +29,102 @@ const liveRaw = JSON.stringify({
   ops: [{ target: "method-principle", id: "qualite", label: "Qualité (live)" }],
 });
 
-describe("resolveProposition — orientation live / mock (CA offline via fakeLlm)", () => {
-  // CA1 — Live nominal.
+describe("resolveProposition — honnête par défaut : aveu / démo mock opt-in / live (offline via fakeLlm)", () => {
+  // CA1 — Live nominal (inchangé).
   it("CA1 live nominal → Proposition LIVE ; diff = buildDiff(ops, context) ; ops matérialisables", async () => {
     const ctx = { ...methodeCtx, model: "ollama:qwen2.5-coder" };
     const r = await resolveProposition("un rapport qualité", ctx, { llm: fakeLlm(liveRaw) });
     expect(r.source).toBe("live");
-    expect(r.proposition.ops).toEqual([
+    expect(r.proposition).not.toBeNull();
+    expect(r.proposition!.ops).toEqual([
       { target: "method-principle", id: "qualite", label: "Qualité (live)" },
     ]);
-    expect(r.proposition.intro).toContain("principe qualité");
+    expect(r.proposition!.intro).toContain("principe qualité");
     // Diff recalculé par NOTRE code, jamais dicté par le LLM.
-    expect(r.proposition.diff).toEqual(buildDiff(r.proposition.ops, ctx));
+    expect(r.proposition!.diff).toEqual(buildDiff(r.proposition!.ops, ctx));
     // model/hint posés par nous.
-    expect(r.proposition.model).toBe("ollama:qwen2.5-coder");
-    expect(r.proposition.hint).toContain("LLM live");
+    expect(r.proposition!.model).toBe("ollama:qwen2.5-coder");
+    expect(r.proposition!.hint).toContain("LLM live");
   });
 
-  // CA2 — JSON invalide → repli mock + message.
-  it("CA2 JSON illisible → repli mock (== propose) + message illisible", async () => {
+  // CA2 — Modèle vide → AVEU honnête (aucune proposition fabriquée), transport jamais appelé.
+  it("CA2 modèle vide → aveu (null, none, NO_AUTHORING_MODEL_HINT) ; transport jamais appelé", async () => {
+    const llm = fakeLlm(liveRaw);
+    const r = await resolveProposition("un rapport qualité", methodeCtx, { llm });
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("none");
+    expect(r.reason).toBe(NO_AUTHORING_MODEL_HINT);
+    expect(llm.calls).toHaveLength(0);
+  });
+
+  // CA3 — JSON illisible → AVEU honnête, plus jamais une proposition mockée.
+  it("CA3 JSON illisible → aveu (null, none, FALLBACK_UNREADABLE)", async () => {
     const ctx = { ...methodeCtx, model: "ollama:qwen2.5-coder" };
     const r = await resolveProposition("un rapport qualité", ctx, { llm: fakeLlm("{pas du json") });
-    expect(r.source).toBe("mock");
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("none");
     expect(r.reason).toBe(FALLBACK_UNREADABLE);
-    expect(r.proposition).toEqual(propose("un rapport qualité", ctx));
   });
 
-  // CA3 — Provider indisponible (rejet) → repli + message, sans exception ni stack.
-  it("CA3 transport REJETTE (timeout/réseau) → repli mock + message ; aucune exception remontée", async () => {
+  // CA4 — Rejet transport (timeout/réseau) → AVEU, sans exception ni stack.
+  it("CA4 transport REJETTE → aveu (null, none, FALLBACK_UNAVAILABLE) ; aucune stack, aucune exception", async () => {
     const ctx = { ...methodeCtx, model: "ollama:qwen2.5-coder" };
     const r = await resolveProposition("un rapport qualité", ctx, {
       llm: fakeLlm(new Error("ECONNREFUSED stacktrace…")),
     });
-    expect(r.source).toBe("mock");
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("none");
     expect(r.reason).toBe(FALLBACK_UNAVAILABLE);
-    // Le message est propre — jamais la stack du transport.
-    expect(r.reason).not.toContain("stacktrace");
-    expect(r.proposition).toEqual(propose("un rapport qualité", ctx));
+    expect(r.reason).not.toContain("stacktrace"); // message propre, jamais la stack du transport
   });
 
-  // CA4 — Provider non supporté.
-  it("CA4 provider non supporté (litellm) → repli mock + message (sans appel au transport)", async () => {
+  // CA5 — Provider non supporté → AVEU, transport jamais sollicité.
+  it("CA5 provider non supporté (litellm) → aveu (null, none, FALLBACK_UNSUPPORTED) ; transport jamais appelé", async () => {
     const ctx = { ...methodeCtx, model: "litellm:gpt-4o" };
     const llm = fakeLlm(liveRaw);
     const r = await resolveProposition("un rapport qualité", ctx, { llm });
-    expect(r.source).toBe("mock");
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("none");
     expect(r.reason).toBe(FALLBACK_UNSUPPORTED);
-    expect(llm.calls).toHaveLength(0); // le transport n'est jamais sollicité
-    expect(r.proposition).toEqual(propose("un rapport qualité", ctx));
-  });
-
-  // CA5 — Modèle vide → mock direct inchangé (aucune raison, hint = NO_AUTHORING_MODEL_HINT).
-  it("CA5 modèle vide → mock direct (hint NO_AUTHORING_MODEL_HINT), transport jamais appelé", async () => {
-    const llm = fakeLlm(liveRaw);
-    const r = await resolveProposition("un rapport qualité", methodeCtx, { llm });
-    expect(r.source).toBe("mock");
-    expect(r.reason).toBeUndefined();
     expect(llm.calls).toHaveLength(0);
-    expect(r.proposition.hint).toContain(NO_AUTHORING_MODEL_HINT);
-    expect(r.proposition).toEqual(propose("un rapport qualité", methodeCtx));
   });
 
-  // CA6 — Déterminisme du fallback.
-  it("CA6 déterminisme du repli : même entrée → MÊME Proposition mock (cas 2/3/4/5)", async () => {
-    const ctx = { ...methodeCtx, model: "ollama:qwen2.5-coder" };
+  // CA-DÉMO — Mode démo OPT-IN (`authoringModel = "mock"`) → proposition ÉTIQUETÉE (== propose).
+  it("CA-démo mode démo opt-in (model = mock) → proposition mock étiquetée (== propose) ; transport jamais appelé", async () => {
+    const ctx = { ...methodeCtx, model: "mock" };
+    const llm = fakeLlm(liveRaw);
+    const r = await resolveProposition("un rapport qualité", ctx, { llm });
+    expect(r.source).toBe("mock");
+    expect(r.reason).toBe(MOCK_DEMO_LABEL); // TOUJOURS étiqueté (H-2)
+    expect(r.proposition).not.toBeNull();
+    expect(r.proposition).toEqual(propose("un rapport qualité", ctx)); // déterminisme du mock intact
+    expect(llm.calls).toHaveLength(0); // aucun réseau : le démo passe AVANT le provider
+  });
+
+  it("CA-démo insensible à la casse + `mock:<libellé>` → toujours la démo étiquetée (jamais provider ollama)", async () => {
+    const llmA = fakeLlm(liveRaw);
+    const rA = await resolveProposition("x", { ...methodeCtx, model: "MOCK" }, { llm: llmA });
+    expect(rA.source).toBe("mock");
+    expect(llmA.calls).toHaveLength(0);
+    const llmB = fakeLlm(liveRaw);
+    const rB = await resolveProposition("x", { ...methodeCtx, model: "mock:démo" }, { llm: llmB });
+    expect(rB.source).toBe("mock");
+    expect(rB.reason).toBe(MOCK_DEMO_LABEL);
+    expect(llmB.calls).toHaveLength(0);
+  });
+
+  // CA6 — Déterminisme du mode démo (le mock reste pur/injectable ; seul le déclenchement est opt-in).
+  it("CA6 déterminisme de la démo : même entrée (model = mock) → MÊME Proposition mock", async () => {
+    const ctx = { ...methodeCtx, model: "mock" };
     const a = await resolveProposition("x", ctx, { llm: fakeLlm("{bad") });
     const b = await resolveProposition("x", ctx, { llm: fakeLlm("{bad") });
     expect(a.proposition).toEqual(b.proposition);
     expect(a.proposition).toEqual(propose("x", ctx));
   });
 
-  // CA7 — Frontière Binding : toute op ∈ MaterializeTarget, aucun RunnerKind d'exécution.
-  it("CA7 frontière : toute op (live ou mock) cible une matérialisation, jamais un runner d'exécution", async () => {
+  // CA7 — Frontière Binding : une réponse malveillante (cible d'exécution + id hors réservoir) → AVEU.
+  it("CA7 frontière : réponse tentant une cible d'exécution / id hors réservoir → aveu (aucune op fabriquée)", async () => {
     const ctx = { ...methodeCtx, model: "ollama:qwen2.5-coder" };
-    // Le LLM tente d'injecter une cible d'exécution + un id hors réservoir → tout est rejeté → repli.
     const malicious = JSON.stringify({
       intro: "x",
       artefacts: [],
@@ -111,13 +134,12 @@ describe("resolveProposition — orientation live / mock (CA offline via fakeLlm
       ],
     });
     const r = await resolveProposition("règle le runner d'exécution", ctx, { llm: fakeLlm(malicious) });
-    expect(r.source).toBe("mock"); // aucune op valide → repli
-    for (const op of r.proposition.ops) {
-      expect(op.target).not.toMatch(/exec|runner/);
-      if (op.target === "kit-binding") {
-        expect(RUNNER_KINDS).not.toContain(op.id as (typeof RUNNER_KINDS)[number]);
-      }
-    }
+    // Aucune op valide → aveu honnête : rien n'est matérialisé, encore moins un runner d'exécution.
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("none");
+    expect(r.reason).toBe(FALLBACK_UNREADABLE);
+    // Garde de type conservée : le type de cible n'admet aucun runner d'exécution (RUNNER_KINDS).
+    expect(RUNNER_KINDS.length).toBeGreaterThan(0);
   });
 
   it("host : endpoint réglé (LAN) surcharge le défaut localhost dans la requête transport", async () => {
