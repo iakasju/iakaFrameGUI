@@ -1602,6 +1602,32 @@
   background: color-mix(in srgb, var(--orange) 16%, var(--panel));
   color: var(--ink);
 }
+/* États vide / chargement / erreur : bloc lisible (jamais un blanc), A-CONF Studio clair. */
+.forge .learning-empty {
+  max-width: 620px;
+  margin: 8px 0 4px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--forge-line-soft);
+  background: var(--panel);
+}
+.forge .learning-empty .le-title {
+  margin: 0;
+  font: 600 14px/1.3 var(--font-sans);
+  color: var(--ink);
+}
+.forge .learning-empty .le-hint {
+  margin: 6px 0 0;
+  font: 400 12px/1.55 var(--font-sans);
+  color: var(--muted);
+}
+.forge .learning-empty .le-hint code {
+  font-family: var(--font-mono, monospace);
+}
+.forge .learning-empty.error {
+  border-color: color-mix(in srgb, var(--orange) 45%, var(--forge-line-soft));
+  background: color-mix(in srgb, var(--orange) 8%, var(--panel));
+}
 .forge .learning-list {
   list-style: none;
   margin: 0;
