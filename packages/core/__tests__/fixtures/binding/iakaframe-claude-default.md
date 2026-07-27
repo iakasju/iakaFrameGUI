@@ -5,15 +5,15 @@ teamId: iakaframe-8
 node: claude
 origin: forge-default
 assignments:
-  - { personaId: odin,     runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Bash, Task] }
-  - { personaId: aragorn,  runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Bash, Task] }
-  - { personaId: gandalf,  runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Edit, WebSearch, WebFetch] }
-  - { personaId: gimli,    runner: claude-code, model: "sonnet", tools: [Read, Edit, Write, Bash, Grep, Glob] }
-  - { personaId: legolas,  runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Bash] }
-  - { personaId: helm,     runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Write, Bash] }
-  - { personaId: loki,     runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch] }
-  - { personaId: nathalie, runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch] }
-  - { personaId: feanor,   runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch] }
+  - { personaId: odin,     runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Bash, Task, Skill] }
+  - { personaId: aragorn,  runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Bash, Task, Skill] }
+  - { personaId: gandalf,  runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Edit, WebSearch, WebFetch, Skill] }
+  - { personaId: gimli,    runner: claude-code, model: "sonnet", tools: [Read, Edit, Write, Bash, Grep, Glob, Skill] }
+  - { personaId: legolas,  runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Bash, Skill] }
+  - { personaId: helm,     runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Write, Bash, Skill] }
+  - { personaId: loki,     runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill] }
+  - { personaId: nathalie, runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill] }
+  - { personaId: feanor,   runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch, Skill] }
 ---
 # Binding iakaframe — défaut Claude Code
 

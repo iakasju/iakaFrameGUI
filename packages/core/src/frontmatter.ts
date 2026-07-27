@@ -467,23 +467,30 @@ export function verbatimBody(text: string): string {
 /**
  * Sérialise le **contrat d'agent Claude Code** `.claude/agents/<id>.md` — **format AUTORITÉ**
  * partagé byte-à-byte avec le CLI (`renderAgentContract`, `generate-agents.js`). Ordre FIXE
- * `name, description, tools?, guardrails` : `name` = **id** ; `tools` = **scalaire virgule OMIS si
- * vide** (héritage de tous les outils) ; `guardrails` = **flow-list** ; **PAS de `model`** (le
+ * `name, description, tools?, skills?, guardrails` : `name` = **id** ; `tools` = **scalaire virgule
+ * OMIS si vide** (héritage de tous les outils) ; `skills` = **flow-list de la liste RÉSOLUE, OMISE
+ * si vide** (R8 § 5.2, préchargement) ; `guardrails` = **flow-list** ; **PAS de `model`** (le
  * modèle vit dans le `binding.json`, hors contrat). Corps rendu verbatim.
  */
 export function serializeAgentContract(
-  fm: { id: string; description: string; tools: string[]; guardrails: string[] },
+  fm: { id: string; description: string; tools: string[]; skills?: string[]; guardrails: string[] },
   body = "",
 ): string {
   const tools =
     fm.tools.length > 0
       ? ({ key: "tools", kind: "scalar", value: fm.tools.join(", ") } as Field)
       : undefined;
+  const skillsList = fm.skills ?? [];
+  const skills =
+    skillsList.length > 0
+      ? ({ key: "skills", kind: "list", value: skillsList } as Field)
+      : undefined;
   return buildDocument(
     [
       { key: "name", kind: "scalar", value: fm.id },
       { key: "description", kind: "scalar", value: fm.description },
       tools,
+      skills,
       { key: "guardrails", kind: "list", value: fm.guardrails },
     ],
     body,

@@ -50,6 +50,8 @@ export interface AgentContractInput {
   description: string;
   /** `tools:` — allowlist runner-scoped issue du **binding** (omise si vide). */
   tools: string[];
+  /** `skills:` — liste RÉSOLUE (transitive) préchargée par le runner (R8 § 5.2 ; omise si vide). */
+  skills?: string[];
   /** `guardrails:` — flow-list des ids de garde (vocabulaire canon `identity, perimeter`, …). */
   guardrails: string[];
   /** Corps du contrat (verbatim canon côté parité, stub côté forge). */
@@ -68,6 +70,7 @@ export function renderAgentContract(input: AgentContractInput): string {
       id: input.id,
       description: input.description,
       tools: input.tools,
+      skills: input.skills,
       guardrails: input.guardrails,
     },
     input.body,

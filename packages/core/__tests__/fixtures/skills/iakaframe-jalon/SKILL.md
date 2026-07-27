@@ -2,6 +2,7 @@
 id: iakaframe-jalon
 name: iakaframe-jalon
 description: Pose un jalon (gate) iakaframe très visible à une transition de phase — titre ASCII FIGlet Standard "<PROJET> - JALON : <nom>" suivi d'un tableau à 3 zones émetteur/contenu/récepteur, via le verbe CLI "iakaframe jalon". Utiliser cette skill chaque fois qu'un agent ouvre ou ferme un gate entre phases (cadrage→dev, dev→qualité, qualité→prod, clôture) et doit rendre la transition lisible et validable par l'utilisateur. Capacité partagée par le coordinateur (Aragorn) et le cadrage (Gandalf).
+layer: capacity
 ---
 
 # iakaframe — Poser un jalon (gate visible)

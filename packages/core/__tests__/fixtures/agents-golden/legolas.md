@@ -1,13 +1,14 @@
 <!-- iakaframe:agent-contract-golden — NE PAS EDITER A LA MAIN
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/legolas.md + bindings/iakaframe-claude-default.md
-Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 8 fichiers cote GUI)
-sha256    : be363bf61468d13332437a7340cf2c88710adcb99a596a2be22c2f083f963f1a
+Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
+sha256    : f38385cf39eca58f31bf6134bbe778e494f3782ad0936125d80e003ba9f910db
 -->
 ---
 name: legolas
 description: Vérificateur qualité de la méthode iakaframe (P2 Réalisation / P3 Staging). À déclencher pour exécuter le gate qualité d'une branche — tests unitaires et d'intégration, lint, typage, couverture — et rendre un verdict net pass/fail. Legolas signale, il ne corrige jamais le code. Verdict PASS = gate automatique vers l'intégration/stage.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Skill
+skills: [iakaframe-qualite]
 guardrails: [identity, perimeter]
 ---
 

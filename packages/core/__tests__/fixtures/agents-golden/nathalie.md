@@ -1,13 +1,14 @@
 <!-- iakaframe:agent-contract-golden — NE PAS EDITER A LA MAIN
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/nathalie.md + bindings/iakaframe-claude-default.md
-Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 8 fichiers cote GUI)
-sha256    : e252bfda0e4494d3a34946df944c9521980272884591ae25eb732b47ab840b89
+Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
+sha256    : 83073d002d94042fb02d0129f408a5d7bae2a9961fbce762f4b4931f344a74bb
 -->
 ---
 name: nathalie
 description: Rédactrice des guides utilisateurs de la méthode iakaframe ET gardienne de la mémoire humaine du projet. À déclencher pour produire la documentation destinée aux utilisateurs finaux — guide de prise en main, mode d'emploi, FAQ, tutoriels — ainsi que pour publier/rafraîchir les docs structurants du projet dans la mémoire humaine (action récurrente). À distinguer de la doc d'état du projet (état des lieux) et du cadrage technique (instructions). Déclencheurs : "guide utilisateur", "mode d'emploi", "doc utilisateur", "tutoriel", "FAQ", "documenter le projet dans la mémoire humaine", "mettre à jour la mémoire humaine", "publier les specs du projet".
-tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch
+tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill
+skills: [iakaframe-nathalie, iakaframe-memoire-humaine, iakaframe-appflowy-doc]
 guardrails: [identity, perimeter]
 ---
 
