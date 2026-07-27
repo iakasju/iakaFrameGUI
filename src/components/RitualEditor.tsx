@@ -4,9 +4,10 @@
  *
  * Champs (`Ritual` du cœur : `{id, label, triggers[], actions[], side}`) : **libellé** (libre),
  * **tranche** `forge`|`cockpit`, **déclencheurs** et **actions** (une par ligne). L'**id** est dérivé
- * du libellé à la création (`slugify`) et **verrouillé** ensuite (C-1). L'outillage réel de chaque
- * geste (scripts, journalisation) est **différé côté cœur** (ritual.ts) — hors MVP. Ne persiste rien :
- * remonte le rituel construit à `onSubmit` (l'hôte fait l'upsert de session).
+ * du libellé à la création (`slugify`) et **verrouillé** ensuite (C-1). L'éditeur remonte le rituel
+ * construit à `onSubmit` ; l'hôte `ElementReservoir` l'**upsert en session puis le persiste** via
+ * `persistRitual`→`poolWrite` (câblé Lot 5c). Ce qui reste **différé** est l'**exécution** du geste
+ * côté cœur (scripts, journalisation — `ritual.ts`), **pas** la persistance de l'édition.
  */
 import { useState } from "react";
 import { slugify, type Ritual, type RitualSide } from "@iakaframe/core";
