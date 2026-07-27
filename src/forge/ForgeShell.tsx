@@ -65,6 +65,7 @@ import { KitAtelier } from "./ateliers/KitAtelier";
 import { LearningAtelier } from "./ateliers/LearningAtelier";
 import { useForgeLearning } from "../hooks/useForgeLearning";
 import { useForgeRetrait } from "../hooks/useForgeRetrait";
+import { ForgeCreateContext, type CreateHandler, type ForgeCreateApi } from "./forgeCreate";
 
 /** Les 9 entrées de la nav (Fork B). L'ordre est celui de la maquette + Kit/Apprentissage conservés. */
 type NavKey =
@@ -115,6 +116,15 @@ export function ForgeShell() {
   // Validations I1 (miroir `checkRefs`), créées une fois (identité stable).
   const validateTeamRefs = useRef(makeTeamValidateRefs()).current;
   const validateMethodRefs = useRef(makeMethodValidateRefs()).current;
+
+  // Canal de création (correctif recette #1) : l'écran actif qui SAIT créer sans être un document
+  // (réservoirs persona/éléments) publie ici son geste ✚ ; le New du chrome l'active et le déclenche.
+  // `null` = l'entrée courante n'a pas de geste de réservoir (document, ou entrée read-only).
+  const [reservoirCreate, setReservoirCreate] = useState<CreateHandler>(null);
+  const createApi = useRef<ForgeCreateApi>({
+    // On stocke une FONCTION en état → forme fonctionnelle (`() => fn`) pour ne pas l'exécuter.
+    setCreateHandler: (fn: CreateHandler) => setReservoirCreate(() => fn),
+  }).current;
 
   // --- Trois documents (Q-1) : Team · Méthode · Kit ---
   const teamDoc = useForgeDocument<Team>({
@@ -250,6 +260,7 @@ export function ForgeShell() {
           : null;
 
   return (
+    <ForgeCreateContext.Provider value={createApi}>
     <div className="forge">
       <div className="topbar">
         <span className="brand">
@@ -277,13 +288,18 @@ export function ForgeShell() {
           type="button"
           className="topbar-new"
           aria-label="Nouvelle entité"
-          disabled={activeDoc === null}
+          // Unifié (correctif recette #1) : actif si l'entrée est un document OU un réservoir qui a
+          // publié son geste ✚ ; honnêtement désactivé sur les entrées read-only (frame/assemblage/
+          // models/apprentissage), qui n'enregistrent aucun geste.
+          disabled={activeDoc === null && reservoirCreate === null}
           title={
             activeDoc
               ? "Créer une nouvelle entité du type courant"
-              : "Aucune entité créable sur cette entrée (à venir)"
+              : reservoirCreate
+                ? "Créer un nouvel élément dans ce réservoir"
+                : "Aucune entité créable sur cette entrée"
           }
-          onClick={() => activeDoc?.requestNew()}
+          onClick={() => (activeDoc ? activeDoc.requestNew() : reservoirCreate?.())}
         >
           <span className="np" aria-hidden="true">
             +
@@ -462,5 +478,6 @@ export function ForgeShell() {
         </div>
       )}
     </div>
+    </ForgeCreateContext.Provider>
   );
 }
