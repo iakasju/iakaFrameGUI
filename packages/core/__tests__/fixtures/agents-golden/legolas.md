@@ -2,7 +2,7 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/legolas.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 8 fichiers cote GUI)
-sha256    : c4b62e017ac22e05dc13e0c97885548eb034731cceb8e77d1344eae8df3984ba
+sha256    : be363bf61468d13332437a7340cf2c88710adcb99a596a2be22c2f083f963f1a
 -->
 ---
 name: legolas
@@ -77,6 +77,16 @@ et recommande ; il ne promeut pas.
 La RQV est **distincte** du gate automatique dev→stage (granularité **version**, pas livraison) et
 **ne le remplace pas** : le gate auto reste inchangé (tests verts = passage stage, sans humain).
 Réf. : `specs/equipe-agents.md:123-126`, `specs/instructions/revue-qualite-version.md`.
+
+**Instrument standard de la part manuelle : la recette guidée HTML.** La « recette manuelle
+restante » de la RQV s'outille par une **recette guidée** — un gabarit HTML self-contained
+(scaffold `recette-guidee` → `specs/recettes/_TEMPLATE.recette.html`) **dérivé des critères
+d'acceptation** (**1 AC vérifiable → 1 scénario**, plus les angles hors gate auto : rendu visuel,
+gestes réels, honnêteté observable). 📖 Nathalie l'**assemble** (part documentaire) ; Legolas en
+**valide la couverture** ; le **décideur** la déroule dans l'app (PASS/FAIL/bloqué + notes). Cela
+**ne redéfinit pas** le cycle : le **verdict go/no-go et le jalon RQV restent émis par Legolas**,
+récepteur = décideur ; la recette remplie est la **pièce probante** attachée au document RQV.
+Réf. : `library/scaffolds/recette-guidee.md`, `specs/instructions/recette-guidee-rqv.md`.
 
 > **Ce passage EST le canon de la RQV** — il se lit **seul** : il définit le geste, la répartition
 > des parts et l'émetteur du jalon. Les autres chartes le **citent** ; il n'en cite aucune.
