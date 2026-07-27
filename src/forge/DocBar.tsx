@@ -3,15 +3,29 @@
  * plus la **garde « modifs non sauvées »** (modale in-app testable, §4.6), l'**invite Save As**
  * (id + nom) et la **liste Open** (scan de la collection). Générique : pilotée par le
  * `useForgeDocument<T>` de l'onglet. Purement UI — toute I/O vit dans le hook (façade unique).
+ *
+ * Dismiss cohérent (correctif recette #2) : les menus **Open** et **Save As** se ferment au **clic
+ * extérieur** et à **Escape** via `useDismiss`. Chaque menu est enveloppé (déclencheur + panneau)
+ * dans un conteneur `.docmenu` porteur de la `ref` : un clic sur le bouton ou dans le panneau reste
+ * « intérieur » (pas de dismiss parasite), un clic ailleurs ferme. `.docmenu` est `display:contents`
+ * → le panneau garde son positionnement absolu relatif à la `.docbar` (aucun changement visuel).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { slugifyId, type LibraryEntry, type UseForgeDocument } from "./useForgeDocument";
+import { useDismiss } from "./useDismiss";
 
 export function DocBar({ doc }: { doc: UseForgeDocument<unknown> }) {
   const [openPanel, setOpenPanel] = useState(false);
   const [entries, setEntries] = useState<LibraryEntry[]>([]);
   const [saId, setSaId] = useState("");
   const [saName, setSaName] = useState("");
+
+  // Conteneurs (déclencheur + panneau) pour le dismiss clic-extérieur/Escape (correctif recette #2).
+  const openRef = useRef<HTMLSpanElement>(null);
+  const saveAsRef = useRef<HTMLSpanElement>(null);
+  const closeOpen = useCallback(() => setOpenPanel(false), []);
+  useDismiss(openPanel, closeOpen, openRef);
+  useDismiss(doc.saveAsOpen, doc.closeSaveAs, saveAsRef);
 
   // Préremplit l'invite Save As depuis le nom courant à l'ouverture (ferme le parcours New →
   // nommer dans le titre → Save : Q-4). Ne clobbe pas la frappe ensuite (déclenché à l'ouverture).
@@ -49,9 +63,33 @@ export function DocBar({ doc }: { doc: UseForgeDocument<unknown> }) {
       <button type="button" className="docbtn" onClick={doc.requestNew}>
         New
       </button>
-      <button type="button" className="docbtn" onClick={() => void toggleOpen()}>
-        Open
-      </button>
+      <span className="docmenu" ref={openRef}>
+        <button type="button" className="docbtn" onClick={() => void toggleOpen()}>
+          Open
+        </button>
+        {/* Liste Open (scan de la collection). */}
+        {openPanel && (
+          <div className="docpanel openlist" role="listbox" aria-label="Ouvrir un artefact">
+            {entries.length === 0 ? (
+              <p className="empty">Aucun artefact dans la bibliothèque.</p>
+            ) : (
+              entries.map((e) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  className="openrow"
+                  onClick={() => chooseOpen(e.id)}
+                >
+                  <span className="oid">{e.id}</span>
+                  <span className="onm">{e.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </span>
       <button
         type="button"
         className="docbtn primary"
@@ -60,14 +98,45 @@ export function DocBar({ doc }: { doc: UseForgeDocument<unknown> }) {
       >
         Save
       </button>
-      <button
-        type="button"
-        className="docbtn"
-        disabled={doc.artifact === null}
-        onClick={doc.openSaveAs}
-      >
-        Save As
-      </button>
+      <span className="docmenu" ref={saveAsRef}>
+        <button
+          type="button"
+          className="docbtn"
+          disabled={doc.artifact === null}
+          onClick={doc.openSaveAs}
+        >
+          Save As
+        </button>
+        {/* Invite Save As (id + nom, non destructif). */}
+        {doc.saveAsOpen && (
+          <div className="docpanel saveaspanel" role="dialog" aria-label="Enregistrer sous">
+            <label>
+              id
+              <input
+                aria-label="id de l'artefact"
+                value={saId}
+                onChange={(ev) => setSaId(ev.target.value)}
+                placeholder="mon-artefact"
+              />
+            </label>
+            <label>
+              nom
+              <input
+                aria-label="nom de l'artefact"
+                value={saName}
+                onChange={(ev) => setSaName(ev.target.value)}
+                placeholder="Mon artefact"
+              />
+            </label>
+            <button type="button" className="docbtn primary" onClick={() => void submitSaveAs()}>
+              Enregistrer
+            </button>
+            <button type="button" className="docbtn" onClick={doc.closeSaveAs}>
+              Annuler
+            </button>
+          </div>
+        )}
+      </span>
       <button
         type="button"
         className="docbtn"
@@ -89,59 +158,6 @@ export function DocBar({ doc }: { doc: UseForgeDocument<unknown> }) {
         <span className="docstatus err" role="alert">
           {doc.lastError}
         </span>
-      )}
-
-      {/* Liste Open (scan de la collection). */}
-      {openPanel && (
-        <div className="docpanel openlist" role="listbox" aria-label="Ouvrir un artefact">
-          {entries.length === 0 ? (
-            <p className="empty">Aucun artefact dans la bibliothèque.</p>
-          ) : (
-            entries.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                role="option"
-                aria-selected={false}
-                className="openrow"
-                onClick={() => chooseOpen(e.id)}
-              >
-                <span className="oid">{e.id}</span>
-                <span className="onm">{e.name}</span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Invite Save As (id + nom, non destructif). */}
-      {doc.saveAsOpen && (
-        <div className="docpanel saveaspanel" role="dialog" aria-label="Enregistrer sous">
-          <label>
-            id
-            <input
-              aria-label="id de l'artefact"
-              value={saId}
-              onChange={(ev) => setSaId(ev.target.value)}
-              placeholder="mon-artefact"
-            />
-          </label>
-          <label>
-            nom
-            <input
-              aria-label="nom de l'artefact"
-              value={saName}
-              onChange={(ev) => setSaName(ev.target.value)}
-              placeholder="Mon artefact"
-            />
-          </label>
-          <button type="button" className="docbtn primary" onClick={() => void submitSaveAs()}>
-            Enregistrer
-          </button>
-          <button type="button" className="docbtn" onClick={doc.closeSaveAs}>
-            Annuler
-          </button>
-        </div>
       )}
 
       {/* Garde « modifs non sauvées » (§4.6). */}
