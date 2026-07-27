@@ -26,11 +26,15 @@ import {
 // Runners d'AUTHORING (build-time) — distincts des `RunnerKind` d'exécution (run-time, Binding).
 // ---------------------------------------------------------------------------
 
-/** Runners d'authoring proposés (build-time, « m'assiste à concevoir »). NON persistés. */
+/**
+ * Runners d'authoring (build-time). **Sélecteur DÉCORATIF/legacy** : il ne pilote PAS le résolveur
+ * (`resolveProposition` lit `authoringModel`, pas ce runner). Relibellé (option C, D2) pour ne plus
+ * prétendre « mocké par défaut » — le copilote est honnête par défaut. NON persisté.
+ */
 export const AUTHORING_RUNNERS = [
-  "claude-code (défaut · mock)",
-  "ollama:qwen2.5-coder (mock)",
-  "litellm:gpt-4o (mock)",
+  "claude-code (legacy · décoratif)",
+  "ollama:qwen2.5-coder (legacy · décoratif)",
+  "litellm:gpt-4o (legacy · décoratif)",
 ] as const;
 
 export type AuthoringRunner = (typeof AUTHORING_RUNNERS)[number];

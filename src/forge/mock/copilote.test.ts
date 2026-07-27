@@ -111,8 +111,9 @@ describe("copilote mocké — FRONTIÈRE authoring ≠ exécution (E2c §8)", ()
     for (const a of AUTHORING_RUNNERS) {
       expect(RUNNER_KINDS).not.toContain(a as unknown as string);
     }
-    // Et ils sont marqués « mock » (LLM réel différé).
-    expect(AUTHORING_RUNNERS.every((r) => r.includes("mock"))).toBe(true);
+    // Sélecteur DÉCORATIF/legacy (option C, D2) : relibellé — il ne prétend plus « mocké par défaut ».
+    expect(AUTHORING_RUNNERS.every((r) => r.includes("décoratif"))).toBe(true);
+    expect(AUTHORING_RUNNERS.some((r) => r.includes("mock"))).toBe(false);
   });
 
   it("le mock ne produit JAMAIS d'assignation de runner d'exécution par persona", () => {

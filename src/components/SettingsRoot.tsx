@@ -250,6 +250,12 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
             Modèle configuré : <code className="model-value">{model}</code>
           </p>
         )}
+        {/* Découvrabilité de la valeur réservée d'opt-in du mode démo (option C, D1). */}
+        <p className="settings-hint settings-mock-hint">
+          Astuce démo : saisissez <code>mock</code> pour un <b>mode démo hors-ligne</b> —
+          propositions fabriquées et <b>clairement étiquetées</b>, jamais confondues avec une vraie
+          inférence.
+        </p>
       </div>
 
       {/* § D3 : endpoint d'authoring optionnel — hôte Ollama LAN (vide ⇒ localhost:11434). */}
