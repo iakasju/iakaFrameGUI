@@ -67,6 +67,7 @@ export function LearningAtelier({
     ready,
     loading,
     error,
+    proposals,
     visible,
     filter,
     detail,
@@ -119,16 +120,39 @@ export function LearningAtelier({
           Hors contexte forge (Tauri) — la revue passe par la CLI <code>iakaframe review</code>.
         </p>
       ) : error ? (
-        <p className="empty" role="alert">
-          Réservoir inaccessible : {error}. Vérifie que <code>iakaframe</code> est installé (PATH) ou
-          que la racine bibliothèque est définie (Réglages).
+        // État d'ERREUR : aveu honnête et lisible du pilote qui n'a pas pu charger — jamais un blanc,
+        // jamais une stack. Le message d'erreur brut de `review` est relayé tel quel (verbatim).
+        <div className="learning-empty error" role="alert">
+          <p className="le-title">Impossible de charger le réservoir de propositions.</p>
+          <p className="le-hint">
+            Le pilote <code>iakaframe review</code> n'a pas répondu : <em>{error}</em>. Vérifie que{" "}
+            <code>iakaframe</code> est installé (PATH) ou que la racine bibliothèque est définie
+            (Réglages), puis <strong>Rafraîchis</strong>.
+          </p>
+        </div>
+      ) : loading && proposals.length === 0 ? (
+        // État de CHARGEMENT : le pilote interroge `review` — feedback explicite au lieu de laisser
+        // surgir l'état vide (garde n'affiche pas « aucune proposition » avant d'avoir la réponse).
+        <p className="empty" role="status" aria-live="polite">
+          Chargement des propositions…
         </p>
       ) : visible.length === 0 ? (
-        <p className="empty" role="note">
-          {filter === "en-attente"
-            ? "Aucune proposition en attente — le réservoir est à jour."
-            : "Aucune proposition pour ce filtre."}
-        </p>
+        // État VIDE FRANC : 0 proposition n'est pas une panne. On dit clairement ce qu'EST cette page
+        // (réservoir de propositions de `review`, validées/rejetées par geste humain) — aucune
+        // proposition factice n'est fabriquée (honnêteté § 2).
+        <div className="learning-empty" role="note">
+          <p className="le-title">
+            {filter === "en-attente"
+              ? "Aucune proposition en attente."
+              : "Aucune proposition pour ce filtre."}
+          </p>
+          <p className="le-hint">
+            Cette page est le <strong>réservoir des propositions d'apprentissage</strong> produites
+            par <code>iakaframe review</code> : chaque entrée s'y <strong>valide</strong> ou s'y{" "}
+            <strong>rejette</strong> par un geste humain explicite. Rien à traiter pour l'instant — de
+            nouvelles propositions apparaîtront ici après un cycle de revue.
+          </p>
+        </div>
       ) : (
         <ul className="learning-list">
           {visible.map((p) => {
