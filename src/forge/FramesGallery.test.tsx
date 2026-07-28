@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within, waitFor, fireEvent } from "@testing-library/react";
 import { FramesGallery } from "./FramesGallery";
 import { DANGLING_FRAME_HINT } from "./useFrameSwitch";
@@ -143,5 +143,41 @@ describe("FramesGallery — galerie models ACTIONNABLE (Lot 1, A1..A4)", () => {
     expect(within(iaka).getByText("méthode · iakaframe")).toBeTruthy();
     expect(within(iaka).getByText("team · iakaframe")).toBeTruthy();
     expect(within(iaka).getByText("★")).toBeTruthy(); // default
+  });
+});
+
+describe("FramesGallery — modes de présentation (tuiles / lignes / liste)", () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it("défaut = tuiles ; le sélecteur commute data-view sans perdre de carte", async () => {
+    const { api } = fakeApi({ initialPointer: "iakaframe" });
+    render(<FramesGallery api={api} />);
+    await screen.findByLabelText("Frame Scrum");
+    const grid = document.querySelector(".models-gallery .pgrid") as HTMLElement;
+    expect(grid.getAttribute("data-view")).toBe("grid");
+    fireEvent.click(screen.getByRole("radio", { name: "Lignes" }));
+    expect(grid.getAttribute("data-view")).toBe("rows");
+    expect(grid.querySelectorAll(":scope > .fcard")).toHaveLength(8);
+    fireEvent.click(screen.getByRole("radio", { name: "Liste détaillée" }));
+    expect(grid.getAttribute("data-view")).toBe("list");
+    // Le champ détaillé (id/slug) est dans le DOM des cartes.
+    expect(grid.querySelector(".fcard .lid")).not.toBeNull();
+  });
+
+  it("persiste le choix et la bascule de frame active reste fonctionnelle en mode liste", async () => {
+    const { api, setSpy } = fakeApi({ initialPointer: "iakaframe" });
+    const { unmount } = render(<FramesGallery api={api} />);
+    await screen.findByLabelText("Frame Scrum");
+    fireEvent.click(screen.getByRole("radio", { name: "Liste détaillée" }));
+    expect(window.localStorage.getItem("iakaframe.viewMode.models")).toBe("list");
+    // Clic → pose la frame active (non régressé par le mode liste).
+    fireEvent.click(screen.getByLabelText("Frame Scrum"));
+    await waitFor(() => expect(setSpy).toHaveBeenCalledWith("scrum"));
+    unmount();
+    // Remontage : la préférence liste est restaurée.
+    render(<FramesGallery api={api} />);
+    await screen.findByLabelText(/^Frame Scrum/);
+    const grid = document.querySelector(".models-gallery .pgrid") as HTMLElement;
+    expect(grid.getAttribute("data-view")).toBe("list");
   });
 });

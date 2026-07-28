@@ -6,7 +6,7 @@
  *        FeanorHead en tête), édition locale de session, source catalogue canonique.
  * La non-régression persona du même hôte est prouvée par `PersonaReservoir.test.tsx`.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import { CATALOG_PRINCIPLES } from "@iakaframe/core";
 import { ElementReservoir } from "./ElementReservoir";
@@ -154,5 +154,45 @@ describe("ElementReservoir — pilote PRINCIPE (1c)", () => {
     fireEvent.click(screen.getByRole("button", { name: "library" }));
     const grid = document.querySelector(".element-reservoir .pgrid") as HTMLElement;
     expect(grid.querySelectorAll(":scope > .pcard").length).toBe(CATALOG_PRINCIPLES.length);
+  });
+});
+
+describe("ElementReservoir — modes de présentation (tuiles / lignes / liste)", () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it("défaut = tuiles ; le sélecteur commute le layout via data-view (mêmes cartes)", () => {
+    render(<ElementReservoir kind={principleKind} />);
+    const grid = document.querySelector(".element-reservoir .pgrid") as HTMLElement;
+    const count = grid.querySelectorAll(":scope > .pcard").length;
+    // Défaut tuiles.
+    expect(grid.getAttribute("data-view")).toBe("grid");
+    // Lignes minces : même nombre de cartes, seul le mode change.
+    fireEvent.click(screen.getByRole("radio", { name: "Lignes" }));
+    expect(grid.getAttribute("data-view")).toBe("rows");
+    expect(grid.querySelectorAll(":scope > .pcard").length).toBe(count);
+    // Liste détaillée.
+    fireEvent.click(screen.getByRole("radio", { name: "Liste détaillée" }));
+    expect(grid.getAttribute("data-view")).toBe("list");
+    expect(grid.querySelectorAll(":scope > .pcard").length).toBe(count);
+    // La colonne id (champ détaillé) est présente dans le DOM des cartes.
+    expect(grid.querySelector(".pcard .lid")).not.toBeNull();
+  });
+
+  it("persiste le choix (localStorage) et le restaure au remontage", () => {
+    const { unmount } = render(<ElementReservoir kind={principleKind} />);
+    fireEvent.click(screen.getByRole("radio", { name: "Liste détaillée" }));
+    expect(window.localStorage.getItem("iakaframe.viewMode.reservoir")).toBe("list");
+    unmount();
+    render(<ElementReservoir kind={principleKind} />);
+    const grid = document.querySelector(".element-reservoir .pgrid") as HTMLElement;
+    expect(grid.getAttribute("data-view")).toBe("list");
+  });
+
+  it("le clic → fiche reste fonctionnel en mode lignes (non-régression)", () => {
+    render(<ElementReservoir kind={principleKind} />);
+    fireEvent.click(screen.getByRole("radio", { name: "Lignes" }));
+    fireEvent.click(screen.getByLabelText("Ouvrir la fiche de MVP d'abord"));
+    expect(screen.getByText("✎ édition")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Éditer le principe" })).toBeTruthy();
   });
 });

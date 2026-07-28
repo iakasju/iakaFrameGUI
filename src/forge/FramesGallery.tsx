@@ -22,10 +22,14 @@
 import { backend, type Backend } from "../api/backend";
 import { buildFramesGallery, galleryFromFrame } from "./frameCards";
 import { useFrameSwitch, DANGLING_FRAME_HINT } from "./useFrameSwitch";
+import { ViewModeToggle } from "./ViewModeToggle";
+import { useViewMode } from "./viewMode";
 
 export function FramesGallery({ api = backend }: { api?: Backend } = {}) {
   // Geste PARTAGÉ avec OpenFramePanel : chargement au montage (autoLoad) + bascule (switchTo).
   const { frame, busy, error, dangling, switchTo } = useFrameSwitch(api, { autoLoad: true });
+  // Mode de présentation de la galerie (tuiles / lignes / liste), persisté best-effort, défaut = tuiles.
+  const [viewMode, setViewMode] = useViewMode("iakaframe.viewMode.models");
 
   const { frames, activeId } = frame
     ? galleryFromFrame(frame)
@@ -48,6 +52,7 @@ export function FramesGallery({ api = backend }: { api?: Backend } = {}) {
         <span className="seclabel">
           Frames <span className="n">— les modèles du réservoir · {cards.length}</span>
         </span>
+        <ViewModeToggle value={viewMode} onChange={setViewMode} label="Mode de présentation — models" />
       </div>
 
       {/* Notice inline (D-3) : la frame active courante + assemblage re-résolu (retour visuel). */}
@@ -73,7 +78,7 @@ export function FramesGallery({ api = backend }: { api?: Backend } = {}) {
           liste alors les modèles déclarés dans <code>frames/</code>.
         </p>
       ) : (
-        <div className="pgrid">
+        <div className="pgrid" data-view={viewMode}>
           {cards.map((c) => (
             <button
               key={c.id}
@@ -116,6 +121,8 @@ export function FramesGallery({ api = backend }: { api?: Backend } = {}) {
                   <div className="ref">v{c.version}</div>
                 </div>
               </div>
+              {/* Id (slug) — champ « détaillé » RÉVÉLÉ par CSS uniquement en mode liste. */}
+              <span className="lid" title={c.id}>{c.id}</span>
               <div className="meta">
                 <span className="chip mth" title="La méthode assemblée (frère « discipline »)">
                   méthode · {c.methodId}
