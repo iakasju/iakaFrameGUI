@@ -28,6 +28,8 @@ import { FeanorHead, type FeanorProposeCapability } from "./FeanorHead";
 import type { AuthoredEntity } from "./feanorHeadModel";
 import type { ElementCardVM, ElementKind } from "./elementKind";
 import { useRegisterCreate } from "./forgeCreate";
+import { ViewModeToggle } from "./ViewModeToggle";
+import { useViewMode } from "./viewMode";
 
 type Mode = "grid" | "edit" | "create";
 
@@ -64,6 +66,9 @@ export function ElementReservoir<T>({
   // par les éléments réels dès qu'ils sont chargés.
   const [items, setItems] = useState<T[]>(() => kind.fallback());
   const [mode, setMode] = useState<Mode>("grid");
+  // Mode de présentation du réservoir (tuiles / lignes / liste), persisté best-effort. Partagé par
+  // tous les pools d'éléments (une seule préférence « réservoir »), défaut = tuiles.
+  const [viewMode, setViewMode] = useViewMode("iakaframe.viewMode.reservoir");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   // Proposition de Fëanor acheminée (brique B) : champs à pré-remplir dans l'éditeur. `null` = aucune.
@@ -214,6 +219,11 @@ export function ElementReservoir<T>({
         <span className="seclabel">
           {kind.sectionLabel} <span className="n">{kind.sectionMeta(cards.length)}</span>
         </span>
+        <ViewModeToggle
+          value={viewMode}
+          onChange={setViewMode}
+          label={`Mode de présentation — ${kind.crumbCollection}`}
+        />
         <button
           type="button"
           className="newpersona"
@@ -226,7 +236,7 @@ export function ElementReservoir<T>({
         </button>
       </div>
 
-      <div className="pgrid">
+      <div className="pgrid" data-view={viewMode}>
         {cards.map((c) => (
           <ElementCard key={c.id} card={c} typeLabel={kind.typeLabel} onOpen={() => {
             setSelectedId(c.id);
@@ -273,6 +283,8 @@ function ElementCard({
           {c.ref && <div className="ref">{c.ref}</div>}
         </div>
       </div>
+      {/* Id brut — champ « détaillé » RÉVÉLÉ par CSS uniquement en mode liste (caché en tuiles/lignes). */}
+      <span className="lid" title={c.id}>{c.id}</span>
       {c.roleLabel && (
         <div className="role">
           {c.roleLabel} <span className="ri">· index {c.roleIndex}</span>
