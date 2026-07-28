@@ -1,0 +1,206 @@
+/* ============================================================================
+   viewMode.css — le style PARTAGÉ du sélecteur de mode (⊞ Tuiles · ▤ Lignes ·
+   ☰ Liste détaillée) ET des deux layouts alternatifs (lignes minces / liste
+   détaillée), consommé par les DEUX hôtes de grilles (`.element-reservoir` et
+   `.models-gallery`). Écrit UNE seule fois ; les deux scopes sont listés dans les
+   sélecteurs de reflow — pas de duplication React ni CSS.
+
+   CHARTE : Studio clair. Les tokens (--accent, --bg-card, --line, --text-*) sont
+   déjà déclarés localement par les deux hôtes ; le toggle en hérite par cascade.
+
+   SPÉCIFICITÉ : les règles de reflow sont scopées `<hôte> .pgrid[data-view="…"]`
+   (0,3,0) — elles priment donc déterministe sur la grille de base `<hôte> .pgrid`
+   (0,2,0), sans !important.
+   ============================================================================ */
+
+/* ===== Le sélecteur de mode (segment control) ===== */
+.view-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  background: var(--bg-deep);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 700 0.76rem inherit;
+  padding: 0.34rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.14s;
+}
+.view-toggle-btn:hover {
+  color: var(--accent);
+}
+.view-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.view-toggle-btn.active {
+  background: var(--bg-card);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(20, 22, 28, 0.12);
+}
+.view-toggle-btn .vt-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Sur les barres du réservoir/galerie, le toggle est poussé à droite (avant le New). */
+.element-reservoir .rvhead .view-toggle,
+.models-gallery .rvhead .view-toggle {
+  margin-left: auto;
+}
+
+/* L'identifiant brut : champ « détaillé » RÉVÉLÉ uniquement en liste (caché ailleurs). */
+.element-reservoir .pcard .lid,
+.models-gallery .fcard .lid {
+  display: none;
+}
+
+/* ========================================================================
+   MODE « lignes minces » (rows) — une rangée horizontale compacte par item.
+   Même DOM, même données : seul le layout change.
+   ======================================================================== */
+.element-reservoir .pgrid[data-view="rows"],
+.models-gallery .pgrid[data-view="rows"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.element-reservoir .pgrid[data-view="rows"] .pcard,
+.models-gallery .pgrid[data-view="rows"] .fcard {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.5rem 0.85rem;
+}
+/* Vignette réduite. */
+.element-reservoir .pgrid[data-view="rows"] .pcard .vg,
+.models-gallery .pgrid[data-view="rows"] .fcard .vg {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 0.78rem;
+}
+/* Bloc titre (vignette + nom) à gauche, largeur bornée. */
+.element-reservoir .pgrid[data-view="rows"] .pcard .top,
+.models-gallery .pgrid[data-view="rows"] .fcard .top {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+.element-reservoir .pgrid[data-view="rows"] .pcard .nm,
+.models-gallery .pgrid[data-view="rows"] .fcard .nm {
+  font-size: 0.9rem;
+}
+/* Rôle + chips remontent sur la ligne (plus d'espacement vertical). */
+.element-reservoir .pgrid[data-view="rows"] .pcard .role,
+.element-reservoir .pgrid[data-view="rows"] .pcard .chips,
+.models-gallery .pgrid[data-view="rows"] .fcard .meta {
+  margin-top: 0;
+}
+.element-reservoir .pgrid[data-view="rows"] .pcard .role {
+  flex: 0 0 auto;
+}
+.element-reservoir .pgrid[data-view="rows"] .pcard .chips,
+.models-gallery .pgrid[data-view="rows"] .fcard .meta {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+/* La mission est trop verbeuse pour une ligne mince → masquée (repli en liste détaillée). */
+.element-reservoir .pgrid[data-view="rows"] .pcard .mission {
+  display: none;
+}
+/* Coin absolu (royaume / actif) ramené dans le flux, à droite. */
+.element-reservoir .pgrid[data-view="rows"] .pcard .royaume,
+.models-gallery .pgrid[data-view="rows"] .fcard .active-badge {
+  position: static;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+/* ========================================================================
+   MODE « liste détaillée » (list) — densité maximale : plus de champs par item
+   (id + rôle/royaume + mission/résumé + chips), en colonnes serrées.
+   ======================================================================== */
+.element-reservoir .pgrid[data-view="list"],
+.models-gallery .pgrid[data-view="list"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.element-reservoir .pgrid[data-view="list"] .pcard,
+.models-gallery .pgrid[data-view="list"] .fcard {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+}
+.element-reservoir .pgrid[data-view="list"] .pcard .vg,
+.models-gallery .pgrid[data-view="list"] .fcard .vg {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+}
+/* Colonne titre bornée. */
+.element-reservoir .pgrid[data-view="list"] .pcard .top,
+.models-gallery .pgrid[data-view="list"] .fcard .top {
+  flex: 0 0 220px;
+  min-width: 0;
+}
+.element-reservoir .pgrid[data-view="list"] .pcard .nm,
+.models-gallery .pgrid[data-view="list"] .fcard .nm {
+  font-size: 0.88rem;
+}
+/* Colonne id : révélée en liste (champ « détaillé » supplémentaire). */
+.element-reservoir .pgrid[data-view="list"] .pcard .lid,
+.models-gallery .pgrid[data-view="list"] .fcard .lid {
+  display: inline-block;
+  flex: 0 0 auto;
+  font: 600 0.68rem ui-monospace, monospace;
+  color: var(--text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Colonne rôle. */
+.element-reservoir .pgrid[data-view="list"] .pcard .role {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+/* Colonne mission/résumé : occupe le reste, tronquée sur une ligne. */
+.element-reservoir .pgrid[data-view="list"] .pcard .mission {
+  flex: 1 1 auto;
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Colonne chips. */
+.element-reservoir .pgrid[data-view="list"] .pcard .chips,
+.models-gallery .pgrid[data-view="list"] .fcard .meta {
+  flex: 0 0 auto;
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+/* Coin absolu ramené dans le flux. */
+.element-reservoir .pgrid[data-view="list"] .pcard .royaume,
+.models-gallery .pgrid[data-view="list"] .fcard .active-badge {
+  position: static;
+  margin-left: auto;
+  flex: 0 0 auto;
+}

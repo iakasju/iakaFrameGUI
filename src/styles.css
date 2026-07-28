@@ -26,3 +26,6 @@
 
 /* Galerie des frames (cartes à vignettes + marqueur actif), scopé .models-gallery (Studio clair local) */
 @import "./forge/models.css";
+
+/* Sélecteur de mode + layouts alternatifs (lignes minces / liste détaillée), partagé par les deux hôtes de grilles */
+@import "./forge/viewMode.css";
