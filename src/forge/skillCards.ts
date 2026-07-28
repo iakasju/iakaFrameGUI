@@ -67,7 +67,13 @@ export function buildSkillReservoir(skills: readonly SkillAtom[]): ElementCardVM
  * atomes réels (`frame.skills`) dès que le disque répond.
  */
 export function cloneSkillCatalog(): SkillAtom[] {
-  return CATALOG_SKILLS.map((s) => ({ id: s.id, name: s.id, description: "", subskills: [] }));
+  return CATALOG_SKILLS.map((s) => ({
+    id: s.id,
+    name: s.id,
+    description: "",
+    subskills: [],
+    body: "",
+  }));
 }
 
 /** Adapte une skill (atome) vers l'entité générique de Fëanor-en-tête (édition). */

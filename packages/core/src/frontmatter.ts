@@ -1388,6 +1388,41 @@ export function patchFrontmatter(rawMd: string, patch: FrontmatterPatch): string
   return ["---", ...next, ...tail].join("\n");
 }
 
+/**
+ * Réécrit un `.md` en **remplaçant uniquement le CORPS** (le payload sous le `---` fermant), le
+ * **frontmatter** — l'ouvrant `---`, ses lignes, le `---` fermant — étant conservé **littéralement**
+ * (`lines.slice(0, end + 1)`, **jamais reparsé ni réémis** → byte-identique par construction).
+ * **Image miroir** de {@link patchFrontmatter} (qui préserve le corps et réécrit le frontmatter) :
+ * les deux patcheurs touchent des régions **disjointes** (frontmatter ↔ corps) et se composent dans
+ * n'importe quel ordre (`patchBody(patchFrontmatter(md, patch), body)`), chacun re-localisant le
+ * délimiteur `---`.
+ *
+ * **Invariant** : `patchBody(md, verbatimBody(md)) === md` (round-trip exact quand le corps est
+ * inchangé). Toute clé load-bearing du frontmatter (`layer`, inconnues) reste intacte à l'octet.
+ *
+ * Défensif (esprit cœur, miroir de {@link patchFrontmatter}) : document sans frontmatter délimité
+ * (`---` … `---`) → rendu **inchangé** (jamais de corruption d'un fichier malformé). Travaille sur
+ * les bytes en découpant sur `\n` (round-trip LF exact ; les fichiers de la bibliothèque sont en LF,
+ * et `.value` d'un `<textarea>` HTML normalise les retours-ligne en LF).
+ */
+export function patchBody(rawMd: string, newBody: string): string {
+  const src = String(rawMd);
+  const lines = src.split("\n");
+  if (lines[0] !== "---") return src;
+  let end = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === "---" || lines[i] === "...") {
+      end = i;
+      break;
+    }
+  }
+  if (end < 0) return src;
+  // L'ouvrant `---` + les lignes de frontmatter + le `---` fermant, conservés VERBATIM (jamais
+  // réémis) → frontmatter byte-identique. Seul le corps (tout ce qui suit `end`) est remplacé.
+  const head = lines.slice(0, end + 1);
+  return head.join("\n") + "\n" + newBody;
+}
+
 /** Interne exposé pour les tests (parité fine avec le CLI). */
 export const _frontmatterInternal = {
   splitTopLevel,

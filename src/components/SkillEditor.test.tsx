@@ -49,6 +49,7 @@ describe("SkillEditor — rebranché sur SkillAtom (Lot C)", () => {
       name: "iakaframe-cadrage",
       description: "Blurb initial",
       subskills: [],
+      body: "",
     };
     render(<SkillEditor element={existing} existingIds={[]} onSubmit={onSubmit} onCancel={() => {}} />);
     expect(screen.getByRole("heading", { name: "Éditer la skill" })).toBeTruthy();
@@ -75,6 +76,7 @@ describe("SkillEditor — rebranché sur SkillAtom (Lot C)", () => {
       name: "iakaframe-fabrication",
       description: "d",
       subskills: ["iakaframe-git"],
+      body: "",
     };
     render(<SkillEditor element={existing} existingIds={[]} onSubmit={vi.fn()} onCancel={() => {}} />);
     // Plus de libellé « Libellé (libre) » ni « Rôle de rattachement » (les fantômes d'avant Lot C).
@@ -91,6 +93,7 @@ describe("SkillEditor — rebranché sur SkillAtom (Lot C)", () => {
       name: "iakaframe-git",
       description: "d",
       subskills: ["iakaframe-forgejo"],
+      body: "",
     };
     render(<SkillEditor element={existing} existingIds={[]} onSubmit={onSubmit} onCancel={() => {}} />);
     // Ajoute une 2e ligne mais la laisse vide → doit être filtrée.

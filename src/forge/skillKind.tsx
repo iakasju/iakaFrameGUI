@@ -24,7 +24,7 @@ import { resolveSkillProposition } from "./skillProposition";
 
 /** Skill **vierge** complète (brique B) — base de fusion en création (miroir de l'`EMPTY` de l'éditeur). */
 function blankSkill(): SkillAtom {
-  return { id: "", name: "", description: "", subskills: [] };
+  return { id: "", name: "", description: "", subskills: [], body: "" };
 }
 
 /** Le pool **skill** de l'hôte générique (rebranché sur `SkillAtom` — Lot C). */

@@ -16,7 +16,10 @@
  * - **subskills** : **éditable** via le socle réutilisable `<ListEditor>` du Lot A (liste de strings,
  *   `renderRow` = 1 input par ligne). Remonté en `string[]` ; `skillFrontmatterPatch` ne l'émet que non
  *   vide (piège du round-trip : `subskills: []` ajouterait une ligne parasite sur une skill atomique).
- * - **corps `SKILL.md`** (le vrai payload) : **différé** — préservé verbatim (`verbatimBody`), non exposé.
+ * - **corps `SKILL.md`** (le vrai payload) : **éditable** (chantier #4 « corps skill ») — un grand
+ *   `<textarea>` seedé depuis `element.body` (capté par `verbatimBody` dans `buildFrame`), remonté
+ *   **sans trim** (le payload markdown peut légitimement porter des blancs de tête/fin) et composé au
+ *   persist via `patchBody` (frontmatter byte-préservé). Pas de rendu markdown live au MVP.
  *
  * Ne persiste rien : remonte l'atome construit à `onSubmit` (l'hôte fait l'upsert + l'écriture disque
  * non-destructive via `persistSkill`).
@@ -26,7 +29,7 @@ import { slugify, type SkillAtom } from "@iakaframe/core";
 import type { ElementEditorProps } from "../forge/elementKind";
 import { ListEditor } from "./ListEditor";
 
-const EMPTY: SkillAtom = { id: "", name: "", description: "", subskills: [] };
+const EMPTY: SkillAtom = { id: "", name: "", description: "", subskills: [], body: "" };
 
 export function SkillEditor({
   element,
@@ -60,6 +63,9 @@ export function SkillEditor({
       description: draft.description,
       // subskills édités via <ListEditor> — lignes vides filtrées (ligne à demi saisie non persistée).
       subskills: draft.subskills.map((s) => s.trim()).filter((s) => s.length > 0),
+      // corps du SKILL.md (payload) — remonté SANS trim : les blancs de tête/fin sont l'édition de
+      // l'auteur (round-trip byte-sûr, cf. patchBody). Le `.value` du textarea est déjà en LF.
+      body: draft.body,
     });
     if (!editing) {
       setDraft({ ...EMPTY });
@@ -130,6 +136,20 @@ export function SkillEditor({
             />
           )}
         />
+      </div>
+
+      <div className="field">
+        <label>Corps du SKILL.md (payload)</label>
+        <textarea
+          rows={16}
+          value={draft.body}
+          placeholder="Les instructions markdown que le sous-agent lit et exécute…"
+          onChange={(e) => patch({ body: e.target.value })}
+        />
+        <div className="lockhint">
+          payload markdown <strong>lu et exécuté par le sous-agent</strong> — le frontmatter (id, name,
+          description, subskills) est préservé à l'octet ; seul ce corps change à l'enregistrement.
+        </div>
       </div>
 
       <div className="row">
