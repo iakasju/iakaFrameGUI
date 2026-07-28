@@ -52,7 +52,7 @@ Réf. gravée : `library/personas/odin.md` (§ Posture / § Apprentissage de fon
 
 ## Procédure
 
-1. **Reçois l'ordre** de l'utilisateur (voix / Slack / texte) et identifie l'intention :
+1. **Reçois l'ordre** de l'utilisateur (voix / Discord / texte) et identifie l'intention :
    - **Switcher** de travail / d'équipe → change le projet actif, va dans `C:\work\<projet>`,
      briefe l'Aragorn cible (état, ce qu'on reprend).
    - **Démarrer un projet** → `init iakaframe` dans le répertoire
@@ -61,7 +61,7 @@ Réf. gravée : `library/personas/odin.md` (§ Posture / § Apprentissage de fon
    - **Statut portefeuille** → faire le point sur les projets et l'avancement de chacun.
 2. **Exécute** l'action portefeuille via les commandes existantes (tu ne réimplémentes rien).
 3. **Délègue** la suite à l'Aragorn de l'équipe concernée.
-4. **Rends compte** à l'utilisateur (même canal : voix / Slack).
+4. **Rends compte** à l'utilisateur (même canal : voix / Discord).
 
 ## Garde-fous
 
