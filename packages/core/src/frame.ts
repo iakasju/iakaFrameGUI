@@ -22,7 +22,7 @@
  * calque le contrat des `parse*` (record invalide → `null`).
  */
 
-import { parseFrontmatter } from "./frontmatter";
+import { parseFrontmatter, verbatimBody } from "./frontmatter";
 import { parseMethodMd, parseTeamMd, type MethodMd, type TeamMd } from "./frontmatter";
 import { parseBinding, parseTools } from "./binding";
 import { parsePersona, type Persona } from "./persona";
@@ -668,7 +668,9 @@ export function buildFrame(raw: FrameRaw, activeFrameId?: string | null): Frame 
     .map((md) => parseGuardrail(parseFrontmatter(md).data))
     .filter((g): g is GuardrailAtom => g !== null);
   const skillList = (raw.pools.skills ?? [])
-    .map((md) => parseSkill(parseFrontmatter(md).data))
+    // ⚠️ Source du corps = `verbatimBody(md)` (préserve le `\n` de tête et le `\n` final), JAMAIS
+    // `parseFrontmatter(md).body` qui strippe le `\n` de tête → casserait la byte-parité du contrat.
+    .map((md) => parseSkill(parseFrontmatter(md).data, verbatimBody(md)))
     .filter((s): s is SkillAtom => s !== null);
   const workflowList = (raw.pools.workflows ?? [])
     .map((md) => parseWorkflow(parseFrontmatter(md).data))

@@ -54,9 +54,11 @@ export function skillsForRole(roleKey: string): Skill[] {
 /**
  * L'atome de skill **réel** du disque, stocké en **DOSSIER** `library/skills/<id>/SKILL.md`
  * (convention Claude Agent Skills : le nom du dossier fait foi). Forme mesurée `{ id, name,
- * description, subskills }` : `description` est **load-bearing** (blurb de déclenchement, comme
- * `persona.description`) ; le **corps** est le vrai payload (préservé verbatim). Identité = `id`
- * (== `name` == nom de dossier, verrouillé C-1).
+ * description, subskills, body }` : `description` est **load-bearing** (blurb de déclenchement, comme
+ * `persona.description`) ; le **`body`** est le vrai payload de la skill (les instructions que le
+ * sous-agent lit et exécute) — chantier #4 « corps skill » : il devient **éditable** (auparavant
+ * préservé verbatim mais jamais chargé dans l'atome). Identité = `id` (== `name` == nom de dossier,
+ * verrouillé C-1).
  */
 export interface SkillAtom {
   /** Id (== nom de dossier == `name`) — **identité (C-1)**. */
@@ -67,14 +69,22 @@ export interface SkillAtom {
   description: string;
   /** Sous-skills composées (fermeture de composition) — éditables au MVP. */
   subskills: string[];
+  /**
+   * Corps du `SKILL.md` (payload markdown lu et exécuté par le sous-agent) — **éditable** (chantier
+   * #4). Alimenté par `verbatimBody(md)` (JAMAIS `parseFrontmatter().body`, qui strippe le `\n` de
+   * tête) pour préserver la byte-parité du contrat déployé.
+   */
+  body: string;
 }
 
 /**
  * Parse défensif d'UN atome skill réel — Lot 5c. `null` si pas d'`id`. `name` repli sur `id` ;
- * `description` défensif (`""`) ; `subskills` coercé en `string[]`. Distinct de `parseSkillRefs`
- * (frame.ts, refs sortantes) qu'il ne modifie pas. Jamais d'exception.
+ * `description` défensif (`""`) ; `subskills` coercé en `string[]`. Le **`body`** (2e paramètre,
+ * défaut `""` — rétrocompatible) porte le payload markdown, capté par `verbatimBody(md)` à
+ * l'appel (`buildFrame`). Distinct de `parseSkillRefs` (frame.ts, refs sortantes) qu'il ne modifie
+ * pas. Jamais d'exception.
  */
-export function parseSkill(raw: unknown): SkillAtom | null {
+export function parseSkill(raw: unknown, body = ""): SkillAtom | null {
   if (typeof raw !== "object" || raw === null) return null;
   const r = raw as Record<string, unknown>;
   const id = typeof r.id === "string" && r.id.trim().length > 0 ? r.id.trim() : null;
@@ -84,7 +94,7 @@ export function parseSkill(raw: unknown): SkillAtom | null {
   const subskills = Array.isArray(r.subskills)
     ? r.subskills.filter((x): x is string => typeof x === "string" && x.length > 0)
     : [];
-  return { id, name, description, subskills };
+  return { id, name, description, subskills, body };
 }
 
 /**
