@@ -16,6 +16,7 @@ import { persistRole } from "./rolePersist";
 import { persistScaffold } from "./scaffoldPersist";
 import { persistSkill } from "./skillPersist";
 import { persistWorkflow } from "./workflowPersist";
+import { verbatimBody } from "@iakaframe/core";
 import type { Guardrail, Workflow } from "@iakaframe/core";
 
 /** Backend factice : `poolRead` rend `md`, `poolWrite` capture (id + octets). */
@@ -164,6 +165,8 @@ describe("brique B — round-trip byte par pool (persist<Pool> inchangé, seuls 
         name: "iakaframe-fabrication",
         description: "le geste de fabriquer — commiter, builder, remettre",
         subskills: ["iakaframe-git", "iakaframe-forgejo"],
+        // Corps porté par l'atome (verbatimBody, comme buildFrame) → préservé, jamais wipe.
+        body: verbatimBody(md),
       },
       api,
     );

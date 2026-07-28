@@ -14,6 +14,7 @@ const ATOM = (over: Partial<SkillAtom> = {}): SkillAtom => ({
   name: "iakaframe-cadrage",
   description: "Cadrer une feature avant tout code.",
   subskills: [],
+  body: "",
   ...over,
 });
 
