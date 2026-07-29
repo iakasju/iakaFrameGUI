@@ -37,6 +37,13 @@ export interface LlmRequest {
    * Optionnel : absent ⇒ le backend retombe sur le mode JSON générique (`format:"json"`).
    */
   format?: unknown;
+  /**
+   * Clé API **optionnelle** de la source d'inférence (Lot 2 — passerelle OpenAI-compatible LiteLLM).
+   * Transmise en `Authorization: Bearer <clé>` par le backend Rust **uniquement** sur le provider
+   * `openai` ; absente ⇒ aucun en-tête (LiteLLM sans auth). **Secret local** : jamais persisté dans
+   * le dépôt, jamais logué, jamais interpolé dans un message d'erreur (frontière de sécurité).
+   */
+  apiKey?: string;
 }
 
 /**

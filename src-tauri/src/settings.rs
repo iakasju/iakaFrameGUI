@@ -20,6 +20,11 @@ const AUTHORING_ENDPOINT_KEY: &str = "authoringEndpoint";
 /// lui, vit dans `<projectDir>/iakaframe.json` — **propriété du lieu**, partagée avec le CLI
 /// (`project_conf.rs`). Les mélanger ferait du pointeur un état de la GUI (interdit, I-5).
 const PROJECT_DIR_KEY: &str = "projectDir";
+/// Clé JSON de la **clé API d'authoring** OPTIONNELLE (Lot 2 — passerelle OpenAI-compatible LiteLLM).
+/// Transmise en `Authorization: Bearer <clé>` par `llm.rs` sur le SEUL provider openai. **Secret
+/// LOCAL** : vit dans `<workspace>/settings.json` (hors dépôt, jamais commité) — **jamais loguée**,
+/// jamais renvoyée dans un message d'erreur. Absente ⇒ aucun en-tête (LiteLLM sans auth).
+const AUTHORING_API_KEY_KEY: &str = "authoringApiKey";
 
 /// Lit une clé chaîne du `settings_file` (`None` si absent/illisible/vide). Générique et partagée
 /// par tous les réglages simples (racine bibliothèque, modèle d'authoring…).
@@ -94,6 +99,18 @@ pub fn write_authoring_endpoint(settings_file: &Path, endpoint: &str) -> Result<
     write_string_key(settings_file, AUTHORING_ENDPOINT_KEY, endpoint)
 }
 
+/// Lit la **clé API d'authoring** persistée (`None` si absent/illisible/vide → aucun en-tête Bearer).
+/// **Ne jamais logger** la valeur rendue : c'est un secret local (frontière de non-fuite).
+pub fn read_authoring_api_key(settings_file: &Path) -> Option<String> {
+    read_string_key(settings_file, AUTHORING_API_KEY_KEY)
+}
+
+/// Écrit/fusionne la **clé API d'authoring**. Une valeur vide **retire** la clé. Même contrat de
+/// fusion non destructive que les autres réglages (préserve les autres clés).
+pub fn write_authoring_api_key(settings_file: &Path, api_key: &str) -> Result<(), String> {
+    write_string_key(settings_file, AUTHORING_API_KEY_KEY, api_key)
+}
+
 /// Lit le **dossier de projet** persisté (`None` si absent/illisible/vide).
 pub fn read_project_dir(settings_file: &Path) -> Option<String> {
     read_string_key(settings_file, PROJECT_DIR_KEY)
@@ -155,6 +172,19 @@ pub fn set_project_dir(dir: String) -> Result<(), String> {
 #[tauri::command]
 pub fn set_authoring_endpoint(endpoint: String) -> Result<(), String> {
     write_authoring_endpoint(&crate::paths::resolve_settings_file(), &endpoint)
+}
+
+/// **Clé API d'authoring** OPTIONNELLE persistée (Lot 2) — `null` si non définie (aucun en-tête Bearer).
+/// Réglage LOCAL build-time (jamais commité, jamais logué), DISTINCT du runner d'EXÉCUTION du Binding.
+#[tauri::command]
+pub fn authoring_api_key() -> Option<String> {
+    read_authoring_api_key(&crate::paths::resolve_settings_file())
+}
+
+/// Définit (ou retire, si vide) la clé API d'authoring persistée dans `<workspace>/settings.json`.
+#[tauri::command]
+pub fn set_authoring_api_key(api_key: String) -> Result<(), String> {
+    write_authoring_api_key(&crate::paths::resolve_settings_file(), &api_key)
 }
 
 #[cfg(test)]
@@ -288,6 +318,29 @@ mod tests {
             read_authoring_model(&f),
             Some("ollama:qwen2.5-coder".to_string())
         );
+        std::fs::remove_dir_all(f.parent().unwrap()).ok();
+    }
+
+    // --- Clé API d'authoring (Lot 2, LiteLLM) : même contrat, coexistence non destructive. ---
+
+    #[test]
+    fn authoring_api_key_absent_renvoie_none() {
+        let f = tmp_file("ak-absent");
+        assert_eq!(read_authoring_api_key(&f), None);
+    }
+
+    #[test]
+    fn authoring_api_key_roundtrip_et_coexistence_non_destructive() {
+        let f = tmp_file("ak-rt");
+        write_authoring_model(&f, "openai:claude-3-5-sonnet").unwrap();
+        write_authoring_endpoint(&f, "http://localhost:4000").unwrap();
+        write_authoring_api_key(&f, "sk-secret-litellm").unwrap();
+        assert_eq!(read_authoring_api_key(&f), Some("sk-secret-litellm".to_string()));
+        // Effacer la clé ne touche ni le modèle ni l'endpoint (fusion non destructive).
+        write_authoring_api_key(&f, "").unwrap();
+        assert_eq!(read_authoring_api_key(&f), None);
+        assert_eq!(read_authoring_model(&f), Some("openai:claude-3-5-sonnet".to_string()));
+        assert_eq!(read_authoring_endpoint(&f), Some("http://localhost:4000".to_string()));
         std::fs::remove_dir_all(f.parent().unwrap()).ok();
     }
 }

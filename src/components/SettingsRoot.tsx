@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { backend, type Backend } from "../api/backend";
 import { CharteSelector } from "./CharteSelector";
+import { INFERENCE_SOURCES, deriveSourceId, extractModelName } from "./inferenceSources";
 
 /** Aucun dossier de projet réglé : la forge ne sait pas où lire le pointeur de frame active. */
 export const NO_PROJECT_HINT =
@@ -32,6 +33,10 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
   // § D3 : endpoint d'authoring optionnel (hôte Ollama LAN). `null` = non défini → défaut localhost.
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [endpointDraft, setEndpointDraft] = useState<string>("");
+  // Lot 2 : clé API OPTIONNELLE (LiteLLM/openai). On ne charge JAMAIS la valeur dans l'UI (secret) —
+  // seulement sa PRÉSENCE (`apiKeySet`). La saisie (`apiKeyDraft`) part vide, masquée, écrite à la demande.
+  const [apiKeySet, setApiKeySet] = useState(false);
+  const [apiKeyDraft, setApiKeyDraft] = useState<string>("");
   // Dossier de PROJET : il dit OÙ est le projet. Le pointeur de frame active, lui, vit dans
   // `<projectDir>/iakaframe.json` et appartient au LIEU (partagé avec le CLI) — jamais ici.
   const [project, setProject] = useState<string | null>(null);
@@ -62,6 +67,15 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
     }
     setEndpoint(resolvedEndpoint);
     setEndpointDraft(resolvedEndpoint ?? "");
+    // Présence de clé API uniquement (jamais la valeur) — non-fuite du secret dans l'UI.
+    let hasKey = false;
+    try {
+      const k = await api.authoringApiKey?.();
+      hasKey = typeof k === "string" && k.trim().length > 0;
+    } catch {
+      hasKey = false;
+    }
+    setApiKeySet(hasKey);
     let resolvedProject: string | null = null;
     try {
       resolvedProject = await api.projectDir();
@@ -147,6 +161,63 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
     }
   }, [api, refresh]);
 
+  // Sélection d'un preset de source (Lot 1). « Personnalisé » ne touche à rien (champs libres). « Mode
+  // démo » pose la valeur réservée `mock`. Un preset réel écrit l'endpoint ET oriente le préfixe
+  // provider de `authoringModel` (Option A), en CONSERVANT le nom de modèle courant (jamais fabriqué).
+  const applySource = useCallback(
+    async (id: string) => {
+      setBusy(true);
+      try {
+        if (id === "custom") {
+          /* champs libres conservés — rien à écrire */
+        } else if (id === "mock") {
+          await api.setAuthoringModel("mock");
+        } else {
+          const preset = INFERENCE_SOURCES.find((s) => s.id === id);
+          if (preset && preset.provider && preset.endpoint) {
+            await api.setAuthoringEndpoint(preset.endpoint);
+            const name = extractModelName(modelDraft.length > 0 ? modelDraft : model ?? "");
+            await api.setAuthoringModel(`${preset.provider}:${name}`);
+          }
+        }
+        await refresh();
+      } catch {
+        /* hors Tauri / erreur : on ne casse pas le rendu */
+      } finally {
+        setBusy(false);
+      }
+    },
+    [api, model, modelDraft, refresh],
+  );
+
+  // Écrit la clé API (Lot 2). La saisie masquée `apiKeyDraft` est vidée après écriture (le secret ne
+  // reste pas dans l'état de l'UI). Vide ⇒ retrait de la clé (retour à « LiteLLM sans auth »).
+  const saveApiKey = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setAuthoringApiKey?.(apiKeyDraft.trim());
+      setApiKeyDraft("");
+      await refresh();
+    } catch {
+      /* no-op */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, apiKeyDraft, refresh]);
+
+  const clearApiKey = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.setAuthoringApiKey?.("");
+      setApiKeyDraft("");
+      await refresh();
+    } catch {
+      /* no-op */
+    } finally {
+      setBusy(false);
+    }
+  }, [api, refresh]);
+
   const choose = useCallback(async () => {
     setBusy(true);
     try {
@@ -212,6 +283,31 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
           <b>instantanée</b> et persiste localement — sans rechargement ni requête réseau.
         </p>
         <CharteSelector />
+      </div>
+
+      {/* Lot 1 : sélecteur de SOURCE d'inférence — pré-remplit endpoint + oriente le provider (Option A). */}
+      <div className="settings-authoring" aria-label="Source d'inférence de la forge">
+        <h3>Source d'inférence</h3>
+        <p className="settings-hint">
+          Choisissez une <b>source</b> : elle pré-remplit l'endpoint et oriente le provider du modèle
+          ci-dessous. <b>LiteLLM</b> = passerelle OpenAI-compatible (Claude / ChatGPT / local d'un seul
+          wire). Vous gardez la main sur le modèle et l'endpoint via « Personnalisé ».
+        </p>
+        <div className="settings-actions">
+          <select
+            className="model-input"
+            aria-label="Source d'inférence"
+            value={deriveSourceId(model, endpoint)}
+            disabled={busy}
+            onChange={(e) => void applySource(e.target.value)}
+          >
+            {INFERENCE_SOURCES.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* § Volet B : modèle d'authoring UNIQUE et global (tous les étages, pas par persona). */}
@@ -292,6 +388,44 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
         {endpoint && (
           <p className="settings-line">
             Endpoint configuré : <code className="model-value">{endpoint}</code>
+          </p>
+        )}
+      </div>
+
+      {/* Lot 2 : clé API OPTIONNELLE (LiteLLM/openai). Secret local — jamais affiché, jamais logué. */}
+      <div className="settings-authoring" aria-label="Clé API d'authoring iakaFrameGUI">
+        <h3>Clé API (optionnel)</h3>
+        <p className="settings-hint">
+          Pour une source <b>LiteLLM / OpenAI-compatible</b> qui exige une clé. <b>Secret local</b> —
+          stocké hors dépôt, jamais commité, jamais logué. Vide ⇒ aucune authentification (LiteLLM
+          sans clé).
+        </p>
+        <div className="settings-actions">
+          <input
+            type="password"
+            className="model-input"
+            aria-label="Clé API d'authoring (optionnel)"
+            placeholder={apiKeySet ? "•••••••• (une clé est configurée)" : "sk-…"}
+            value={apiKeyDraft}
+            disabled={busy}
+            onChange={(e) => setApiKeyDraft(e.target.value)}
+          />
+          <button type="button" className="docbtn" disabled={busy} onClick={() => void saveApiKey()}>
+            Enregistrer la clé
+          </button>
+          <button
+            type="button"
+            className="docbtn"
+            disabled={busy}
+            onClick={() => void clearApiKey()}
+            title="Retire la clé configurée (retour à « sans authentification »)"
+          >
+            Effacer la clé
+          </button>
+        </div>
+        {apiKeySet && (
+          <p className="settings-line">
+            <em className="no-model">Une clé est configurée (masquée — jamais affichée).</em>
           </p>
         )}
       </div>

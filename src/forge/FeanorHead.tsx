@@ -133,6 +133,8 @@ export function FeanorHead({
   const [identity, setIdentity] = useState<CopiloteIdentity | null>(null);
   // Endpoint d'authoring optionnel : hôte Ollama LAN. Vide → localhost (résolu par le résolveur).
   const [endpoint, setEndpoint] = useState<string | null>(null);
+  // Clé API optionnelle (Lot 2 — LiteLLM/openai). Vide/absente → aucun header Bearer. JAMAIS loguée.
+  const [apiKey, setApiKey] = useState<string | null>(null);
   // Modèle d'authoring PARTAGÉ (`authoringModel`), lu des Settings — AUCUN défaut : l'absence est
   // signalée (jamais masquée). Défensif hors Tauri : le mock reste, il indique juste l'absence.
   const [configuredModel, setConfiguredModel] = useState<string>(model ?? "");
@@ -166,6 +168,23 @@ export function FeanorHead({
         if (alive && e && e.trim().length > 0) setEndpoint(e.trim());
       } catch {
         /* hors Tauri / non défini : défaut localhost côté résolveur */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api]);
+
+  // Clé API d'authoring (Lot 2 — LiteLLM) : lue des Settings (`authoringApiKey`). Vide/absente ⇒
+  // aucun header Bearer. Elle ne sert QUE le chemin conseil/chat live (jamais loguée, jamais affichée).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const k = await api.authoringApiKey?.();
+        if (alive && k && k.trim().length > 0) setApiKey(k.trim());
+      } catch {
+        /* hors Tauri / non défini : aucune clé (LiteLLM sans auth) */
       }
     })();
     return () => {
@@ -217,7 +236,7 @@ export function FeanorHead({
         const result = await resolveAdviceStream(
           trimmed,
           feanorContext(),
-          { llm: streamLlm, model: configuredModel, endpoint, identity },
+          { llm: streamLlm, model: configuredModel, endpoint, apiKey, identity },
           (chunk) => {
             if (chunk.kind === "token") setStreamText((prev) => (prev ?? "") + chunk.text);
           },
@@ -232,6 +251,7 @@ export function FeanorHead({
         llm,
         model: configuredModel,
         endpoint,
+        apiKey,
         identity,
       });
       setAnswer(result);

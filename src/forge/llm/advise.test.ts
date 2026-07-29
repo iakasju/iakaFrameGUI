@@ -58,13 +58,29 @@ describe("resolveAdvice — orientation live / repli honnête (offline via fakeL
     expect(r.reason).toBe(NO_AUTHORING_MODEL_HINT);
   });
 
-  it("provider non supporté (≠ ollama) → repli + message, aucune réponse", async () => {
+  it("provider non supporté (hors {ollama, openai}) → repli + message, aucune réponse", async () => {
     const r = await resolveAdvice("aide", ctx, {
       llm: fakeLlm('{"reply":"x"}'),
-      model: "openai:gpt-4o",
+      model: "anthropic:claude-3-5-sonnet", // provider hors allow-set → aveu (LiteLLM absorbe Claude, pas nous)
     });
     expect(r.reply).toBeNull();
     expect(r.reason).toBe(FALLBACK_UNSUPPORTED);
+  });
+
+  it("provider openai (LiteLLM) → live : réponse extraite, source live (Lot 2)", async () => {
+    const llm = fakeLlm('{"reply":"Conseil via LiteLLM."}');
+    const r = await resolveAdvice("aide", ctx, {
+      llm,
+      model: "openai:claude-3-5-sonnet",
+      endpoint: "http://localhost:4000",
+      apiKey: "sk-secret",
+    });
+    expect(r.source).toBe("live");
+    expect(r.reply).toBe("Conseil via LiteLLM.");
+    // La requête porte bien le provider openai, l'hôte LiteLLM et la clé (transmise à Rust, jamais loguée).
+    expect(llm.calls[0].provider).toBe("openai");
+    expect(llm.calls[0].host).toBe("http://localhost:4000");
+    expect(llm.calls[0].apiKey).toBe("sk-secret");
   });
 
   it("transport REJETTE (timeout/réseau) → repli + message, aucune exception ni stack", async () => {

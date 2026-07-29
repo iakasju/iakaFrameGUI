@@ -99,6 +99,105 @@ describe("SettingsRoot — charte graphique (déplacée du chrome)", () => {
   });
 });
 
+describe("SettingsRoot — sélecteur de source d'inférence (Lot 1) + clé API (Lot 2)", () => {
+  it("expose le sélecteur avec les presets (Ollama LAN, LiteLLM, mock, personnalisé)", async () => {
+    render(<SettingsRoot api={fakeApi()} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    const select = screen.getByLabelText("Source d'inférence") as HTMLSelectElement;
+    const options = Array.from(select.options).map((o) => o.value);
+    expect(options).toContain("ollama-lan");
+    expect(options).toContain("ollama-local");
+    expect(options).toContain("litellm");
+    expect(options).toContain("mock");
+    expect(options).toContain("custom");
+    // Libellé LiteLLM explicite (passerelle OpenAI-compatible).
+    expect(screen.getByText(/LiteLLM \(Claude \/ ChatGPT \/ local\)/)).toBeTruthy();
+  });
+
+  it("« Ollama LAN » pré-remplit l'endpoint LAN + oriente le provider ollama (Option A)", async () => {
+    const setAuthoringEndpoint = vi.fn(async () => {});
+    const setAuthoringModel = vi.fn(async () => {});
+    render(
+      <SettingsRoot
+        api={fakeApi({
+          authoringModel: async () => "ollama:qwen2.5-coder",
+          setAuthoringEndpoint,
+          setAuthoringModel,
+        })}
+      />,
+    );
+    await screen.findByText("/home/user/work/iakaframe");
+    const select = screen.getByLabelText("Source d'inférence");
+    fireEvent.change(select, { target: { value: "ollama-lan" } });
+    await waitFor(() =>
+      expect(setAuthoringEndpoint).toHaveBeenCalledWith("http://192.168.2.11:11434"),
+    );
+    // Le nom de modèle courant est CONSERVÉ, seul le préfixe provider est (ré)écrit.
+    expect(setAuthoringModel).toHaveBeenCalledWith("ollama:qwen2.5-coder");
+  });
+
+  it("« LiteLLM » pré-remplit http://localhost:4000 + oriente le provider openai", async () => {
+    const setAuthoringEndpoint = vi.fn(async () => {});
+    const setAuthoringModel = vi.fn(async () => {});
+    render(
+      <SettingsRoot
+        api={fakeApi({
+          authoringModel: async () => "ollama:qwen2.5-coder",
+          setAuthoringEndpoint,
+          setAuthoringModel,
+        })}
+      />,
+    );
+    await screen.findByText("/home/user/work/iakaframe");
+    fireEvent.change(screen.getByLabelText("Source d'inférence"), { target: { value: "litellm" } });
+    await waitFor(() => expect(setAuthoringEndpoint).toHaveBeenCalledWith("http://localhost:4000"));
+    expect(setAuthoringModel).toHaveBeenCalledWith("openai:qwen2.5-coder");
+  });
+
+  it("« Mode démo (mock) » pose la valeur réservée du modèle (opt-in), sans toucher l'endpoint", async () => {
+    const setAuthoringModel = vi.fn(async () => {});
+    const setAuthoringEndpoint = vi.fn(async () => {});
+    render(<SettingsRoot api={fakeApi({ setAuthoringModel, setAuthoringEndpoint })} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    fireEvent.change(screen.getByLabelText("Source d'inférence"), { target: { value: "mock" } });
+    await waitFor(() => expect(setAuthoringModel).toHaveBeenCalledWith("mock"));
+    expect(setAuthoringEndpoint).not.toHaveBeenCalled();
+  });
+
+  it("réhydrate la source depuis les réglages (openai + localhost:4000 → LiteLLM sélectionné)", async () => {
+    render(
+      <SettingsRoot
+        api={fakeApi({
+          authoringModel: async () => "openai:claude-3-5-sonnet",
+          authoringEndpoint: async () => "http://localhost:4000",
+        })}
+      />,
+    );
+    await screen.findByText("/home/user/work/iakaframe");
+    const select = screen.getByLabelText("Source d'inférence") as HTMLSelectElement;
+    expect(select.value).toBe("litellm");
+  });
+
+  it("champ clé API masqué (type password) ; « Enregistrer la clé » persiste (setAuthoringApiKey)", async () => {
+    const setAuthoringApiKey = vi.fn(async () => {});
+    render(<SettingsRoot api={fakeApi({ setAuthoringApiKey })} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    const input = screen.getByLabelText("Clé API d'authoring (optionnel)") as HTMLInputElement;
+    expect(input.type).toBe("password"); // masqué : le secret n'est jamais affiché en clair
+    fireEvent.change(input, { target: { value: "sk-secret-litellm" } });
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer la clé/ }));
+    await waitFor(() => expect(setAuthoringApiKey).toHaveBeenCalledWith("sk-secret-litellm"));
+  });
+
+  it("indique la PRÉSENCE d'une clé sans jamais afficher sa valeur", async () => {
+    render(<SettingsRoot api={fakeApi({ authoringApiKey: async () => "sk-super-secret" })} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    // La valeur du secret n'apparaît nulle part dans le DOM.
+    expect(screen.queryByText(/sk-super-secret/)).toBeNull();
+    expect(screen.getByText(/Une clé est configurée/)).toBeTruthy();
+  });
+});
+
 describe("SettingsRoot — endpoint d'authoring optionnel (§ D3)", () => {
   it("affiche l'endpoint configuré quand il est défini", async () => {
     render(<SettingsRoot api={fakeApi({ authoringEndpoint: async () => "http://192.168.2.11:11434" })} />);
