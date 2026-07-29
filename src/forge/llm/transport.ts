@@ -29,6 +29,7 @@ export function realLlm(backend: Pick<Backend, "llmComplete">): LlmTransport {
         user: req.user,
         timeoutMs: req.timeoutMs,
         format: req.format,
+        apiKey: req.apiKey, // Lot 2 : clé optionnelle (openai/LiteLLM), jamais loguée côté Rust.
       });
     },
   };
@@ -110,6 +111,7 @@ export function realStreamLlm(
             user: req.user,
             timeoutMs: req.timeoutMs,
             format: req.format,
+            apiKey: req.apiKey, // Lot 2 : clé optionnelle (openai/LiteLLM), jamais loguée côté Rust.
           },
           relay,
         );

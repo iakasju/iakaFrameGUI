@@ -26,7 +26,7 @@ import { NO_AUTHORING_MODEL_HINT } from "../mock/copilote";
 import {
   DEFAULT_AUTHORING_HOST,
   DEFAULT_LLM_TIMEOUT_MS,
-  MVP_PROVIDER,
+  SUPPORTED_PROVIDERS,
   FALLBACK_UNAVAILABLE,
   FALLBACK_UNREADABLE,
   FALLBACK_UNSUPPORTED,
@@ -82,6 +82,8 @@ export interface AdviceDeps {
   model?: string | null;
   /** Endpoint d'authoring optionnel (`authoringEndpoint`) — vide ⇒ `DEFAULT_AUTHORING_HOST`. */
   endpoint?: string | null;
+  /** Clé API optionnelle (Lot 2 — LiteLLM/openai) — transmise à Rust, jamais loguée. Vide/absente ⇒ aucun header. */
+  apiKey?: string | null;
   /** Budget de temps de l'appel (défaut `DEFAULT_LLM_TIMEOUT_MS`). */
   timeoutMs?: number;
   /**
@@ -203,9 +205,9 @@ export async function resolveAdvice(
     return { reply: null, source: "mock", reason: NO_AUTHORING_MODEL_HINT };
   }
 
-  // 2. Provider non supporté au MVP (ollama seul) → repli + message.
+  // 2. Provider non supporté (hors {ollama, openai}) → repli + message.
   const { provider, model } = parseProviderModel(rawModel);
-  if (provider !== MVP_PROVIDER || model.length === 0) {
+  if (!SUPPORTED_PROVIDERS.has(provider) || model.length === 0) {
     return { reply: null, source: "mock", reason: FALLBACK_UNSUPPORTED };
   }
 
@@ -214,6 +216,8 @@ export async function resolveAdvice(
     deps.endpoint && deps.endpoint.trim().length > 0
       ? deps.endpoint.trim()
       : DEFAULT_AUTHORING_HOST;
+  const apiKey =
+    typeof deps.apiKey === "string" && deps.apiKey.trim().length > 0 ? deps.apiKey.trim() : undefined;
   const req: LlmRequest = {
     provider,
     model,
@@ -221,7 +225,8 @@ export async function resolveAdvice(
     system: buildAdviceSystemPrompt(deps.identity),
     user: buildAdviceUserPrompt(prompt, ctx),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
-    format: ADVICE_OUTPUT_SCHEMA, // sorties structurées Ollama (`format:<schema>`)
+    format: ADVICE_OUTPUT_SCHEMA, // sorties structurées Ollama (`format:<schema>`) — openai l'ignore (Lot 2b)
+    apiKey,
   };
 
   let raw: string;
@@ -295,6 +300,8 @@ export interface AdviceStreamDeps {
   llm: LlmStreamTransport;
   model?: string | null;
   endpoint?: string | null;
+  /** Clé API optionnelle (Lot 2 — LiteLLM/openai) — transmise à Rust, jamais loguée. Vide/absente ⇒ aucun header. */
+  apiKey?: string | null;
   timeoutMs?: number;
   identity?: CopiloteIdentity | null;
 }
@@ -318,9 +325,9 @@ export async function resolveAdviceStream(
     return { reply: null, source: "mock", reason: NO_AUTHORING_MODEL_HINT };
   }
 
-  // 2. Provider non supporté (ollama seul) → repli, aucun flux.
+  // 2. Provider non supporté (hors {ollama, openai}) → repli, aucun flux.
   const { provider, model } = parseProviderModel(rawModel);
-  if (provider !== MVP_PROVIDER || model.length === 0) {
+  if (!SUPPORTED_PROVIDERS.has(provider) || model.length === 0) {
     return { reply: null, source: "mock", reason: FALLBACK_UNSUPPORTED };
   }
 
@@ -329,6 +336,8 @@ export async function resolveAdviceStream(
     deps.endpoint && deps.endpoint.trim().length > 0
       ? deps.endpoint.trim()
       : DEFAULT_AUTHORING_HOST;
+  const apiKey =
+    typeof deps.apiKey === "string" && deps.apiKey.trim().length > 0 ? deps.apiKey.trim() : undefined;
   const req: LlmRequest = {
     provider,
     model,
@@ -336,6 +345,7 @@ export async function resolveAdviceStream(
     system: buildAdviceStreamSystemPrompt(deps.identity),
     user: buildAdviceStreamUserPrompt(prompt, ctx),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
+    apiKey,
   };
 
   let full: string;

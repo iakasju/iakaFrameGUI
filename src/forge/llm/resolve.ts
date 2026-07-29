@@ -48,8 +48,20 @@ export const DEFAULT_AUTHORING_HOST = "http://localhost:11434";
 /** Budget de temps par défaut d'un appel d'inférence d'authoring. */
 export const DEFAULT_LLM_TIMEOUT_MS = 20000;
 
-/** Provider supporté au MVP (D2) — tout autre ⇒ aveu honnête. */
+/** Provider **natif** historique (Ollama `/api/chat`) — conservé pour les résolveurs structurés. */
 export const MVP_PROVIDER = "ollama";
+
+/** Provider **OpenAI-compatible** (Lot 2) : passerelle LiteLLM (`/v1/chat/completions`), aussi LM Studio / Ollama-`/v1`. */
+export const OPENAI_PROVIDER = "openai";
+
+/**
+ * Providers supportés par le **chemin conseil/chat** et le Copilote (Lot 2) : `ollama` (natif) **et**
+ * `openai` (passerelle OpenAI-compatible LiteLLM — débloque Claude/ChatGPT/local d'un coup). Tout autre
+ * provider ⇒ aveu honnête `FALLBACK_UNSUPPORTED`. Les résolveurs de **proposition structurée** d'élément
+ * (persona / pools) restent, eux, sur `MVP_PROVIDER` seul tant que le mapping `response_format` (Lot 2b)
+ * n'est pas câblé.
+ */
+export const SUPPORTED_PROVIDERS: ReadonlySet<string> = new Set([MVP_PROVIDER, OPENAI_PROVIDER]);
 
 /**
  * Valeur réservée d'opt-in du **mode démo** (D1) : saisie dans le réglage existant `authoringModel`
@@ -98,6 +110,8 @@ export interface ResolveDeps {
   mock?: (intention: string, context: CopiloteContext) => Proposition;
   /** Endpoint d'authoring optionnel (D3) — vide ⇒ `DEFAULT_AUTHORING_HOST`. */
   endpoint?: string | null;
+  /** Clé API optionnelle (Lot 2 — LiteLLM/openai) — transmise à Rust, jamais loguée. Vide/absente ⇒ aucun header. */
+  apiKey?: string | null;
   /** Budget de temps de l'appel (défaut `DEFAULT_LLM_TIMEOUT_MS`). */
   timeoutMs?: number;
   /**
@@ -154,8 +168,8 @@ export async function resolveProposition(
     return { proposition: mock(intention, context), source: "mock", reason: MOCK_DEMO_LABEL };
   }
 
-  // 3. Provider non supporté au MVP → AVEU honnête (aucune proposition fabriquée).
-  if (provider !== MVP_PROVIDER || model.length === 0) {
+  // 3. Provider non supporté (hors {ollama, openai}) → AVEU honnête (aucune proposition fabriquée).
+  if (!SUPPORTED_PROVIDERS.has(provider) || model.length === 0) {
     return { proposition: null, source: "none", reason: FALLBACK_UNSUPPORTED };
   }
 
@@ -166,6 +180,8 @@ export async function resolveProposition(
     deps.endpoint && deps.endpoint.trim().length > 0
       ? deps.endpoint.trim()
       : DEFAULT_AUTHORING_HOST;
+  const apiKey =
+    typeof deps.apiKey === "string" && deps.apiKey.trim().length > 0 ? deps.apiKey.trim() : undefined;
   const req: LlmRequest = {
     provider,
     model,
@@ -173,7 +189,8 @@ export async function resolveProposition(
     system: buildSystemPrompt(deps.identity),
     user: buildUserPrompt(intention, context, elementPool),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
-    format: LLM_OUTPUT_SCHEMA, // D4 : sorties structurées Ollama (`format:<schema>`)
+    format: LLM_OUTPUT_SCHEMA, // D4 : sorties structurées Ollama (`format:<schema>`) — openai l'ignore (Lot 2b)
+    apiKey,
   };
 
   let raw: string;

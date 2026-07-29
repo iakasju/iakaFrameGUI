@@ -232,6 +232,21 @@ export function setAuthoringEndpoint(endpoint: string): Promise<void> {
 }
 
 /**
+ * **Clé API d'authoring** OPTIONNELLE (Lot 2 — passerelle OpenAI-compatible LiteLLM). `null`/vide ⇒
+ * aucun en-tête Bearer (LiteLLM sans auth). **Secret LOCAL** persisté dans `<workspace>/settings.json`
+ * (clé `authoringApiKey`, hors dépôt) — jamais commité, jamais logué. Réglage build-time, DISTINCT du
+ * runner d'EXÉCUTION du Binding (frontière authoring ≠ exécution).
+ */
+export function authoringApiKey(): Promise<string | null> {
+  return call<string | null>("authoring_api_key");
+}
+
+/** Définit (ou retire, si vide) la clé API d'authoring persistée. Suit le pattern de `setAuthoringEndpoint`. */
+export function setAuthoringApiKey(apiKey: string): Promise<void> {
+  return call<void>("set_authoring_api_key", { apiKey });
+}
+
+/**
  * **Dossier de projet** courant — réglage de la forge (`<workspace>/settings.json`, clé
  * `projectDir`). Il dit **où est le projet**, pas quelle frame y est active : le pointeur de frame,
  * lui, vit dans `<projectDir>/iakaframe.json` et appartient au **lieu**, pas à la GUI.
@@ -285,6 +300,12 @@ export interface LlmCompleteArgs {
   timeoutMs: number;
   /** Schéma JSON de sortie (Ollama `format`, D4) — optionnel (absent ⇒ `format:"json"` côté Rust). */
   format?: unknown;
+  /**
+   * Clé API **optionnelle** (Lot 2 — passerelle OpenAI-compatible LiteLLM). Transmise à Rust, qui la
+   * pose en `Authorization: Bearer <clé>` sur le SEUL provider `openai`. **Secret local** : jamais
+   * commitée, jamais loguée, jamais dans un message d'erreur. Absente ⇒ aucun en-tête (LiteLLM sans clé).
+   */
+  apiKey?: string;
 }
 
 /**
@@ -302,6 +323,7 @@ export function llmComplete(args: LlmCompleteArgs): Promise<string> {
     user: args.user,
     timeoutMs: args.timeoutMs,
     format: args.format,
+    apiKey: args.apiKey,
   });
 }
 
@@ -338,6 +360,7 @@ export function llmCompleteStream(
     user: args.user,
     timeoutMs: args.timeoutMs,
     format: args.format,
+    apiKey: args.apiKey,
     onEvent: channel,
   });
 }
@@ -710,6 +733,8 @@ export const backend = {
   authoringModel,
   setAuthoringModel,
   authoringEndpoint,
+  authoringApiKey,
+  setAuthoringApiKey,
   projectDir,
   setProjectDir,
   activeFrameId,
