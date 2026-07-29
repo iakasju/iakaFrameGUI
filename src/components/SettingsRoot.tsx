@@ -37,6 +37,12 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
   // seulement sa PRÉSENCE (`apiKeySet`). La saisie (`apiKeyDraft`) part vide, masquée, écrite à la demande.
   const [apiKeySet, setApiKeySet] = useState(false);
   const [apiKeyDraft, setApiKeyDraft] = useState<string>("");
+  // Lot 2b : découverte des modèles via `GET /v1/models` (source openai/LiteLLM). `models` peuple un
+  // dropdown ; `modelsReason` = l'aveu honnête sur liste vide (endpoint injoignable / aucun modèle) —
+  // dans ce cas la **saisie manuelle** (champ modèle) reste seule vérité, jamais une fausse liste.
+  const [models, setModels] = useState<string[]>([]);
+  const [modelsReason, setModelsReason] = useState<string | null>(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
   // Dossier de PROJET : il dit OÙ est le projet. Le pointeur de frame active, lui, vit dans
   // `<projectDir>/iakaframe.json` et appartient au LIEU (partagé avec le CLI) — jamais ici.
   const [project, setProject] = useState<string | null>(null);
@@ -218,6 +224,53 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
     }
   }, [api, refresh]);
 
+  // Lot 2b : peuple le dropdown de modèles depuis `GET /v1/models` (source openai/LiteLLM). HONNÊTE :
+  // sur endpoint injoignable / liste vide, on VIDE le dropdown et on affiche `modelsReason` — la saisie
+  // manuelle (champ modèle) reste disponible, jamais une fausse liste. La clé n'est pas détenue par
+  // l'UI (secret) : le backend lit la clé persistée ; on ne passe que la saisie fraîche non enregistrée.
+  const loadModels = useCallback(async () => {
+    setModelsLoading(true);
+    setModelsReason(null);
+    try {
+      const freshKey = apiKeyDraft.trim().length > 0 ? apiKeyDraft.trim() : undefined;
+      const res = await api.llmModels?.(endpointDraft.trim(), freshKey);
+      if (!res) {
+        // Façade sans `llmModels` (test partiel) ou hors Tauri → aveu, saisie manuelle conservée.
+        setModels([]);
+        setModelsReason("découverte indisponible — saisie manuelle du modèle");
+        return;
+      }
+      setModels(res.models ?? []);
+      setModelsReason(
+        res.models && res.models.length > 0 ? null : res.reason ?? "aucun modèle exposé par la source",
+      );
+    } catch {
+      // Hors Tauri / rejet : aveu honnête, jamais une fausse liste — la saisie manuelle reste.
+      setModels([]);
+      setModelsReason("découverte indisponible — saisie manuelle du modèle");
+    } finally {
+      setModelsLoading(false);
+    }
+  }, [api, endpointDraft, apiKeyDraft]);
+
+  // Sélection d'un modèle dans le dropdown découvert : préfixe provider `openai` conservé (Option A),
+  // persisté via la façade existante (aucun chemin neuf). Le champ de saisie libre reste la vérité.
+  const chooseModel = useCallback(
+    async (id: string) => {
+      if (id.length === 0) return;
+      setBusy(true);
+      try {
+        await api.setAuthoringModel(`openai:${id}`);
+        await refresh();
+      } catch {
+        /* hors Tauri / erreur : on ne casse pas le rendu */
+      } finally {
+        setBusy(false);
+      }
+    },
+    [api, refresh],
+  );
+
   const choose = useCallback(async () => {
     setBusy(true);
     try {
@@ -244,6 +297,14 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
       setBusy(false);
     }
   }, [api, refresh]);
+
+  // Source openai/LiteLLM ? (préfixe provider du modèle). Conditionne l'affichage du dropdown de
+  // modèles `/v1/models` — inutile pour Ollama (dont les modèles ne s'exposent pas par ce wire ici).
+  const modelProvider = (() => {
+    const m = (model ?? "").trim().toLowerCase();
+    return m.includes(":") ? m.slice(0, m.indexOf(":")).trim() : "";
+  })();
+  const isOpenaiSource = modelProvider === "openai";
 
   return (
     <section className="settings-root" aria-label="Racine de la bibliothèque iakaframe">
@@ -346,6 +407,50 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
             Modèle configuré : <code className="model-value">{model}</code>
           </p>
         )}
+
+        {/* Lot 2b : dropdown de modèles découverts via `GET /v1/models` (source openai/LiteLLM). Repli
+            HONNÊTE : liste vide / injoignable ⇒ on le DIT et la saisie manuelle ci-dessus reste seule
+            vérité (jamais une fausse liste). Absent pour Ollama (modèles non exposés par ce wire ici). */}
+        {isOpenaiSource && (
+          <div className="settings-models" aria-label="Modèles découverts (LiteLLM /v1/models)">
+            <div className="settings-actions">
+              <button
+                type="button"
+                className="docbtn"
+                disabled={busy || modelsLoading}
+                onClick={() => void loadModels()}
+                title="Interroge GET /v1/models de la source pour peupler la liste (repli saisie manuelle)"
+              >
+                {modelsLoading ? "Découverte…" : "Découvrir les modèles"}
+              </button>
+              {models.length > 0 && (
+                <select
+                  className="model-input"
+                  aria-label="Modèle découvert (LiteLLM)"
+                  defaultValue=""
+                  disabled={busy}
+                  onChange={(e) => void chooseModel(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Choisir un modèle découvert…
+                  </option>
+                  {models.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {modelsReason && (
+              <p className="settings-hint settings-models-reason" role="status">
+                Découverte des modèles indisponible ({modelsReason}) — <b>saisissez le modèle à la
+                main</b> ci-dessus. Aucune liste fabriquée.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Découvrabilité de la valeur réservée d'opt-in du mode démo (option C, D1). */}
         <p className="settings-hint settings-mock-hint">
           Astuce démo : saisissez <code>mock</code> pour un <b>mode démo hors-ligne</b> —
