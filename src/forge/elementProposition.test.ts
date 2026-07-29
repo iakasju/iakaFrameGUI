@@ -63,13 +63,41 @@ describe("resolveElementProposition — mécanique live/repli partagée (offline
     expect(r.reason).toBe(NO_AUTHORING_MODEL_HINT);
   });
 
-  it("provider ≠ ollama → null + message", async () => {
+  it("provider non supporté (hors {ollama, openai}) → null + message", async () => {
     const r = await resolveElementProposition(SPEC, "x", ctx, {
       llm: fakeLlm('{"a":"y"}'),
-      model: "openai:gpt-4o",
+      model: "mistral:large", // provider natif hors passerelle → non supporté
     });
     expect(r.proposition).toBeNull();
     expect(r.reason).toBe(FALLBACK_UNSUPPORTED);
+  });
+
+  it("Lot 2b : provider openai (LiteLLM) structuré honoré → champs live parsés + clé threadée", async () => {
+    const llm = fakeLlm('{"a":"ok"}');
+    const r = await resolveElementProposition(SPEC, "propose", ctx, {
+      llm,
+      model: "openai:gpt-4o",
+      endpoint: "http://localhost:4000",
+      apiKey: "sk-secret-litellm",
+    });
+    expect(r.source).toBe("live");
+    expect(r.proposition).toEqual({ a: "ok" });
+    const req = llm.calls[0];
+    expect(req.provider).toBe("openai");
+    expect(req.host).toBe("http://localhost:4000");
+    expect(req.apiKey).toBe("sk-secret-litellm"); // header Bearer côté Rust, jamais dans le corps
+    expect(req.format).toBe(SPEC.schema); // présence ⇒ response_format json_object côté Rust
+  });
+
+  it("Lot 2b : openai qui rend du texte non structuré → AVEU (null + illisible), jamais de faux champs", async () => {
+    const r = await resolveElementProposition(SPEC, "propose", ctx, {
+      llm: fakeLlm("réponse en prose, pas du JSON structuré"),
+      model: "openai:gpt-4o",
+      endpoint: "http://localhost:4000",
+    });
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("mock");
+    expect(r.reason).toBe(FALLBACK_UNREADABLE);
   });
 
   it("transport REJETTE (réseau/timeout) → null + message, aucune stack remontée", async () => {

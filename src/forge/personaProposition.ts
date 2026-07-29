@@ -15,10 +15,15 @@
  *  - **réglage** : `authoringModel` (PARTAGÉ) + `authoringEndpoint`.
  *
  * **Honnêteté (non négociable, calquée sur `advise.ts`, PAS sur le `propose` toujours-mocké du
- * copilote).** Modèle absent / provider ≠ ollama / réseau KO / réponse illisible → **AUCUNE
- * proposition fabriquée** : `proposition` vaut **`null`** + `reason` délivrée à côté (aveu honnête).
- * **Ne lève JAMAIS.** Le schéma `{champs}` et son parseur défensif vivent ici, dans `src/`
- * (`LLM_OUTPUT_SCHEMA` du copilote intouché, I-6).
+ * copilote).** Modèle absent / provider non supporté (hors `{ollama, openai}`) / réseau KO / réponse
+ * illisible → **AUCUNE proposition fabriquée** : `proposition` vaut **`null`** + `reason` délivrée à
+ * côté (aveu honnête). **Ne lève JAMAIS.** Le schéma `{champs}` et son parseur défensif vivent ici,
+ * dans `src/` (`LLM_OUTPUT_SCHEMA` du copilote intouché, I-6).
+ *
+ * **Lot 2b — proposition structurée via LiteLLM/openai.** L'allow-set passe à `SUPPORTED_PROVIDERS`
+ * (`{ollama, openai}`). Sur `openai`, la présence du `format` déclenche côté Rust un
+ * `response_format:{"type":"json_object"}` ; un backend qui ne l'honore pas et rend du texte illisible
+ * → `parsePersonaProposition` rend `null` → **aveu** `FALLBACK_UNREADABLE`, jamais une fausse persona.
  *
  * **C-1 (Constitution).** `id` et `roleIndex` ne sont **jamais** proposés ni lus : l'`id` est
  * verrouillé (jamais de renommage), `roleIndex` est dérivé du rôle. Seuls les champs que
@@ -41,7 +46,7 @@ import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
 import {
   DEFAULT_AUTHORING_HOST,
   DEFAULT_LLM_TIMEOUT_MS,
-  MVP_PROVIDER,
+  SUPPORTED_PROVIDERS,
   FALLBACK_UNAVAILABLE,
   FALLBACK_UNREADABLE,
   FALLBACK_UNSUPPORTED,
@@ -233,9 +238,9 @@ export async function resolvePersonaProposition(
     return { proposition: null, source: "mock", reason: NO_AUTHORING_MODEL_HINT };
   }
 
-  // 2. Provider non supporté au MVP (ollama seul) → repli + message.
+  // 2. Provider non supporté (hors {ollama, openai}) → repli + message.
   const { provider, model } = parseProviderModel(rawModel);
-  if (provider !== MVP_PROVIDER || model.length === 0) {
+  if (!SUPPORTED_PROVIDERS.has(provider) || model.length === 0) {
     return { proposition: null, source: "mock", reason: FALLBACK_UNSUPPORTED };
   }
 
@@ -244,6 +249,8 @@ export async function resolvePersonaProposition(
     deps.endpoint && deps.endpoint.trim().length > 0
       ? deps.endpoint.trim()
       : DEFAULT_AUTHORING_HOST;
+  const apiKey =
+    typeof deps.apiKey === "string" && deps.apiKey.trim().length > 0 ? deps.apiKey.trim() : undefined;
   const req: LlmRequest = {
     provider,
     model,
@@ -251,7 +258,10 @@ export async function resolvePersonaProposition(
     system: buildPropositionSystemPrompt(deps.identity),
     user: buildPropositionUserPrompt(prompt, ctx),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
-    format: PERSONA_PROPOSITION_SCHEMA, // sorties structurées Ollama (`format:<schema>`)
+    // Sortie structurée : Ollama lit `format:<schema>` ; openai (Lot 2b) mappe sa PRÉSENCE vers
+    // `response_format:{"type":"json_object"}` côté Rust (le schéma exact n'est pas transmis au wire).
+    format: PERSONA_PROPOSITION_SCHEMA,
+    apiKey,
   };
 
   let raw: string;

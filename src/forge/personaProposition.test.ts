@@ -77,13 +77,45 @@ describe("resolvePersonaProposition — orientation live / repli honnête (offli
     expect(r.reason).toBe(NO_AUTHORING_MODEL_HINT);
   });
 
-  it("AC-B3 provider non supporté (≠ ollama) → repli + message, aucune proposition", async () => {
+  it("AC-B3 provider non supporté (hors {ollama, openai}) → repli + message, aucune proposition", async () => {
     const r = await resolvePersonaProposition("aide", ctx, {
       llm: fakeLlm('{"name":"x"}'),
-      model: "openai:gpt-4o",
+      model: "anthropic:claude-3-5-sonnet", // provider natif hors passerelle → non supporté
     });
     expect(r.proposition).toBeNull();
     expect(r.reason).toBe(FALLBACK_UNSUPPORTED);
+  });
+
+  it("Lot 2b : provider openai (LiteLLM) STRUCTURÉ honoré → proposition live parsée", async () => {
+    const live = '{"name":"Nain","roleKey":"dev","mission":"forge"}';
+    const llm = fakeLlm(live);
+    const r = await resolvePersonaProposition("propose un dev", ctx, {
+      llm,
+      model: "openai:gpt-4o",
+      endpoint: "http://localhost:4000",
+      apiKey: "sk-secret-litellm",
+    });
+    expect(r.source).toBe("live");
+    expect(r.proposition).toEqual({ name: "Nain", roleKey: "dev", mission: "forge" });
+    // La requête porte le provider openai, le schéma structuré (déclenche response_format côté Rust)
+    // ET la clé (header Bearer côté Rust) — jamais dans le corps/log (prouvé côté Rust).
+    const req = llm.calls[0];
+    expect(req.provider).toBe("openai");
+    expect(req.host).toBe("http://localhost:4000");
+    expect(req.apiKey).toBe("sk-secret-litellm");
+    expect(req.format).toBeDefined();
+  });
+
+  it("Lot 2b : openai qui n'honore PAS response_format (texte non structuré) → AVEU, jamais de fausse persona", async () => {
+    // Backend LiteLLM qui rend de la prose au lieu du JSON structuré demandé → parseur null → aveu.
+    const r = await resolvePersonaProposition("propose", ctx, {
+      llm: fakeLlm("Voici une persona sympa mais en texte libre, pas du JSON."),
+      model: "openai:gpt-4o",
+      endpoint: "http://localhost:4000",
+    });
+    expect(r.proposition).toBeNull();
+    expect(r.source).toBe("mock");
+    expect(r.reason).toBe(FALLBACK_UNREADABLE);
   });
 
   it("AC-B3 transport REJETTE (timeout/réseau) → repli + message, aucune exception ni stack", async () => {
