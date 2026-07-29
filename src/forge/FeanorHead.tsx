@@ -267,10 +267,13 @@ export function FeanorHead({
     setPending(true);
     try {
       // Résolveur de proposition : LIVE (transport injecté) ou repli HONNÊTE. Ne lève jamais.
+      // Lot 2b : la clé API est threadée aussi ici (proposition structurée via LiteLLM/openai),
+      // header Bearer côté Rust sur le seul provider openai — jamais loguée, jamais affichée.
       const res = await propose.run(trimmed, feanorContext(), {
         llm,
         model: configuredModel,
         endpoint,
+        apiKey,
         identity,
       });
       if (res.proposition !== null && res.proposition !== undefined) {

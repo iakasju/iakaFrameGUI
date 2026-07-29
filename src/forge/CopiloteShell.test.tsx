@@ -218,6 +218,40 @@ describe("CopiloteShell — aveu honnête et démo étiquetée (rendu direct, mo
     expect(c.querySelector(".mock-demo-banner")).toBeNull(); // le live ne porte JAMAIS le bandeau démo
   });
 
+  it("Lot 2b : clé authoringApiKey câblée jusqu'au transport (openai/LiteLLM), jamais dans le corps", async () => {
+    // Le Copilote lit la clé + l'endpoint des Réglages et les thread au résolveur → transport.
+    const api = {
+      authoringApiKey: async () => "sk-secret-litellm",
+      authoringEndpoint: async () => "http://localhost:4000",
+    } as unknown as Backend;
+    const llm = fakeLlm(liveRaw);
+    const { container } = render(
+      <div className="forge">
+        <CopiloteShell
+          subject="test"
+          context={context}
+          onApply={() => {}}
+          model="openai:gpt-4o"
+          api={api}
+          llm={llm}
+        />
+      </div>,
+    );
+    const c = container.querySelector(".copilote") as HTMLElement;
+    // Attend que les effets de montage (clé, endpoint) aient flushé avant le geste.
+    await within(c).findByText(/Boucle intention/);
+    const textarea = within(c).getByLabelText(/Prompt copilote/) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "un rapport qualité" } });
+    fireEvent.click(within(c).getByRole("button", { name: /Proposer/ }));
+
+    await waitFor(() => expect(llm.calls.length).toBe(1));
+    const req = llm.calls[0];
+    expect(req.provider).toBe("openai");
+    expect(req.host).toBe("http://localhost:4000");
+    // La clé voyage dans la requête (→ header Bearer côté Rust) — jamais fabriquée, jamais dans le corps.
+    expect(req.apiKey).toBe("sk-secret-litellm");
+  });
+
   it("MODÈLE absent : l'en-tête SIGNALE l'absence (aucun défaut fabriqué)", async () => {
     const api = { authoringModel: async () => null } as unknown as Backend;
     const { container } = render(

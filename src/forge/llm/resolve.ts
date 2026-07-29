@@ -9,7 +9,7 @@
  *   2. **mode démo opt-in** (`authoringModel === "mock"`, valeur réservée) → **mock ÉTIQUETÉ**
  *      (`propose()`, `"mock"`, `MOCK_DEMO_LABEL`) — **AVANT** le test provider (`mock` n'a pas
  *      de `:` : sans cet ordre il tomberait en « provider non supporté »).
- *   3. provider ≠ `ollama` (MVP, D2)    → **aveu** (`null`, `"none"`, `FALLBACK_UNSUPPORTED`).
+ *   3. provider ∉ `{ollama, openai}`    → **aveu** (`null`, `"none"`, `FALLBACK_UNSUPPORTED`).
  *   4. live : `await llm.complete`
  *        - rejet (réseau KO / timeout)  → **aveu** (`null`, `"none"`, `FALLBACK_UNAVAILABLE` ; jamais de stack).
  *        - `parseLiveProposition` null  → **aveu** (`null`, `"none"`, `FALLBACK_UNREADABLE`).
@@ -48,18 +48,22 @@ export const DEFAULT_AUTHORING_HOST = "http://localhost:11434";
 /** Budget de temps par défaut d'un appel d'inférence d'authoring. */
 export const DEFAULT_LLM_TIMEOUT_MS = 20000;
 
-/** Provider **natif** historique (Ollama `/api/chat`) — conservé pour les résolveurs structurés. */
+/** Provider **natif** historique (Ollama `/api/chat`) — défaut, membre de `SUPPORTED_PROVIDERS`. */
 export const MVP_PROVIDER = "ollama";
 
 /** Provider **OpenAI-compatible** (Lot 2) : passerelle LiteLLM (`/v1/chat/completions`), aussi LM Studio / Ollama-`/v1`. */
 export const OPENAI_PROVIDER = "openai";
 
 /**
- * Providers supportés par le **chemin conseil/chat** et le Copilote (Lot 2) : `ollama` (natif) **et**
- * `openai` (passerelle OpenAI-compatible LiteLLM — débloque Claude/ChatGPT/local d'un coup). Tout autre
- * provider ⇒ aveu honnête `FALLBACK_UNSUPPORTED`. Les résolveurs de **proposition structurée** d'élément
- * (persona / pools) restent, eux, sur `MVP_PROVIDER` seul tant que le mapping `response_format` (Lot 2b)
- * n'est pas câblé.
+ * Providers supportés par **tous** les chemins d'inférence d'authoring : le conseil/chat (`advise.ts`),
+ * le Copilote (`resolveProposition`) ET, depuis le **Lot 2b**, les résolveurs de **proposition
+ * structurée** d'élément/persona (`elementProposition.ts` / `personaProposition.ts`). L'ensemble =
+ * `ollama` (natif `/api/chat`, `format:<schema>`) **et** `openai` (passerelle OpenAI-compatible LiteLLM
+ * `/v1/chat/completions` — débloque Claude/ChatGPT/local d'un coup ; sortie structurée via
+ * `response_format:{"type":"json_object"}` mappé côté Rust). Tout autre provider ⇒ aveu honnête
+ * `FALLBACK_UNSUPPORTED`. `MVP_PROVIDER` (ollama) reste le **défaut historique** ; ce n'est plus le
+ * seul provider du chemin structuré (l'écart doc↔code — garde sur `SUPPORTED_PROVIDERS`, doc « MVP seul »
+ * — est ainsi levé).
  */
 export const SUPPORTED_PROVIDERS: ReadonlySet<string> = new Set([MVP_PROVIDER, OPENAI_PROVIDER]);
 

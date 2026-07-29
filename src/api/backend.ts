@@ -298,7 +298,11 @@ export interface LlmCompleteArgs {
   system: string;
   user: string;
   timeoutMs: number;
-  /** Schéma JSON de sortie (Ollama `format`, D4) — optionnel (absent ⇒ `format:"json"` côté Rust). */
+  /**
+   * Schéma JSON de sortie (Ollama `format`, D4) — optionnel (absent ⇒ `format:"json"` côté Rust).
+   * Lot 2b : sur le provider `openai`, sa **présence** signale une sortie structurée → le backend Rust
+   * pose `response_format:{"type":"json_object"}` (le schéma lui-même n'est pas transmis au wire OpenAI).
+   */
   format?: unknown;
   /**
    * Clé API **optionnelle** (Lot 2 — passerelle OpenAI-compatible LiteLLM). Transmise à Rust, qui la
@@ -363,6 +367,32 @@ export function llmCompleteStream(
     apiKey: args.apiKey,
     onEvent: channel,
   });
+}
+
+/**
+ * Résultat de la découverte des modèles (`llm_models`, Lot 2b — `GET {host}/v1/models`). `models` =
+ * la liste d'ids (peut être vide) ; `reason` = l'aveu honnête quand elle est vide (hôte refusé /
+ * injoignable / réponse illisible / aucun modèle). `reason` absent/`null` ⇔ au moins un modèle. Le
+ * GUI peuple un dropdown depuis `models`, et sur liste vide **laisse la saisie manuelle** (jamais une
+ * fausse liste).
+ */
+export interface LlmModelsResult {
+  models: string[];
+  reason?: string | null;
+}
+
+/**
+ * Découvre les modèles d'une source **OpenAI-compatible** (LiteLLM) via la commande Rust `llm_models`
+ * (`GET {host}/v1/models`, garde d'hôte + Bearer optionnel). **Ne rejette pas** côté Rust : un échec
+ * devient `{ models: [], reason }`. Hors Tauri, `call` rejette (`BACKEND_UNAVAILABLE_MSG`) — l'appelant
+ * (Réglages) capte et retombe sur la saisie manuelle. La clé n'apparaît jamais dans `reason` (non-fuite).
+ */
+export function llmModels(
+  endpoint: string,
+  apiKey?: string,
+  timeoutMs?: number,
+): Promise<LlmModelsResult> {
+  return call<LlmModelsResult>("llm_models", { endpoint, apiKey, timeoutMs });
 }
 
 // --- Déploiement de kit (P3 : écrit une arborescence générée dans un dossier cible) ---
@@ -742,6 +772,7 @@ export const backend = {
   setAuthoringEndpoint,
   llmComplete,
   llmCompleteStream,
+  llmModels,
   kitDeploy,
   handoffDeliver,
   nowMillis,

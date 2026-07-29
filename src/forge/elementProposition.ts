@@ -20,10 +20,16 @@
  *  - **réglage** : `authoringModel` (PARTAGÉ) + `authoringEndpoint`.
  *
  * **Honnêteté (non négociable, calquée sur `advise.ts`/le pilote persona, PAS sur le `propose`
- * toujours-mocké du copilote).** Modèle absent / provider ≠ ollama / réseau KO / réponse illisible →
- * **AUCUNE proposition fabriquée** : `proposition` vaut **`null`** + `reason` (aveu honnête). **Ne lève
- * JAMAIS.** Les schémas `{champs}` et leurs parseurs défensifs vivent dans les fichiers `src/` de pool
- * (`LLM_OUTPUT_SCHEMA` du copilote intouché, I-6).
+ * toujours-mocké du copilote).** Modèle absent / provider non supporté (hors `{ollama, openai}`) /
+ * réseau KO / réponse illisible → **AUCUNE proposition fabriquée** : `proposition` vaut **`null`** +
+ * `reason` (aveu honnête). **Ne lève JAMAIS.** Les schémas `{champs}` et leurs parseurs défensifs
+ * vivent dans les fichiers `src/` de pool (`LLM_OUTPUT_SCHEMA` du copilote intouché, I-6).
+ *
+ * **Lot 2b — proposition structurée via LiteLLM/openai.** L'allow-set provider passe de `MVP_PROVIDER`
+ * (ollama seul) à `SUPPORTED_PROVIDERS` (`{ollama, openai}`). Sur `openai`, la **présence** du `format`
+ * signale au backend Rust une sortie structurée → `response_format:{"type":"json_object"}`. Si le
+ * backend LiteLLM **n'honore pas** `response_format` et rend du texte non structuré/illisible, le
+ * parseur défensif du pool rend `null` → **aveu** `FALLBACK_UNREADABLE`, JAMAIS une fausse proposition.
  *
  * **C-1 (Constitution).** Les champs **verrouillés** (id / key / roleIndex ; `kind`/`hook` load-bearing
  * du garde-fou ; `name` de la skill…) ne sont **jamais** modélisés au schéma ni lus par les parseurs :
@@ -37,7 +43,7 @@ import { NO_AUTHORING_MODEL_HINT } from "./mock/copilote";
 import {
   DEFAULT_AUTHORING_HOST,
   DEFAULT_LLM_TIMEOUT_MS,
-  MVP_PROVIDER,
+  SUPPORTED_PROVIDERS,
   FALLBACK_UNAVAILABLE,
   FALLBACK_UNREADABLE,
   FALLBACK_UNSUPPORTED,
@@ -224,9 +230,9 @@ export async function resolveElementProposition<T>(
     return { proposition: null, source: "mock", reason: NO_AUTHORING_MODEL_HINT };
   }
 
-  // 2. Provider non supporté au MVP (ollama seul) → repli + message.
+  // 2. Provider non supporté (hors {ollama, openai}) → repli + message.
   const { provider, model } = parseProviderModel(rawModel);
-  if (provider !== MVP_PROVIDER || model.length === 0) {
+  if (!SUPPORTED_PROVIDERS.has(provider) || model.length === 0) {
     return { proposition: null, source: "mock", reason: FALLBACK_UNSUPPORTED };
   }
 
@@ -235,6 +241,8 @@ export async function resolveElementProposition<T>(
     deps.endpoint && deps.endpoint.trim().length > 0
       ? deps.endpoint.trim()
       : DEFAULT_AUTHORING_HOST;
+  const apiKey =
+    typeof deps.apiKey === "string" && deps.apiKey.trim().length > 0 ? deps.apiKey.trim() : undefined;
   const req: LlmRequest = {
     provider,
     model,
@@ -242,7 +250,10 @@ export async function resolveElementProposition<T>(
     system: buildElementSystemPrompt(spec, deps.identity),
     user: buildElementUserPrompt(spec, prompt, ctx),
     timeoutMs: deps.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
-    format: spec.schema, // sorties structurées Ollama (`format:<schema>`)
+    // Sortie structurée : Ollama lit `format:<schema>` ; openai (Lot 2b) mappe sa PRÉSENCE vers
+    // `response_format:{"type":"json_object"}` côté Rust (le schéma exact n'est pas transmis au wire).
+    format: spec.schema,
+    apiKey,
   };
 
   let raw: string;

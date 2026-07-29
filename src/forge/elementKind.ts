@@ -80,6 +80,12 @@ export interface ElementProposeDeps {
   model?: string | null;
   /** Endpoint d'authoring optionnel (`authoringEndpoint`) — vide ⇒ hôte Ollama par défaut. */
   endpoint?: string | null;
+  /**
+   * Clé API optionnelle (Lot 2b — passerelle OpenAI-compatible LiteLLM) — transmise à Rust en
+   * `Authorization: Bearer <clé>` sur le SEUL provider `openai`, jamais loguée. Vide/absente ⇒ aucun
+   * header (source sans auth). N'est **pas** transmise sur le provider `ollama`.
+   */
+  apiKey?: string | null;
   /** Budget de temps de l'appel (défaut du résolveur). */
   timeoutMs?: number;
   /** Identité Fëanor **dérivée du canon** — absente ⇒ prompt système anonyme (jamais fabriquée). */

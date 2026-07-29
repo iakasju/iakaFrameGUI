@@ -86,6 +86,9 @@ export function CopiloteShell({
   const [pending, setPending] = useState(false);
   // Endpoint d'authoring optionnel (D3) : hôte Ollama LAN. Vide → localhost (résolu par le résolveur).
   const [endpoint, setEndpoint] = useState<string | null>(null);
+  // Clé API optionnelle (Lot 2b — LiteLLM/openai). Vide/absente → aucun header Bearer. JAMAIS loguée
+  // ni affichée. Sert le chemin proposition du Copilote via la passerelle OpenAI-compatible.
+  const [apiKey, setApiKey] = useState<string | null>(null);
   // Identite DERIVEE du canon (jamais fabriquee) : null = fiche introuvable -> copilote anonyme.
   const [identity, setIdentity] = useState<CopiloteIdentity | null>(null);
   // § Volet B : le modèle d'authoring UNIQUE et global, lu depuis les Settings (persisté comme
@@ -134,6 +137,23 @@ export function CopiloteShell({
     };
   }, [api]);
 
+  // Clé API d'authoring (Lot 2b — LiteLLM) : lue des Settings (`authoringApiKey`). Vide/absente ⇒
+  // aucun header Bearer. Elle ne sert QUE le chemin proposition live (jamais loguée, jamais affichée).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const k = await api.authoringApiKey?.();
+        if (alive && k && k.trim().length > 0) setApiKey(k.trim());
+      } catch {
+        /* hors Tauri / non défini : aucune clé (LiteLLM sans auth) */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [api]);
+
   // Identite du copilote : lue de la racine bibliotheque active (fiche du role `frame`).
   // ⚠️ Lire la fiche n'est PAS activer l'agent : AUCUN appel LLM ici — l'invariant d'activation
   // explicite (I-2) porte sur `llm.complete`, declenche uniquement par `handlePropose`.
@@ -158,7 +178,7 @@ export function CopiloteShell({
       const result = await resolveProposition(
         trimmed,
         { ...context, model: configuredModel },
-        { llm, endpoint, identity },
+        { llm, endpoint, apiKey, identity },
       );
       setProposition(result.proposition);
       setSource(result.source);

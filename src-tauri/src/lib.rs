@@ -74,6 +74,7 @@ pub fn run() {
             project_conf::set_active_frame_id,
             llm::llm_complete,
             llm::llm_complete_stream,
+            llm::llm_models,
             kit_deploy::kit_deploy,
             handoff::handoff_deliver,
             handoff::now_millis,

@@ -216,3 +216,84 @@ describe("SettingsRoot — endpoint d'authoring optionnel (§ D3)", () => {
     );
   });
 });
+
+describe("SettingsRoot — découverte des modèles /v1/models (Lot 2b)", () => {
+  it("source openai → bouton « Découvrir les modèles » ; le dropdown se peuple depuis /v1/models", async () => {
+    const llmModels = vi.fn(async () => ({ models: ["claude-3-5-sonnet", "gpt-4o"] }));
+    render(
+      <SettingsRoot
+        api={fakeApi({
+          authoringModel: async () => "openai:gpt-4o",
+          authoringEndpoint: async () => "http://localhost:4000",
+          llmModels,
+        })}
+      />,
+    );
+    await screen.findByText("openai:gpt-4o");
+    fireEvent.click(screen.getByRole("button", { name: /Découvrir les modèles/ }));
+    await waitFor(() => expect(llmModels).toHaveBeenCalledWith("http://localhost:4000", undefined));
+    // Le dropdown des modèles découverts apparaît avec les ids rendus.
+    const select = await screen.findByLabelText(/Modèle découvert/);
+    expect(select).toBeTruthy();
+    expect(screen.getByRole("option", { name: "claude-3-5-sonnet" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "gpt-4o" })).toBeTruthy();
+  });
+
+  it("source ollama → AUCUN bouton de découverte (modèles non exposés par ce wire)", async () => {
+    render(<SettingsRoot api={fakeApi({ authoringModel: async () => "ollama:qwen2.5-coder" })} />);
+    await screen.findByText("ollama:qwen2.5-coder");
+    expect(screen.queryByRole("button", { name: /Découvrir les modèles/ })).toBeNull();
+  });
+
+  it("liste vide + raison → AVEU honnête affiché, saisie manuelle conservée (jamais une fausse liste)", async () => {
+    const llmModels = vi.fn(async () => ({ models: [], reason: "endpoint injoignable" }));
+    render(
+      <SettingsRoot
+        api={fakeApi({ authoringModel: async () => "openai:gpt-4o", llmModels })}
+      />,
+    );
+    await screen.findByText("openai:gpt-4o");
+    fireEvent.click(screen.getByRole("button", { name: /Découvrir les modèles/ }));
+    // L'aveu s'affiche et invite à la saisie manuelle ; aucun dropdown de modèles fabriqué.
+    expect(await screen.findByText(/Découverte des modèles indisponible/)).toBeTruthy();
+    expect(screen.getByText(/endpoint injoignable/)).toBeTruthy();
+    expect(screen.queryByLabelText(/Modèle découvert/)).toBeNull();
+    // Le champ de saisie manuelle du modèle reste disponible (repli honnête).
+    expect(screen.getByLabelText(/Identifiant ou endpoint du modèle/)).toBeTruthy();
+  });
+
+  it("sélection d'un modèle découvert → persiste openai:<id> (préfixe provider conservé)", async () => {
+    const setAuthoringModel = vi.fn(async () => {});
+    const llmModels = vi.fn(async () => ({ models: ["gpt-4o"] }));
+    render(
+      <SettingsRoot
+        api={fakeApi({
+          authoringModel: async () => "openai:gpt-4o",
+          setAuthoringModel,
+          llmModels,
+        })}
+      />,
+    );
+    await screen.findByText("openai:gpt-4o");
+    fireEvent.click(screen.getByRole("button", { name: /Découvrir les modèles/ }));
+    const select = await screen.findByLabelText(/Modèle découvert/);
+    fireEvent.change(select, { target: { value: "gpt-4o" } });
+    await waitFor(() => expect(setAuthoringModel).toHaveBeenCalledWith("openai:gpt-4o"));
+  });
+
+  it("clé fraîche non enregistrée → transmise à la découverte (override du secret persisté)", async () => {
+    const llmModels = vi.fn(async () => ({ models: ["gpt-4o"] }));
+    render(
+      <SettingsRoot
+        api={fakeApi({ authoringModel: async () => "openai:gpt-4o", llmModels })}
+      />,
+    );
+    await screen.findByText("openai:gpt-4o");
+    // L'utilisateur saisit une clé mais ne l'enregistre pas : la découverte la passe en override.
+    fireEvent.change(screen.getByLabelText("Clé API d'authoring (optionnel)"), {
+      target: { value: "sk-fresh" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Découvrir les modèles/ }));
+    await waitFor(() => expect(llmModels).toHaveBeenCalledWith("", "sk-fresh"));
+  });
+});
