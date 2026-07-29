@@ -70,9 +70,9 @@ describe("Lot 5b — round-trip byte-préservant sur les `.md` réels (AC3)", ()
   const rituals = entries(ritualMds);
   const scaffolds = entries(scaffoldMds);
 
-  it("inventaire : les 3 pools vendorés sont bien chargés (18 + 5 + 3)", () => {
+  it("inventaire : les 3 pools vendorés sont bien chargés (18 + 6 + 3)", () => {
     expect(principles.length).toBe(18);
-    expect(rituals.length).toBe(5);
+    expect(rituals.length).toBe(6);
     expect(scaffolds.length).toBe(3);
   });
 

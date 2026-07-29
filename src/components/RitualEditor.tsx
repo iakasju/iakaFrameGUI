@@ -3,7 +3,7 @@
  * présentationnel, sœur de `PrincipleEditor` (chantier #3 Lot 2).
  *
  * Champs (`Ritual` du cœur : `{id, label, triggers[], actions[], side}`) : **libellé** (libre),
- * **tranche** `forge`|`cockpit`, **déclencheurs** et **actions** (une par ligne). L'**id** est dérivé
+ * **tranche** `forge`|`cockpit`|`team`, **déclencheurs** et **actions** (une par ligne). L'**id** est dérivé
  * du libellé à la création (`slugify`) et **verrouillé** ensuite (C-1). L'éditeur remonte le rituel
  * construit à `onSubmit` ; l'hôte `ElementReservoir` l'**upsert en session puis le persiste** via
  * `persistRitual`→`poolWrite` (câblé Lot 5c). Ce qui reste **différé** est l'**exécution** du geste
@@ -86,6 +86,7 @@ export function RitualEditor({
         <select value={draft.side} onChange={(e) => patch({ side: e.target.value as RitualSide })}>
           <option value="forge">forge (fabrication)</option>
           <option value="cockpit">cockpit (run)</option>
+          <option value="team">team (équipe)</option>
         </select>
       </div>
 

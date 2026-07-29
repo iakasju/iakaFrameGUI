@@ -7,9 +7,9 @@ import {
 } from "../src/ritual";
 
 describe("CATALOG_RITUALS (E2 §3.4)", () => {
-  it("porte les 5 rituels canoniques, ids uniques", () => {
-    expect(CATALOG_RITUALS).toHaveLength(5);
-    expect(new Set(CATALOG_RITUAL_IDS).size).toBe(5);
+  it("porte les 6 rituels canoniques, ids uniques", () => {
+    expect(CATALOG_RITUALS).toHaveLength(6);
+    expect(new Set(CATALOG_RITUAL_IDS).size).toBe(6);
   });
 
   it("tranche forge/cockpit : init = SEUL geste de fabrication (forge)", () => {

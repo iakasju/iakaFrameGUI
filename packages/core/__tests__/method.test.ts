@@ -78,7 +78,7 @@ describe("resolveWorkflow (déménagé, Q-3)", () => {
 describe("résolveurs de composants (ids inconnus filtrés à la résolution)", () => {
   it("résout principes/rituels/scaffolds du canonique", () => {
     expect(principlesForMethod(IAKAFRAME_CANONICAL_METHOD)).toHaveLength(14);
-    expect(ritualsForMethod(IAKAFRAME_CANONICAL_METHOD)).toHaveLength(5);
+    expect(ritualsForMethod(IAKAFRAME_CANONICAL_METHOD)).toHaveLength(6);
     expect(scaffoldsForMethod(IAKAFRAME_CANONICAL_METHOD)).toHaveLength(2);
   });
 
