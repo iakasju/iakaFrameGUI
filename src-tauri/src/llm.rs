@@ -14,6 +14,10 @@
 /// Hôte Ollama par défaut (D3) — utilisé quand aucun `authoringEndpoint` n'est réglé.
 pub const DEFAULT_HOST: &str = "http://localhost:11434";
 
+/// Hôte LiteLLM par défaut (OpenAI-compatible) — utilisé par la découverte de modèles `/v1/models`
+/// quand aucun `authoringEndpoint` n'est réglé (le proxy LiteLLM écoute sur le port 4000, loopback).
+pub const DEFAULT_OPENAI_HOST: &str = "http://localhost:4000";
+
 /// Extrait le hostname d'une URL `http(s)://host[:port][/...]` (minuscule). `None` si mal formée.
 fn host_of(url: &str) -> Option<String> {
     let rest = url
@@ -104,9 +108,13 @@ pub fn extract_content(resp: &serde_json::Value) -> Result<String, String> {
 // (bloquant) ou **SSE** `data: {json}\n\n` … `data: [DONE]` (streaming, delta `choices[0].delta.
 // content`). Une clé API OPTIONNELLE part en `Authorization: Bearer <clé>` — **jamais** dans le
 // corps, l'URL, un log ni un message d'erreur (frontière de sécurité, prouvée par construction).
-// Sobriété (Lot 2) : le chemin CONSEIL/CHAT (texte libre) est câblé ; `response_format` structuré
-// (mapping du `format` D4) est un Lot 2b — le provider openai IGNORE `format` (un backend qui rend
-// du texte non structuré retombe, au pire, sur l'AVEU honnête existant, jamais une fausse réponse).
+// Lot 2b : quand le front demande une sortie STRUCTURÉE (schéma `format` présent — proposition
+// d'élément/persona), le corps openai gagne un `response_format` OpenAI (`{"type":"json_object"}`
+// au MVP, le plus largement honoré par les backends LiteLLM). Un backend qui n'honore PAS
+// `response_format` et rend du texte non structuré retombe, au pire, sur l'AVEU honnête existant
+// (`parse*` → `null` + `FALLBACK_UNREADABLE`) — JAMAIS une fausse proposition fabriquée. Découverte
+// des modèles : `GET {host}/v1/models` (`llm_models`) — une liste vide (endpoint injoignable /
+// réponse inattendue) est un AVEU honnête, jamais une fausse liste ; la clé n'y fuite jamais.
 // ============================================================================================
 
 /// Construit l'URL du wire OpenAI chat-completions à partir de l'hôte réglé. Pure (aucune clé).
@@ -120,19 +128,64 @@ fn host_refused_msg(host: &str) -> String {
     format!("hote refuse (hors allow-list localhost + endpoint regle) : {host}")
 }
 
+/// Mappe le schéma de sortie structuré du front (`format`, présent ⇒ on veut du JSON) vers le
+/// `response_format` OpenAI. MVP (Lot 2b) : `{"type":"json_object"}` — le plus largement honoré par
+/// les backends LiteLLM (le `json_schema` complet est peu fiable selon les backends). `format` absent
+/// ⇒ `None` (chemin conseil/chat en texte libre). Pur, testable sans réseau. Ne porte JAMAIS de clé.
+pub fn openai_response_format(format: Option<&serde_json::Value>) -> Option<serde_json::Value> {
+    format.map(|_| serde_json::json!({ "type": "json_object" }))
+}
+
 /// Construit le corps `POST /v1/chat/completions` (OpenAI-compatible). `stream` distingue le chemin
-/// bloquant (`false`) du streaming SSE (`true`). **La clé API n'est JAMAIS ici** (elle vit dans le
-/// header `Authorization`) : le corps ne contient que `model`/`messages`/`stream` — prouvé par la
-/// signature (aucun paramètre de clé) et par le test `build_openai_body_ne_contient_pas_de_cle`.
-pub fn build_openai_body(model: &str, system: &str, user: &str, stream: bool) -> serde_json::Value {
-    serde_json::json!({
+/// bloquant (`false`) du streaming SSE (`true`). `response_format` (Lot 2b) est ajouté SEULEMENT s'il
+/// est `Some` (sortie structurée demandée) — absent ⇒ texte libre. **La clé API n'est JAMAIS ici**
+/// (elle vit dans le header `Authorization`) : le corps ne contient que `model`/`messages`/`stream`
+/// (+ `response_format` optionnel) — prouvé par la signature (aucun paramètre de clé) et par le test
+/// `build_openai_body_ne_contient_pas_de_cle`.
+pub fn build_openai_body(
+    model: &str,
+    system: &str,
+    user: &str,
+    stream: bool,
+    response_format: Option<serde_json::Value>,
+) -> serde_json::Value {
+    let mut body = serde_json::json!({
         "model": model,
         "stream": stream,
         "messages": [
             { "role": "system", "content": system },
             { "role": "user", "content": user }
         ],
-    })
+    });
+    if let Some(rf) = response_format {
+        body["response_format"] = rf;
+    }
+    body
+}
+
+/// Construit l'URL de découverte des modèles OpenAI-compatible (`GET {host}/v1/models`, LiteLLM /
+/// LM Studio / Ollama-`/v1`). Pure (aucune clé). Slash terminal toléré (pas de double slash).
+pub fn openai_models_url(host: &str) -> String {
+    format!("{}/v1/models", host.trim_end_matches('/'))
+}
+
+/// Parse **défensivement** la réponse `GET /v1/models` (OpenAI-compatible : `{ "data": [ { "id" },
+/// … ] }`) → liste d'ids de modèles. Rend `[]` si la forme est inattendue (endpoint qui répond
+/// autre chose) — une liste vide est un AVEU honnête, JAMAIS une fausse liste. Ids trimés, non
+/// vides, dédupliqués, ordre préservé. Pur, testable sans réseau. Ne lève jamais.
+pub fn parse_openai_models(resp: &serde_json::Value) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    if let Some(arr) = resp.get("data").and_then(|d| d.as_array()) {
+        for item in arr {
+            if let Some(id) = item.get("id").and_then(|i| i.as_str()) {
+                let id = id.trim();
+                if !id.is_empty() && !out.iter().any(|x| x == id) {
+                    out.push(id.to_string());
+                }
+            }
+        }
+    }
+    out
 }
 
 /// Extrait `choices[0].message.content` d'une réponse OpenAI **bloquante**. `Err` si la forme est
@@ -257,9 +310,11 @@ pub async fn llm_complete(
         .timeout(std::time::Duration::from_millis(timeout_ms))
         .build()
         .map_err(|e| format!("client HTTP : {e}"))?;
-    // Dispatch par provider : URL + corps du wire. `openai` ignore `format` (Lot 2b : response_format).
+    // Dispatch par provider : URL + corps du wire. `openai` mappe `format` (présent ⇒ sortie
+    // structurée) vers `response_format` OpenAI (Lot 2b) ; absent ⇒ texte libre (conseil/chat).
     let (url, body, vendor) = if openai {
-        (openai_chat_url(&host), build_openai_body(&model, &system, &user, false), "LiteLLM")
+        let rf = openai_response_format(format.as_ref());
+        (openai_chat_url(&host), build_openai_body(&model, &system, &user, false, rf), "LiteLLM")
     } else {
         (format!("{}/api/chat", host.trim_end_matches('/')), build_chat_body(&model, &system, &user, format), "Ollama")
     };
@@ -414,10 +469,12 @@ pub async fn llm_complete_stream(
         .timeout(std::time::Duration::from_millis(timeout_ms))
         .build()
         .map_err(|e| format!("client HTTP : {e}"))?;
-    // Dispatch par provider : `openai` → SSE sur `/v1/chat/completions` (ignore `format`, Lot 2b) ;
+    // Dispatch par provider : `openai` → SSE sur `/v1/chat/completions` (mappe `format` →
+    // `response_format`, Lot 2b ; le conseil/chat streaming ne pose PAS de `format` → texte libre) ;
     // `ollama` → NDJSON sur `/api/chat`. La lecture de flux (SSE vs NDJSON) est choisie plus bas.
     let (url, body, vendor) = if openai {
-        (openai_chat_url(&host), build_openai_body(&model, &system, &user, true), "LiteLLM")
+        let rf = openai_response_format(format.as_ref());
+        (openai_chat_url(&host), build_openai_body(&model, &system, &user, true, rf), "LiteLLM")
     } else {
         (format!("{}/api/chat", host.trim_end_matches('/')), build_stream_chat_body(&model, &system, &user, format), "Ollama")
     };
@@ -514,6 +571,108 @@ pub async fn llm_complete_stream(
     }
     emit(StreamChunk::Done);
     Ok(())
+}
+
+// ============================================================================================
+// Découverte des modèles (Lot 2b) — `GET {host}/v1/models` (OpenAI-compatible / LiteLLM)
+// --------------------------------------------------------------------------------------------
+// Peuple un dropdown de modèles côté GUI (au lieu d'une saisie libre) quand la source est openai.
+// MÊME bornage que `llm_complete` (garde d'hôte `host_allowed`, timeout dur, Bearer optionnel).
+// HONNÊTETÉ : **ne lève JAMAIS** — endpoint injoignable / réponse inattendue → liste VIDE + `reason`
+// (jamais de stack, jamais une fausse liste). La clé n'apparaît JAMAIS dans `reason` (non-fuite).
+// ============================================================================================
+
+/// Résultat de la découverte des modèles : la liste (peut être vide) + une `reason` honnête quand
+/// elle est vide (hôte refusé / injoignable / réponse illisible / aucun modèle). `reason == None`
+/// ⇔ la liste porte au moins un modèle. Sérialisé en camelCase pour la façade TS.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelsResult {
+    pub models: Vec<String>,
+    pub reason: Option<String>,
+}
+
+impl ModelsResult {
+    fn ok(models: Vec<String>) -> Self {
+        ModelsResult { models, reason: None }
+    }
+    fn empty(reason: impl Into<String>) -> Self {
+        ModelsResult { models: Vec::new(), reason: Some(reason.into()) }
+    }
+}
+
+/**
+ * Commande Tauri : découverte des modèles d'une source **OpenAI-compatible** (`GET {host}/v1/models`).
+ *
+ * Bornage identique à `llm_complete` : garde d'hôte (`host_allowed` vs `authoringEndpoint` réglé),
+ * timeout dur, Bearer optionnel. **Ne renvoie JAMAIS d'`Err`** : tout échec (hôte refusé / réseau /
+ * statut non-2xx / corps illisible / aucun modèle) devient `{ models: [], reason: Some(...) }` — le
+ * GUI affiche alors l'aveu et laisse la **saisie manuelle** (jamais une fausse liste).
+ *
+ * **Non-fuite de la clé.** Le GUI ne détient JAMAIS la valeur de `authoringApiKey` (secret) : il ne
+ * peut donc pas la passer. La clé effective est donc lue **côté Rust** — `api_key` reçu (override
+ * d'une saisie non encore persistée) OU, à défaut, la clé persistée `authoringApiKey` (même patron
+ * que `authoringEndpoint` dans `llm_complete`). Elle part en `Authorization: Bearer <clé>` et
+ * n'apparaît **jamais** dans `reason`, un log ou l'URL.
+ */
+#[tauri::command]
+pub async fn llm_models(
+    endpoint: String,
+    api_key: Option<String>,
+    timeout_ms: Option<u64>,
+) -> ModelsResult {
+    // Hôte : l'endpoint réglé, ou le défaut LiteLLM (`localhost:4000`) si vide.
+    let host = {
+        let e = endpoint.trim();
+        if e.is_empty() { DEFAULT_OPENAI_HOST.to_string() } else { e.to_string() }
+    };
+    // Garde d'hôte (CA9) INCHANGÉE : loopback OU endpoint d'authoring réglé. L'aveu ne porte que l'hôte.
+    let settings_file = resolve_settings_file();
+    let configured = crate::settings::read_authoring_endpoint(&settings_file);
+    if !host_allowed(&host, configured.as_deref()) {
+        return ModelsResult::empty(host_refused_msg(&host));
+    }
+
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_millis(timeout_ms.unwrap_or(10_000)))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => return ModelsResult::empty(format!("client HTTP : {e}")),
+    };
+
+    let url = openai_models_url(&host);
+    let mut request = client.get(&url);
+    // Clé effective : l'override reçu (saisie non encore persistée), sinon la clé persistée lue côté
+    // Rust (le GUI ne détient jamais le secret). Header SEUL (jamais URL / log / `reason`) — non-fuite.
+    let effective_key = api_key
+        .map(|k| k.trim().to_string())
+        .filter(|k| !k.is_empty())
+        .or_else(|| crate::settings::read_authoring_api_key(&settings_file));
+    if let Some(key) = effective_key {
+        let key = key.trim();
+        if !key.is_empty() {
+            request = request.bearer_auth(key);
+        }
+    }
+
+    let resp = match request.send().await {
+        Ok(r) => r,
+        // Injoignable (réseau / timeout) : aveu honnête (message SANS clé), jamais une fausse liste.
+        Err(e) => return ModelsResult::empty(format!("modeles indisponibles (endpoint injoignable) : {e}")),
+    };
+    if !resp.status().is_success() {
+        return ModelsResult::empty(format!("LiteLLM a repondu {} sur {url}", resp.status()));
+    }
+    let json: serde_json::Value = match resp.json().await {
+        Ok(v) => v,
+        Err(e) => return ModelsResult::empty(format!("reponse /v1/models illisible : {e}")),
+    };
+    let models = parse_openai_models(&json);
+    if models.is_empty() {
+        return ModelsResult::empty("aucun modele expose par la source".to_string());
+    }
+    ModelsResult::ok(models)
 }
 
 /// Indirection du chemin settings (aligne sur `settings.rs`).
@@ -690,7 +849,7 @@ mod tests {
 
     #[test]
     fn build_openai_body_respecte_le_wire() {
-        let b = build_openai_body("claude-3-5-sonnet", "sys", "usr", false);
+        let b = build_openai_body("claude-3-5-sonnet", "sys", "usr", false, None);
         assert_eq!(b["model"], serde_json::json!("claude-3-5-sonnet"));
         assert_eq!(b["stream"], serde_json::json!(false));
         assert_eq!(b["messages"][0]["role"], serde_json::json!("system"));
@@ -698,18 +857,98 @@ mod tests {
         assert_eq!(b["messages"][1]["role"], serde_json::json!("user"));
         assert_eq!(b["messages"][1]["content"], serde_json::json!("usr"));
         // Variante streaming : seul `stream` bascule.
-        assert_eq!(build_openai_body("m", "s", "u", true)["stream"], serde_json::json!(true));
+        assert_eq!(build_openai_body("m", "s", "u", true, None)["stream"], serde_json::json!(true));
+        // Sans response_format demandé (conseil/chat texte libre) : la clé n'apparaît PAS dans le corps.
+        assert!(b.get("response_format").is_none());
     }
 
     #[test]
     fn build_openai_body_ne_contient_pas_de_cle() {
         // SÉCURITÉ : le corps ne porte JAMAIS de clé (elle vit dans le header Authorization). Prouvé
         // par la signature (aucun paramètre de clé) ET par l'absence de tout champ auth dans le JSON.
-        let body = build_openai_body("gpt-4o", "systeme", "question", false).to_string().to_lowercase();
+        // Y compris quand un response_format structuré est demandé (Lot 2b).
+        let rf = openai_response_format(Some(&serde_json::json!({ "type": "object" })));
+        let body = build_openai_body("gpt-4o", "systeme", "question", false, rf)
+            .to_string()
+            .to_lowercase();
         assert!(!body.contains("authorization"));
         assert!(!body.contains("bearer"));
         assert!(!body.contains("api_key"));
         assert!(!body.contains("apikey"));
+    }
+
+    // --- Lot 2b : response_format structuré + découverte /v1/models ---
+
+    #[test]
+    fn openai_response_format_map_json_object_ou_none() {
+        // Un schéma présent (front demande du structuré) ⇒ `{"type":"json_object"}` (MVP le + honoré).
+        let rf = openai_response_format(Some(&serde_json::json!({ "type": "object", "properties": {} })));
+        assert_eq!(rf, Some(serde_json::json!({ "type": "json_object" })));
+        // Absent (conseil/chat texte libre) ⇒ aucun response_format.
+        assert_eq!(openai_response_format(None), None);
+    }
+
+    #[test]
+    fn build_openai_body_pose_le_response_format_quand_structure() {
+        // Structuré demandé : le corps porte `response_format:{type:json_object}` (Lot 2b).
+        let rf = openai_response_format(Some(&serde_json::json!({ "type": "object" })));
+        let b = build_openai_body("gpt-4o", "s", "u", false, rf);
+        assert_eq!(b["response_format"], serde_json::json!({ "type": "json_object" }));
+        // Non structuré : aucun response_format (non-régression conseil/chat).
+        let b2 = build_openai_body("gpt-4o", "s", "u", false, None);
+        assert!(b2.get("response_format").is_none());
+    }
+
+    #[test]
+    fn openai_models_url_pose_le_bon_chemin() {
+        assert_eq!(openai_models_url("http://localhost:4000"), "http://localhost:4000/v1/models");
+        // Slash terminal toléré (pas de double slash).
+        assert_eq!(openai_models_url("http://localhost:4000/"), "http://localhost:4000/v1/models");
+    }
+
+    #[test]
+    fn parse_openai_models_extrait_les_ids() {
+        let resp = serde_json::json!({
+            "data": [
+                { "id": "claude-3-5-sonnet", "object": "model" },
+                { "id": "gpt-4o", "object": "model" },
+                { "id": "qwen2.5-coder", "object": "model" }
+            ]
+        });
+        assert_eq!(
+            parse_openai_models(&resp),
+            vec!["claude-3-5-sonnet".to_string(), "gpt-4o".to_string(), "qwen2.5-coder".to_string()]
+        );
+    }
+
+    #[test]
+    fn parse_openai_models_forme_inattendue_rend_liste_vide() {
+        // AVEU honnête : une réponse qui n'est pas `{data:[{id}]}` → liste vide, jamais une fausse liste.
+        assert!(parse_openai_models(&serde_json::json!({ "unexpected": true })).is_empty());
+        assert!(parse_openai_models(&serde_json::json!({ "data": "pas un tableau" })).is_empty());
+        assert!(parse_openai_models(&serde_json::json!({ "data": [] })).is_empty());
+        // Entrées sans `id` string / vides → ignorées.
+        let mixed = serde_json::json!({ "data": [ { "id": "" }, { "object": "model" }, { "id": "  gpt-4o  " } ] });
+        assert_eq!(parse_openai_models(&mixed), vec!["gpt-4o".to_string()]);
+    }
+
+    #[test]
+    fn parse_openai_models_deduplique_en_preservant_lordre() {
+        let resp = serde_json::json!({
+            "data": [ { "id": "gpt-4o" }, { "id": "claude" }, { "id": "gpt-4o" } ]
+        });
+        assert_eq!(parse_openai_models(&resp), vec!["gpt-4o".to_string(), "claude".to_string()]);
+    }
+
+    #[test]
+    fn models_result_reason_ne_contient_jamais_la_cle() {
+        // SÉCURITÉ : l'aveu « hôte refusé » de la découverte ne porte que l'hôte (jamais la clé).
+        let r = ModelsResult::empty(host_refused_msg("http://evil.example.com:4000"));
+        assert!(r.models.is_empty());
+        let reason = r.reason.unwrap();
+        assert!(reason.contains("http://evil.example.com:4000"));
+        assert!(!reason.contains("sk-"));
+        assert!(!reason.to_lowercase().contains("bearer"));
     }
 
     #[test]
