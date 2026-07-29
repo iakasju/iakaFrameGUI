@@ -102,17 +102,37 @@ describe("resolveAdviceStream — conseil en tokens progressifs (offline via fak
     expect(s.chunks).toHaveLength(0);
   });
 
-  it("provider non supporté (≠ ollama) → repli, aucun flux", async () => {
+  it("provider non supporté (hors {ollama, openai}) → repli, aucun flux", async () => {
     const s = sink();
     const r = await resolveAdviceStream(
       "aide",
       ctx,
-      { llm: fakeStreamLlm([{ kind: "done" }]), model: "openai:gpt-4o" },
+      { llm: fakeStreamLlm([{ kind: "done" }]), model: "anthropic:claude-3-5-sonnet" },
       s.onChunk,
     );
     expect(r.reply).toBeNull();
     expect(r.reason).toBe(FALLBACK_UNSUPPORTED);
     expect(s.chunks).toHaveLength(0);
+  });
+
+  it("provider openai (LiteLLM) → live en streaming, clé transmise au transport (Lot 2)", async () => {
+    const s = sink();
+    const llm = fakeStreamLlm([
+      { kind: "token", text: "Via " },
+      { kind: "token", text: "LiteLLM." },
+      { kind: "done" },
+    ]);
+    const r = await resolveAdviceStream(
+      "aide",
+      ctx,
+      { llm, model: "openai:gpt-4o", endpoint: "http://localhost:4000", apiKey: "sk-secret" },
+      s.onChunk,
+    );
+    expect(r.source).toBe("live");
+    expect(r.reply).toBe("Via LiteLLM.");
+    expect(llm.calls[0].provider).toBe("openai");
+    expect(llm.calls[0].host).toBe("http://localhost:4000");
+    expect(llm.calls[0].apiKey).toBe("sk-secret");
   });
 
   it("commande qui REJETTE d'emblée (hôte refusé/réseau) → repli, aucune stack ni fausse réponse", async () => {
