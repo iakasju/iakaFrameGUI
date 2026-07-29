@@ -2,7 +2,7 @@
  * ritual.ts — le **Rituel / geste outillé** (E2 §3.4) — cœur 🟦.
  *
  * Un rituel = un **geste** avec **déclencheurs** (mots-clés) + **actions** + une **tranche**
- * `forge` (fabrication) | `cockpit` (run). Le continuum §3.7 : le Rituel est la *procédure*
+ * `forge` (fabrication) | `cockpit` (run) | `team` (équipe). Le continuum §3.7 : le Rituel est la *procédure*
  * qui applique un Principe (le *comment* outillé).
  *
  * **[MVP]** : DONNÉE (type + catalogue + parseur défensif) ; l'**outillage réel** de chaque
@@ -12,8 +12,13 @@
 
 import type { FrontmatterPatch } from "./frontmatter";
 
-/** Tranche d'un rituel : fabrication (forge) ou run (cockpit) — frontière PROJET.md. */
-export type RitualSide = "forge" | "cockpit";
+/**
+ * Tranche d'un rituel : fabrication (`forge`) | run (`cockpit`) | équipe (`team`) — frontière
+ * PROJET.md. Le pot commun du réservoir emploie un vocabulaire de tranche ouvert (`team`, `solo`,
+ * `org`, …) ; le GUI s'aligne sur le frame et reconnaît les valeurs réellement castées par le
+ * default iakaframe. `team` entre avec le rituel neutre `retrospective` (inspect-adapt d'équipe).
+ */
+export type RitualSide = "forge" | "cockpit" | "team";
 
 /** Un rituel : geste outillé (déclencheurs → actions), rangé côté forge ou cockpit. */
 export interface Ritual {
@@ -30,8 +35,9 @@ export interface Ritual {
 }
 
 /**
- * **`CATALOG_RITUALS`** — les 5 rituels canoniques iakaframe (E2 §3.4), en DONNÉE. `init` est le
- * **seul** geste de fabrication (forge) ; les autres opèrent sur un projet déjà monté (cockpit).
+ * **`CATALOG_RITUALS`** — les 6 rituels canoniques iakaframe (E2 §3.4), en DONNÉE. `init` est le
+ * **seul** geste de fabrication (forge) ; `retrospective` est un geste d'équipe (team, inspect-adapt
+ * de clôture de lot) ; les autres opèrent sur un projet déjà monté (cockpit).
  */
 export const CATALOG_RITUALS: readonly Ritual[] = [
   {
@@ -86,6 +92,26 @@ export const CATALOG_RITUALS: readonly Ritual[] = [
     ],
     side: "cockpit",
   },
+  {
+    id: "retrospective",
+    label: "Rétrospective (inspecter & adapter)",
+    triggers: [
+      "rétrospective",
+      "retrospective",
+      "inspecter et adapter",
+      "inspect and adapt",
+      "revue d'équipe",
+      "revue d'apprentissage",
+      "améliorer la façon de travailler",
+    ],
+    actions: [
+      "Rassembler ce que le tour de travail a appris : ce qui a marché, ce qui a surpris, ce qui a échoué",
+      "Réfléchir au PROCESSUS lui-même — comment l'équipe travaille — pas seulement au produit",
+      "Choisir un petit nombre d'améliorations concrètes et actionnables pour le tour suivant",
+      "Décider consciemment de la suite (reboucler, poursuivre, ou aboutir) au vu de ce qui est appris",
+    ],
+    side: "team",
+  },
 ] as const;
 
 /** Ids des rituels du catalogue (ordre du catalogue). */
@@ -107,7 +133,8 @@ function toStringArray(raw: unknown): string[] {
 
 /**
  * Parse défensif d'UN rituel (`null` si inutilisable : pas d'`id`). `side` non reconnu → repli
- * `cockpit` (run par défaut) ; `triggers`/`actions` filtrés. Jamais d'exception.
+ * `cockpit` (run par défaut) ; les tranches reconnues (`forge`/`cockpit`/`team`) sont préservées ;
+ * `triggers`/`actions` filtrés. Jamais d'exception.
  */
 export function parseRitual(raw: unknown): Ritual | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -117,7 +144,10 @@ export function parseRitual(raw: unknown): Ritual | null {
   if (!id) return null;
   const label =
     typeof r.label === "string" && r.label.trim().length > 0 ? r.label.trim() : id;
-  const side: RitualSide = r.side === "forge" ? "forge" : "cockpit";
+  const side: RitualSide =
+    r.side === "forge" || r.side === "cockpit" || r.side === "team"
+      ? r.side
+      : "cockpit";
   return {
     id,
     label,
