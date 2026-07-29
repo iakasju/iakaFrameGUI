@@ -66,6 +66,8 @@ pub fn run() {
             settings::set_authoring_model,
             settings::authoring_endpoint,
             settings::set_authoring_endpoint,
+            settings::authoring_api_key,
+            settings::set_authoring_api_key,
             settings::project_dir,
             settings::set_project_dir,
             project_conf::active_frame_id,

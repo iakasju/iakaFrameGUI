@@ -95,6 +95,130 @@ pub fn extract_content(resp: &serde_json::Value) -> Result<String, String> {
         .ok_or_else(|| "reponse Ollama sans message.content".to_string())
 }
 
+// ============================================================================================
+// Provider `openai` — passerelle OpenAI-compatible (LiteLLM, feanor-source-inference-selecteur.md)
+// --------------------------------------------------------------------------------------------
+// SECOND provider (ADDITIF ; `ollama` inchangé). MÊME bornage (hôte allow-listé `host_allowed`,
+// timeout dur, authoring BUILD-TIME) : la seule voie neuve est le WIRE — `POST {host}/v1/chat/
+// completions`, corps OpenAI (`model`/`messages`/`stream`), réponse `choices[0].message.content`
+// (bloquant) ou **SSE** `data: {json}\n\n` … `data: [DONE]` (streaming, delta `choices[0].delta.
+// content`). Une clé API OPTIONNELLE part en `Authorization: Bearer <clé>` — **jamais** dans le
+// corps, l'URL, un log ni un message d'erreur (frontière de sécurité, prouvée par construction).
+// Sobriété (Lot 2) : le chemin CONSEIL/CHAT (texte libre) est câblé ; `response_format` structuré
+// (mapping du `format` D4) est un Lot 2b — le provider openai IGNORE `format` (un backend qui rend
+// du texte non structuré retombe, au pire, sur l'AVEU honnête existant, jamais une fausse réponse).
+// ============================================================================================
+
+/// Construit l'URL du wire OpenAI chat-completions à partir de l'hôte réglé. Pure (aucune clé).
+pub fn openai_chat_url(host: &str) -> String {
+    format!("{}/v1/chat/completions", host.trim_end_matches('/'))
+}
+
+/// Message d'aveu **« hôte refusé »** — pur et PARTAGÉ par les deux providers/chemins. Il ne porte
+/// **que** l'hôte : aucune clé API n'y figure jamais (garantie de non-fuite, testée sans réseau).
+fn host_refused_msg(host: &str) -> String {
+    format!("hote refuse (hors allow-list localhost + endpoint regle) : {host}")
+}
+
+/// Construit le corps `POST /v1/chat/completions` (OpenAI-compatible). `stream` distingue le chemin
+/// bloquant (`false`) du streaming SSE (`true`). **La clé API n'est JAMAIS ici** (elle vit dans le
+/// header `Authorization`) : le corps ne contient que `model`/`messages`/`stream` — prouvé par la
+/// signature (aucun paramètre de clé) et par le test `build_openai_body_ne_contient_pas_de_cle`.
+pub fn build_openai_body(model: &str, system: &str, user: &str, stream: bool) -> serde_json::Value {
+    serde_json::json!({
+        "model": model,
+        "stream": stream,
+        "messages": [
+            { "role": "system", "content": system },
+            { "role": "user", "content": user }
+        ],
+    })
+}
+
+/// Extrait `choices[0].message.content` d'une réponse OpenAI **bloquante**. `Err` si la forme est
+/// inattendue (le résolveur front en fait un aveu honnête — jamais une fausse réponse).
+pub fn extract_openai_content(resp: &serde_json::Value) -> Result<String, String> {
+    resp.get("choices")
+        .and_then(|c| c.get(0))
+        .and_then(|c| c.get("message"))
+        .and_then(|m| m.get("content"))
+        .and_then(|c| c.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| "reponse OpenAI sans choices[0].message.content".to_string())
+}
+
+/// Événement issu d'UNE ligne SSE OpenAI (`/v1/chat/completions`, `stream:true`) — miroir « SSE » de
+/// `parse_stream_line` (NDJSON). `Ignore` = ligne sans charge utile (vide, commentaire `:`, champ
+/// `event:`/`id:`) ; `Token` = fragment `choices[0].delta.content` (vide toléré) ; `Done` = sentinelle
+/// `data: [DONE]` (fin PROPRE).
+#[derive(Clone, Debug, PartialEq)]
+pub enum SseEvent {
+    Ignore,
+    Token(String),
+    Done,
+}
+
+/// Parse **défensivement** UNE ligne SSE OpenAI. Rend :
+///   - `Ok(SseEvent::Ignore)` : ligne vide / commentaire / champ non-`data:` (à ignorer) ;
+///   - `Ok(SseEvent::Done)`   : `data: [DONE]` (fin propre du flux) ;
+///   - `Ok(SseEvent::Token)`  : le delta `choices[0].delta.content` (vide toléré) ;
+///   - `Err(msg)`             : `data:` avec un JSON illisible (flux corrompu) — jamais un panic.
+pub fn parse_openai_sse_line(line: &str) -> Result<SseEvent, String> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return Ok(SseEvent::Ignore);
+    }
+    // SSE : seule la ligne `data:` porte une charge utile ; le reste (`:` keep-alive, `event:`…) est ignoré.
+    let Some(payload) = trimmed.strip_prefix("data:") else {
+        return Ok(SseEvent::Ignore);
+    };
+    let payload = payload.trim();
+    if payload == "[DONE]" {
+        return Ok(SseEvent::Done);
+    }
+    let v: serde_json::Value =
+        serde_json::from_str(payload).map_err(|e| format!("ligne SSE illisible : {e}"))?;
+    let text = v
+        .get("choices")
+        .and_then(|c| c.get(0))
+        .and_then(|c| c.get("delta"))
+        .and_then(|d| d.get("content"))
+        .and_then(|c| c.as_str())
+        .unwrap_or("")
+        .to_string();
+    Ok(SseEvent::Token(text))
+}
+
+/// Traite UNE ligne SSE : émet un `Token` (delta non vide) via `emit`, rend `Ok(true)` sur `[DONE]`
+/// (flux clos), `Ok(false)` sinon, `Err` sur ligne illisible. Miroir SSE de `handle_ndjson_line` —
+/// point d'unité partagé par le shell async et par `drive_sse` (tests) : émission prouvée SANS réseau.
+pub fn handle_sse_line<F: FnMut(StreamChunk)>(line: &str, emit: &mut F) -> Result<bool, String> {
+    match parse_openai_sse_line(line)? {
+        SseEvent::Ignore => Ok(false),
+        SseEvent::Token(text) => {
+            if !text.is_empty() {
+                emit(StreamChunk::Token { text });
+            }
+            Ok(false)
+        }
+        SseEvent::Done => Ok(true),
+    }
+}
+
+/// Déroule un lot de lignes SSE, émettant chaque token via `emit`, et clôt par `Done` dès la
+/// sentinelle `data: [DONE]`. Rend `Ok(true)` si le flux a été clos proprement, `Ok(false)` si le lot
+/// s'épuise SANS `[DONE]` (incomplet — l'appelant en fait un aveu), `Err` sur ligne illisible. Pur,
+/// testable sans réseau — miroir SSE de `drive_ndjson` (même discipline d'honnêteté).
+pub fn drive_sse<F: FnMut(StreamChunk)>(lines: &[&str], emit: &mut F) -> Result<bool, String> {
+    for line in lines {
+        if handle_sse_line(line, emit)? {
+            emit(StreamChunk::Done);
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /**
  * Commande Tauri : appel d'inférence d'authoring **live** (Ollama `POST {host}/api/chat`).
  *
@@ -112,38 +236,61 @@ pub async fn llm_complete(
     user: String,
     timeout_ms: u64,
     format: Option<serde_json::Value>,
+    api_key: Option<String>,
 ) -> Result<String, String> {
-    // Provider : ollama SEUL au MVP (D2). Défense en profondeur (le front filtre déjà).
-    if provider.to_ascii_lowercase() != "ollama" {
-        return Err(format!("provider non supporte au MVP (ollama) : {provider}"));
+    // Provider : `ollama` (natif) OU `openai` (passerelle OpenAI-compatible, LiteLLM). Défense en
+    // profondeur (le front filtre déjà). Tout autre provider → aveu clair (jamais un appel réseau).
+    let provider_l = provider.to_ascii_lowercase();
+    let openai = provider_l == "openai";
+    if provider_l != "ollama" && !openai {
+        return Err(format!("provider non supporte (ollama|openai) : {provider}"));
     }
     // Garde d'hôte (CA9) : loopback OU endpoint d'authoring réglé — jamais une URL arbitraire.
+    // INCHANGÉE : `http://localhost:4000` (LiteLLM) passe par le loopback ; un LiteLLM LAN doit
+    // égaler l'`authoringEndpoint` réglé. Le message d'aveu ne porte QUE l'hôte (jamais la clé).
     let configured = crate::settings::read_authoring_endpoint(&resolve_settings_file());
     if !host_allowed(&host, configured.as_deref()) {
-        return Err(format!("hote refuse (hors allow-list localhost + endpoint regle) : {host}"));
+        return Err(host_refused_msg(&host));
     }
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_millis(timeout_ms))
         .build()
         .map_err(|e| format!("client HTTP : {e}"))?;
-    let url = format!("{}/api/chat", host.trim_end_matches('/'));
-    let body = build_chat_body(&model, &system, &user, format);
+    // Dispatch par provider : URL + corps du wire. `openai` ignore `format` (Lot 2b : response_format).
+    let (url, body, vendor) = if openai {
+        (openai_chat_url(&host), build_openai_body(&model, &system, &user, false), "LiteLLM")
+    } else {
+        (format!("{}/api/chat", host.trim_end_matches('/')), build_chat_body(&model, &system, &user, format), "Ollama")
+    };
 
-    let resp = client
-        .post(&url)
-        .json(&body)
+    let mut request = client.post(&url).json(&body);
+    // Clé API OPTIONNELLE → `Authorization: Bearer <clé>` sur le SEUL provider openai. Elle ne touche
+    // QUE ce header (jamais le corps/l'URL/un log/un message d'erreur) — frontière de non-fuite.
+    if openai {
+        if let Some(key) = api_key.as_deref() {
+            let key = key.trim();
+            if !key.is_empty() {
+                request = request.bearer_auth(key);
+            }
+        }
+    }
+    let resp = request
         .send()
         .await
-        .map_err(|e| format!("appel Ollama echoue : {e}"))?;
+        .map_err(|e| format!("appel {vendor} echoue : {e}"))?;
     if !resp.status().is_success() {
-        return Err(format!("Ollama a repondu {} sur {url}", resp.status()));
+        return Err(format!("{vendor} a repondu {} sur {url}", resp.status()));
     }
     let json: serde_json::Value = resp
         .json()
         .await
-        .map_err(|e| format!("reponse Ollama illisible : {e}"))?;
-    extract_content(&json)
+        .map_err(|e| format!("reponse {vendor} illisible : {e}"))?;
+    if openai {
+        extract_openai_content(&json)
+    } else {
+        extract_content(&json)
+    }
 }
 
 // ============================================================================================
@@ -245,40 +392,54 @@ pub async fn llm_complete_stream(
     user: String,
     timeout_ms: u64,
     format: Option<serde_json::Value>,
+    api_key: Option<String>,
     on_event: tauri::ipc::Channel<StreamChunk>,
 ) -> Result<(), String> {
     use futures_util::StreamExt;
 
-    // Provider : ollama SEUL (défense en profondeur, le front filtre déjà). Aveu clair sinon.
-    if provider.to_ascii_lowercase() != "ollama" {
-        return Err(format!("provider non supporte au MVP (ollama) : {provider}"));
+    // Provider : `ollama` (NDJSON) OU `openai` (SSE, LiteLLM). Défense en profondeur (front filtre déjà).
+    let provider_l = provider.to_ascii_lowercase();
+    let openai = provider_l == "openai";
+    if provider_l != "ollama" && !openai {
+        return Err(format!("provider non supporte (ollama|openai) : {provider}"));
     }
     // Garde d'hôte (CA9) : loopback OU endpoint d'authoring réglé — MÊME allow-list que llm_complete,
-    // aucun élargissement (le web live serait un autre hôte, hors périmètre).
+    // aucun élargissement (le web live serait un autre hôte, hors périmètre). Aveu = hôte seul, sans clé.
     let configured = crate::settings::read_authoring_endpoint(&resolve_settings_file());
     if !host_allowed(&host, configured.as_deref()) {
-        return Err(format!(
-            "hote refuse (hors allow-list localhost + endpoint regle) : {host}"
-        ));
+        return Err(host_refused_msg(&host));
     }
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_millis(timeout_ms))
         .build()
         .map_err(|e| format!("client HTTP : {e}"))?;
-    let url = format!("{}/api/chat", host.trim_end_matches('/'));
-    let body = build_stream_chat_body(&model, &system, &user, format);
+    // Dispatch par provider : `openai` → SSE sur `/v1/chat/completions` (ignore `format`, Lot 2b) ;
+    // `ollama` → NDJSON sur `/api/chat`. La lecture de flux (SSE vs NDJSON) est choisie plus bas.
+    let (url, body, vendor) = if openai {
+        (openai_chat_url(&host), build_openai_body(&model, &system, &user, true), "LiteLLM")
+    } else {
+        (format!("{}/api/chat", host.trim_end_matches('/')), build_stream_chat_body(&model, &system, &user, format), "Ollama")
+    };
 
+    let mut request = client.post(&url).json(&body);
+    // Clé API OPTIONNELLE → `Authorization: Bearer <clé>` sur le SEUL provider openai (jamais loguée).
+    if openai {
+        if let Some(key) = api_key.as_deref() {
+            let key = key.trim();
+            if !key.is_empty() {
+                request = request.bearer_auth(key);
+            }
+        }
+    }
     // Erreurs PRÉ-flux (connexion, statut) : `Err` sec, AUCUN chunk émis — le résolveur front
     // retombe en repli honnête (rien n'a été affiché comme réponse).
-    let resp = client
-        .post(&url)
-        .json(&body)
+    let resp = request
         .send()
         .await
-        .map_err(|e| format!("appel Ollama echoue : {e}"))?;
+        .map_err(|e| format!("appel {vendor} echoue : {e}"))?;
     if !resp.status().is_success() {
-        return Err(format!("Ollama a repondu {} sur {url}", resp.status()));
+        return Err(format!("{vendor} a repondu {} sur {url}", resp.status()));
     }
 
     // Lecture NDJSON incrémentale : on accumule les octets, on traite chaque ligne COMPLETE (\n),
@@ -304,7 +465,13 @@ pub async fn llm_complete_stream(
         buf.push_str(&String::from_utf8_lossy(&bytes));
         while let Some(nl) = buf.find('\n') {
             let line: String = buf.drain(..=nl).collect();
-            match handle_ndjson_line(&line, &mut emit) {
+            // Lecture selon le provider : SSE (`data:` … `[DONE]`) pour openai, NDJSON pour ollama.
+            let handled = if openai {
+                handle_sse_line(&line, &mut emit)
+            } else {
+                handle_ndjson_line(&line, &mut emit)
+            };
+            match handled {
                 Ok(is_done) => {
                     if is_done {
                         done = true;
@@ -325,7 +492,12 @@ pub async fn llm_complete_stream(
 
     // Dernier objet éventuel sans `\n` terminal.
     if !done && !buf.trim().is_empty() {
-        match handle_ndjson_line(&buf, &mut emit) {
+        let handled = if openai {
+            handle_sse_line(&buf, &mut emit)
+        } else {
+            handle_ndjson_line(&buf, &mut emit)
+        };
+        match handled {
             Ok(is_done) => done = is_done,
             Err(e) => {
                 emit(StreamChunk::Error { message: e.clone() });
@@ -505,5 +677,133 @@ mod tests {
             serde_json::to_value(StreamChunk::Error { message: "coupe".into() }).unwrap(),
             serde_json::json!({ "kind": "error", "message": "coupe" })
         );
+    }
+
+    // --- Provider `openai` (passerelle LiteLLM, feanor-source-inference-selecteur.md) ---
+
+    #[test]
+    fn openai_chat_url_pose_le_bon_chemin() {
+        assert_eq!(openai_chat_url("http://localhost:4000"), "http://localhost:4000/v1/chat/completions");
+        // Slash terminal toléré (pas de double slash).
+        assert_eq!(openai_chat_url("http://localhost:4000/"), "http://localhost:4000/v1/chat/completions");
+    }
+
+    #[test]
+    fn build_openai_body_respecte_le_wire() {
+        let b = build_openai_body("claude-3-5-sonnet", "sys", "usr", false);
+        assert_eq!(b["model"], serde_json::json!("claude-3-5-sonnet"));
+        assert_eq!(b["stream"], serde_json::json!(false));
+        assert_eq!(b["messages"][0]["role"], serde_json::json!("system"));
+        assert_eq!(b["messages"][0]["content"], serde_json::json!("sys"));
+        assert_eq!(b["messages"][1]["role"], serde_json::json!("user"));
+        assert_eq!(b["messages"][1]["content"], serde_json::json!("usr"));
+        // Variante streaming : seul `stream` bascule.
+        assert_eq!(build_openai_body("m", "s", "u", true)["stream"], serde_json::json!(true));
+    }
+
+    #[test]
+    fn build_openai_body_ne_contient_pas_de_cle() {
+        // SÉCURITÉ : le corps ne porte JAMAIS de clé (elle vit dans le header Authorization). Prouvé
+        // par la signature (aucun paramètre de clé) ET par l'absence de tout champ auth dans le JSON.
+        let body = build_openai_body("gpt-4o", "systeme", "question", false).to_string().to_lowercase();
+        assert!(!body.contains("authorization"));
+        assert!(!body.contains("bearer"));
+        assert!(!body.contains("api_key"));
+        assert!(!body.contains("apikey"));
+    }
+
+    #[test]
+    fn host_refused_msg_ne_contient_jamais_la_cle() {
+        // SÉCURITÉ : l'aveu « hôte refusé » (renvoyé AVANT tout usage de la clé) ne porte que l'hôte.
+        let msg = host_refused_msg("http://evil.example.com:4000");
+        assert!(msg.contains("http://evil.example.com:4000"));
+        assert!(!msg.contains("sk-"));
+        assert!(!msg.to_lowercase().contains("bearer"));
+    }
+
+    #[test]
+    fn extract_openai_content_ok_et_ko() {
+        let ok = serde_json::json!({
+            "choices": [ { "message": { "role": "assistant", "content": "Voici mon conseil." } } ]
+        });
+        assert_eq!(extract_openai_content(&ok).unwrap(), "Voici mon conseil.");
+        let ko = serde_json::json!({ "choices": [] });
+        assert!(extract_openai_content(&ko).is_err());
+        let ko2 = serde_json::json!({ "unexpected": true });
+        assert!(extract_openai_content(&ko2).is_err());
+    }
+
+    #[test]
+    fn parse_openai_sse_line_delta_done_ignore_et_illisible() {
+        // Delta de contenu.
+        let ev = parse_openai_sse_line("data: {\"choices\":[{\"delta\":{\"content\":\"Salut\"}}]}").unwrap();
+        assert_eq!(ev, SseEvent::Token("Salut".into()));
+        // Sentinelle de fin.
+        assert_eq!(parse_openai_sse_line("data: [DONE]").unwrap(), SseEvent::Done);
+        // Delta vide (rôle initial, pas de contenu) → Token vide, toléré.
+        let ev2 = parse_openai_sse_line("data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}").unwrap();
+        assert_eq!(ev2, SseEvent::Token(String::new()));
+        // Ligne blanche / commentaire keep-alive `:` / champ `event:` → ignorés.
+        assert_eq!(parse_openai_sse_line("").unwrap(), SseEvent::Ignore);
+        assert_eq!(parse_openai_sse_line(": ping").unwrap(), SseEvent::Ignore);
+        assert_eq!(parse_openai_sse_line("event: message").unwrap(), SseEvent::Ignore);
+        // `data:` avec un JSON illisible → Err (flux corrompu), jamais un panic.
+        let e = parse_openai_sse_line("data: pas du json").unwrap_err();
+        assert!(e.contains("illisible"));
+        assert!(!e.contains("panic"));
+    }
+
+    #[test]
+    fn drive_sse_emet_tokens_puis_done() {
+        let lines = [
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Bon\"}}]}",
+            "",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"jour\"}}]}",
+            "",
+            "data: [DONE]",
+        ];
+        let mut chunks: Vec<StreamChunk> = Vec::new();
+        let closed = drive_sse(&lines, &mut |c| chunks.push(c)).unwrap();
+        assert!(closed, "le flux doit se clore proprement sur [DONE]");
+        assert_eq!(
+            chunks,
+            vec![
+                StreamChunk::Token { text: "Bon".into() },
+                StreamChunk::Token { text: "jour".into() },
+                StreamChunk::Done,
+            ]
+        );
+    }
+
+    #[test]
+    fn drive_sse_flux_sans_done_ne_ment_pas() {
+        // Des deltas arrivent mais AUCUN `[DONE]` → Ok(false), PAS de Done émis (partiel honnête).
+        let lines = ["data: {\"choices\":[{\"delta\":{\"content\":\"partiel\"}}]}"];
+        let mut chunks: Vec<StreamChunk> = Vec::new();
+        let closed = drive_sse(&lines, &mut |c| chunks.push(c)).unwrap();
+        assert!(!closed, "sans [DONE], le flux n'est PAS clos (partiel honnête)");
+        assert_eq!(chunks, vec![StreamChunk::Token { text: "partiel".into() }]);
+        assert!(!chunks.contains(&StreamChunk::Done));
+    }
+
+    #[test]
+    fn drive_sse_ligne_illisible_propage_err() {
+        let lines = [
+            "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}",
+            "data: {ceci n'est pas du json",
+        ];
+        let mut chunks: Vec<StreamChunk> = Vec::new();
+        let res = drive_sse(&lines, &mut |c| chunks.push(c));
+        assert!(res.is_err(), "une ligne SSE illisible interrompt le flux (aveu)");
+        assert_eq!(chunks, vec![StreamChunk::Token { text: "ok".into() }]);
+    }
+
+    #[test]
+    fn openai_reutilise_la_meme_garde_dhote() {
+        // Non-régression : la garde d'hôte est PARTAGÉE (openai n'ouvre rien de plus). localhost:4000
+        // (LiteLLM) passe par le loopback ; un LiteLLM LAN doit égaler l'endpoint réglé.
+        assert!(host_allowed("http://localhost:4000", None));
+        assert!(!host_allowed("http://192.168.2.11:4000", None));
+        assert!(host_allowed("http://192.168.2.11:4000", Some("http://192.168.2.11:4000")));
     }
 }
