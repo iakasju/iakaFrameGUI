@@ -2,7 +2,8 @@
 
 > **Nature** : ÉVOLUTION DU MODÈLE DE CONCEPTS (niveau portefeuille, décidée par le décideur) — **cadrage seul,
 > aucun code**. · **Cadreur** : l'architecte-cadreur.
-> **Statut : CADRÉ — À VALIDER par le décideur** (jalon humain).
+> **Statut : VALIDÉ par le décideur le 2026-07-30** (« go bloc » — bloc Q-1/Q-2/Q-4/Q-5/Q-6). Déjà matérialisé
+> par le lot P7 (merge `9ecf97f`). **Q-3 reste ouverte** (table modèle-local↔rôle Ollama). Voir § 10bis.
 > **Date** : 2026-07-07. Français ; identifiants en anglais ; **rôles jamais désignés par un nom de code**.
 >
 > **Fondations touchées** : `specs/contrat-concepts.md` (AR-1, niveaux, Runner/Modèle), `specs/glossaire-
@@ -202,8 +203,28 @@ modèle — **pas** que le **Kit** n'en contient jamais (le Kit lié **peut** l�
 - **Q-6 — Le schéma Binding vit-il dans `@iakaframe/core` ?** *Reco : **oui*** (concept partagé forge↔cockpit, comme
   Team). → *Confirmer.*
 
-> Tant que ce jalon n'est pas validé, **aucune** implémentation des lots aval (P7 forge / recentrage cockpit). Ce
-> lot ne produit que du **cadrage + mises à jour de specs**.
+> ~~Tant que ce jalon n'est pas validé, aucune implémentation des lots aval.~~ **Verrou LEVÉ le 2026-07-30**
+> (les lots aval étaient de fait déjà livrés — voir § 10bis).
+
+---
+
+## 10bis. Verdict d'arbitrage du décideur (2026-07-30)
+
+> **Jalon VALIDÉ — « go bloc ».** Le décideur tranche le **bloc Q-1 / Q-2 / Q-4 / Q-5 / Q-6** conformément aux
+> recommandations de l'architecte-cadreur. Réconciliation : ces choix étaient **déjà matérialisés dans le code**
+> (lot **P7 — Binding réel**, merge `9ecf97f`, 2026-07-16) ; ce verdict formalise a posteriori la validation.
+
+| Q | Décision tranchée | Réalité code |
+|---|---|---|
+| **Q-1** — stockage du Binding | **À CÔTÉ** : `binding.json` à la racine du kit (rebindable sans régénérer). | ✅ écrit au `KitFileTree` (recette B-10). |
+| **Q-2** — granularité | **Par (team, nœud)** : `Binding.node` + `Binding.teamId`, id `team@node`. | ✅ `defaultBindingForNode`. |
+| **Q-4** — versionnement | **Deux artefacts** : Team = source portable ; Kit+Binding = produit régénérable. | ✅ Binding = artefact distinct. |
+| **Q-5** — override cockpit | **Persistant**, mais **détail Cockpit** (instruction dédiée, hors forge). | ⏳ `origin:"cockpit-override"` prévu ; la forge n'émet que `forge-default`. |
+| **Q-6** — foyer du schéma | **Dans `@iakaframe/core`** (partagé forge↔cockpit). | ✅ `packages/core/src/binding.ts`. |
+
+> **Q-3 reste OUVERTE (hors bloc).** Le *runner par défaut par nœud* est livré (`defaultRunnerForNode`), mais la
+> **table de suggestion modèle-local ↔ rôle pour Ollama** n'est pas tranchée (le défaut pose `model: ""`). À cadrer
+> séparément (source pressentie : `cible-ollama-modeles-agents.md`).
 
 ---
 
@@ -216,3 +237,6 @@ modèle — **pas** que le **Kit** n'en contient jamais (le Kit lié **peut** l�
   comportement P1–P6 actuel ; avec Binding = émission conditionnelle du modèle par les adaptateurs). Tests « zéro
   modèle » **ancrés au niveau Team**, pas Kit. Lots aval nommés : **Forge P7** (liaison au déploiement),
   **recentrage Cockpit** (override + pilotage). Arbitrages Q-1→Q-6. **Cadrage seul, aucun code.**
+- **2026-07-30** — **Jalon VALIDÉ par le décideur (« go bloc »)** : bloc Q-1/Q-2/Q-4/Q-5/Q-6 tranché conforme aux
+  recos (§ 10bis). Réconciliation doc↔code : déjà implémenté par le lot P7 (merge `9ecf97f`, 2026-07-16). **Q-3
+  reste ouverte** (table modèle-local↔rôle Ollama). Verrou « aucune implémentation avant validation » levé.
