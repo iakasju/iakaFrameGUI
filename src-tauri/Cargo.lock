@@ -1414,7 +1414,7 @@ dependencies = [
 
 [[package]]
 name = "iakaframegui"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "dirs 5.0.1",
  "futures-util",
