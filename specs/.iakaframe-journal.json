@@ -182,7 +182,7 @@
   {
     "date": "2026-07-31 22:40",
     "reason": "pause",
-    "version": "-",
+    "version": "v0.1.4",
     "branch": "main",
     "commit": "5f64fa1 fix(deps): resorbe 2 vulnerabilites high (postcss, brace-expansion)",
     "dirty": false,
