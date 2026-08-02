@@ -1,76 +1,59 @@
-# Instruction — Q-3 : table de suggestion **modèle local ↔ rôle** (nœuds Ollama)
+# Instruction — Q-3 : **découverte des modèles au nœud** & pré-remplissage du Binding par rôle
 
-> **Nature** : cadrage d'un arbitrage laissé **ouvert** par `E1-evolution-binding-ar1.md` § 10bis.
+> ⚠️ **Titre du fichier périmé.** Ce document s'appelle encore
+> `Q3-table-modele-local-role-ollama.md` alors qu'**il n'y a plus de table de modèles** : la liste
+> vient du nœud interrogé. **Renommage recommandé** →
+> `Q3-decouverte-modeles-noeud-preremplissage-binding.md`.
+> **Non effectué** : un renommage casse les références croisées (`E1-evolution-binding-ar1.md:227`,
+> `etat-des-lieux.md`) — c'est au décideur de le déclencher.
+
+> **Nature** : cadrage de l'arbitrage laissé ouvert par `E1-evolution-binding-ar1.md` § 10bis.
 > **Cadreur** : l'architecte-cadreur (P1 — Cadrage), **read-only sur le code, aucun code produit**.
-> **Date** : 2026-08-01. Français ; identifiants en anglais ; **rôles jamais désignés par un nom de
-> code**.
-> **Statut** : **PROPOSÉ — en attente d'arbitrage du décideur.**
-> **Tranché à ce jour** : le **paramètre matériel** — palier unique **12 Go de VRAM** (2026-08-02,
-> § 7). **Toujours ouvertes** : les **six questions Q-3.a → Q-3.f** (§ 6).
-
----
-
-## 0. Vérification externe (règle du cadrage) — **faite**, et elle change la recommandation
-
-Cette décision dépend d'un **fait externe volatil** : *quels modèles locaux existent réellement,
-sous quel tag, à quelle taille*. Vérification web du **2026-08-01** :
-
-| Fait vérifié (2026-08-01) | Source |
-|---|---|
-| `deepseek-r1` : tags `1.5b, 7b, 8b, 14b, 32b, 70b, 671b` — modèle de raisonnement à chaîne de pensée visible | [ollama.com/library](https://ollama.com/library) |
-| `qwen3` : tags `0.6b, 1.7b, 4b, 8b, 14b, 30b, 32b, 235b` | [ollama.com/library](https://ollama.com/library) |
-| `gpt-oss` : tags `20b, 120b` | [ollama.com/library](https://ollama.com/library) |
-| `qwen3-coder` : `30b` ≈ **19 Go** (MoE, ~3,3 B actifs, contexte 256K) et `480b` ≈ **290 Go** ; `:30b` **pullable en local**, `480b-cloud` sinon | [ollama.com/library/qwen3-coder](https://ollama.com/library/qwen3-coder) |
-| `qwen2.5-coder` : tags `0.5b, 1.5b, 3b, 7b, 14b, 32b` — toujours présent, référence des petites VRAM | [ollama.com/library](https://ollama.com/library) |
-| `qwen3-vl` : **désormais pullable en local** — `2b` (1,9 Go), `4b` (3,3 Go), `8b` (6,1 Go, `latest`), `30b` (20 Go), `32b` (21 Go), `235b` (143 Go) ; `235b-cloud` en plus | [ollama.com/library/qwen3-vl](https://ollama.com/library/qwen3-vl) |
-| Le billet d'annonce Qwen3-VL (oct. 2025) annonçait **cloud seulement**, « local bientôt » — **c'est déjà faux aujourd'hui** | [ollama.com/blog/qwen3-vl](https://ollama.com/blog/qwen3-vl) |
-| Repères VRAM/coding largement discutés : `qwen3-coder:30b` pour 24–32 Go ; `qwen2.5-coder:7b` pour 8 Go | [morphllm.com](https://www.morphllm.com/best-ollama-models), [localaimaster.com](https://localaimaster.com/models/best-local-ai-coding-models) |
-
-> ⚠️ **Deux enseignements décisifs, et ils pèsent plus que le contenu de la table :**
-> 1. **La donnée périme vite.** En ~9 mois, `qwen3-vl` est passé de *cloud-only* à **six tags
->    locaux** ; `qwen3-coder` a supplanté `qwen2.5-coder` sur les configurations 24 Go+. Une table
->    **compilée dans une release** serait fausse avant la release suivante.
-> 2. **Les agrégateurs se contredisent.** Plusieurs pages de classement citent des modèles
->    (`gemma4`, `qwen3-coder-next`, `devstral-small-2`) que la **bibliothèque officielle Ollama ne
->    confirme pas** à cette date. **Seul `ollama.com/library` fait foi ici** ; tout le reste est
->    marqué *à confirmer*.
+> **Date** : 2026-08-01, **fermé le 2026-08-02**.
+> Français ; identifiants en anglais ; **rôles jamais désignés par un nom de code**.
 >
-> **→ La vérification externe ne valide pas « figeons la bonne table ». Elle établit que le vrai
-> sujet de Q-3 est le FOYER et le CYCLE DE VIE de la table, pas son contenu du jour.**
-
-### 0bis. Seconde passe de vérification (2026-08-02) — tailles réelles **tag par tag**
-
-Le décideur ayant fermé le paramètre matériel (**12 Go de VRAM**, cf. § 7), une **seconde
-vérification** a été menée sur les pages `/tags` de la bibliothèque officielle — parce qu'à ce
-palier, **le tag n'est plus un détail : c'est le critère d'admission**.
-
-| Modèle | Tailles réelles par tag (source : `ollama.com/library/<m>/tags`, 2026-08-02) |
-|---|---|
-| `qwen3` | `0.6b` 523 Mo · `1.7b` 1,4 Go · `4b` 2,5 Go · **`8b` 5,2 Go** · **`14b` 9,3 Go** · `30b` 19 Go · `32b` 20 Go · `235b` 142 Go |
-| `deepseek-r1` | `1.5b` 1,1 Go · `7b` 4,7 Go · **`8b` 5,2 Go** · **`14b` 9,0 Go** · `32b` 20 Go · `70b` 43 Go · `671b` 404 Go |
-| `qwen2.5-coder` | `0.5b` ~0,4 Go · `1.5b` ~1,0 Go · `3b` 1,9 Go · **`7b` 4,7 Go** · **`14b` 9,0 Go** · `32b` 20 Go |
-| `qwen3-coder` | **`30b` 19 Go** · `30b-a3b-q8_0` 32 Go · `480b` 290 Go — **9 tags au total, AUCUN sous 15 Go** |
-| `qwen3-vl` | `2b` 1,9 Go · `4b` 3,3 Go · **`8b` 6,1 Go** · `30b` 20 Go · `32b` 21 Go · `235b` 143 Go |
-| `gpt-oss` | **`20b` 14 Go** · `120b` 65 Go — **le plus petit tag dépasse déjà le palier** |
-| `mistral` | **`7b`/`latest` 4,4 Go** · `q8_0` 7,7 Go · `fp16` 14 Go |
-
-> **Ce que cette passe a corrigé dans le cadrage** : deux lignes de la table du § 8 étaient
-> **matériellement infaisables** à 12 Go — `qwen3-coder:30b` (19 Go) pour `dev`/`qualite`, et
-> `gpt-oss:20b` (14 Go) pour `deploiement`. Elles ont été remplacées (§ 8), et l'écart est
-> documenté en § 8bis. **La contrainte matérielle a invalidé la meilleure recommandation
-> technique** : c'est exactement le genre de fait qu'un cadrage hors-ligne aurait manqué.
+> ## ✅ **Statut : FERMÉ — les six questions Q-3.a → Q-3.f sont TRANCHÉES** (§ 9).
+> Prêt pour implémentation (P2 — Développement) contre les critères du § 10.
+> Points explicitement **renvoyés à plus tard** : § 11 (aucun n'est bloquant).
 
 ---
 
-## 1. Besoin (reformulé)
+## 0. Vérification externe (règle du cadrage) — faite, et **elle a changé la nature de Q-3**
 
-Sur un nœud **Ollama**, un kit déployé n'est **exécutable hors Cockpit** que si chaque persona
-porte un **modèle**. Aujourd'hui la forge pose `model: ""` pour **toutes** les personas : le
-décideur doit **saisir à la main**, en texte libre, autant de noms de modèles qu'il y a de
-personas — sans aide, sans validation, sans savoir ce qui est installé sur le nœud.
+Q-3 demandait de figer une **table de suggestion modèle-local ↔ rôle**. La vérification web du
+**2026-08-01/02** a établi que cette table serait **fausse avant d'être livrée** :
 
-Q-3 demande : **la forge doit-elle SUGGÉRER un modèle local par rôle**, et **d'où vient cette
-suggestion** ?
+| Fait vérifié | Source |
+|---|---|
+| `qwen3-vl` est passé de **cloud-only** (billet d'annonce d'oct. 2025) à **six tags locaux** (`2b` 1,9 Go → `235b` 143 Go) en ~9 mois | [ollama.com/blog/qwen3-vl](https://ollama.com/blog/qwen3-vl), [ollama.com/library/qwen3-vl](https://ollama.com/library/qwen3-vl) |
+| `qwen3-coder` a supplanté `qwen2.5-coder` sur les configurations 24 Go+ ; son plus petit tag est `30b` à **19 Go** (9 tags vérifiés, **aucun** sous 15 Go) | [ollama.com/library/qwen3-coder](https://ollama.com/library/qwen3-coder) |
+| Plusieurs agrégateurs citent des modèles (`gemma4`, `devstral-small-2`, `qwen3-coder-next`) que la **bibliothèque officielle ne confirme pas** | comparaison [ollama.com/library](https://ollama.com/library) vs [morphllm.com](https://www.morphllm.com/best-ollama-models) |
+| Ollama expose une **API compatible OpenAI** : `/v1/models`, `/v1/models/{model}`, `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, `/v1/responses` | doc officielle Ollama |
+| **Aucun endpoint Ollama n'expose la VRAM totale** de la machine. `/api/ps` ne rend que la VRAM **consommée par les modèles chargés**, et **omet le champ quand il vaut 0** | doc officielle Ollama |
+
+**Mesures sur le poste du décideur (2026-08-02)** :
+
+- Ollama local répond en **v0.20.2** ; il ne contient **qu'un seul modèle** : **`llama3.1:8b`
+  (4,9 Go)**.
+- Le nœud LAN **`192.168.2.11:11434` n'a pas répondu.**
+
+> **→ Conclusion qui renverse le cadrage initial.** Une table écrite à la main est (a) **périmée en
+> mois**, (b) **invérifiable** sur le parc réel, et (c) **inutile** : le nœud sait déjà dire ce
+> qu'il a. Le dernier fait est décisif — **la VRAM n'étant pas interrogeable**, tout dimensionnement
+> par palier reposerait sur une déclaration humaine que rien ne vérifie. **Le paramètre matériel est
+> donc supprimé, et la table avec lui.**
+
+---
+
+## 1. Besoin (reformulé après verdicts)
+
+Sur un nœud qui **exige un modèle**, un kit n'est **exécutable hors Cockpit** que si chaque persona
+en porte un. Aujourd'hui la forge pose `model: ""` partout : le décideur doit **saisir à la main**,
+en **texte libre**, autant de noms de modèles qu'il y a de personas — sans savoir ce que le nœud
+propose, sans validation, sans aide.
+
+**Le besoin n'est donc pas « quel modèle recommander », mais « faire dire au nœud ce qu'il a, et
+pré-remplir intelligemment ».**
 
 ---
 
@@ -78,469 +61,464 @@ suggestion** ?
 
 ### 2.1 Le comportement actuel — `model: ""`, confirmé
 
-- `defaultBindingForNode(team, node)` — `packages/core/src/binding.ts:178`. Il produit **une
-  liaison par persona** avec `runner: defaultRunnerForNode(node)` et **`model: ""`** :
-  `binding.ts:187`. Le `tools: []` idem (`:188`).
-- `defaultRunnerForNode(node)` — `binding.ts:73` : `claude→claude` ; `codex→chatgpt` (host-isé) ;
-  `ollama-lan→ollama-distant` ; défaut (`ollama-localhost`, `openwebui`) `→ollama-local`.
-  **Le runner par défaut est livré ; le modèle ne l'est pas.**
-- `modelForPersona(...)` — `binding.ts:199` : `""` signifie **aucune émission de modèle**, donc
-  « kit pur pour cette persona ». **`""` est le pivot documenté de la rétro-compatibilité**
-  (`binding.ts:195-197`). C'est un **défaut sûr**, pas un oubli.
+- `defaultBindingForNode(team, node)` — `packages/core/src/binding.ts:178` — produit **une liaison
+  par persona** avec `runner: defaultRunnerForNode(node)` et **`model: ""`** (`:187`), `tools: []`
+  (`:188`).
+- `defaultRunnerForNode` — `binding.ts:73` : `claude→claude` ; `codex→chatgpt` (host-isé) ;
+  `ollama-lan→ollama-distant` ; défaut (`ollama-localhost`, `openwebui`) `→ollama-local` (`:84`).
+- `modelForPersona` — `binding.ts:199` : `""` ⇒ **aucune émission de modèle**, donc « kit pur pour
+  cette persona ». **`""` est le pivot documenté de la rétro-compatibilité** (`binding.ts:195-197`).
+  **C'est un défaut sûr, pas un oubli.**
 
 ### 2.2 Où l'utilisateur saisit le modèle aujourd'hui
 
 - `src/components/LiaisonPanel.tsx` — étape « Liaison » du flux Déploiement, **entre le choix du
   nœud et le bouton Générer** (`:1-11`), **masquée tant qu'aucun nœud n'est choisi** (`:56`).
-- Champ modèle = **`<input>` texte libre**, un par persona : `LiaisonPanel.tsx:123-130`. Le
-  `placeholder` porte déjà un exemple **codé en dur** — `"ex. qwen2.5-coder:14b"` (`:127`) : une
-  **table implicite d'un seul élément**, déjà périmée au regard du § 0.
-- Avertissement **non bloquant** « modèle requis » si vide sur un nœud ≠ `claude` :
-  `LiaisonPanel.tsx:100`, `:131-139`, règle `modelRequiredFor` `:22-24`.
-- **Le `roleKey` est déjà disponible exactement là où une suggestion devrait atterrir** :
-  `LiaisonPanel.tsx:105` affiche `roleLabel(p.roleKey)` ; le tri d'affichage est **par
-  `roleIndex`** (`:34-36`). **Aucune donnée nouvelle n'est nécessaire côté UI.**
+- Champ modèle = **`<input>` texte libre**, un par persona (`:123-130`), avec un `placeholder`
+  **codé en dur** — `"ex. qwen2.5-coder:14b"` (`:127`) : une **table implicite d'un seul élément**,
+  déjà périmée.
+- Avertissement **non bloquant** « modèle requis » si vide sur un nœud ≠ `claude` : règle
+  `modelRequiredFor` (`:22-24`), calcul `:100`, rendu `:131-139`.
+- **Le `roleKey` est déjà disponible au point exact où la suggestion doit atterrir** :
+  `LiaisonPanel.tsx:105` (`roleLabel(p.roleKey)`) ; tri par `roleIndex` (`:34-36`).
 - Câblage : `src/views/DeployView.tsx:63-70` ; état dans `src/hooks/useForgeDeploy.ts:165-169`
-  (`enableBinding` → `defaultBindingForNode`), `:197-206` (`setPersonaModel`).
+  (`enableBinding`), `:174-175` (`clearBinding`), `:197-206` (`setPersonaModel`), `:274-275`
+  (écriture de `binding.json`).
 
-### 2.3 Le vocabulaire de rôles canon **existe** — il est fermé, stable et déjà l'axe du système
+### 2.3 Le vocabulaire de rôles canon existe — fermé, stable, déjà l'axe du système
 
-- `packages/core/src/roles.ts:46-56` — **`CANONICAL_ROLES`, 9 rôles**, dans l'ordre `roleIndex`
-  0→8 :
-  `portefeuille` (0), `coordination` (1), `cadrage` (2), `dev` (3), `qualite` (4),
-  `deploiement` (5), `design` (6), `documentation` (7), `frame` (8).
-- `CANONICAL_ROLE_KEYS` `roles.ts:59` ; `roleByKey` `:70` ; `roleLabel` `:79` (**tolérant** : une
-  clé hors liste retombe sur elle-même — utile pour une méthode tierce).
-- `Persona.roleKey` — `packages/core/src/persona.ts:26`, défensif au parse `:90-92`.
-- **Précédent qui fait jurisprudence** : la facette portefeuille de G6 identifie la persona
-  **par `roleKey === "portefeuille"`** et **jamais par le nom « odin »** —
-  `packages/core/src/frame.ts:604`, avec un test dédié prouvant qu'une **persona renommée** est
-  quand même reconnue (`packages/core/__tests__/frame.test.ts:168`).
-  **→ Clé par rôle : ce n'est pas une préférence, c'est la convention déjà gravée et testée.**
+- `packages/core/src/roles.ts:46-56` — **`CANONICAL_ROLES`, 9 rôles** (`roleIndex` 0→8) :
+  `portefeuille`, `coordination`, `cadrage`, `dev`, `qualite`, `deploiement`, `design`,
+  `documentation`, **`frame`**.
+- `CANONICAL_ROLE_KEYS` `:59` ; `roleByKey` `:70` ; `roleLabel` `:79` (**tolérant** : clé hors liste
+  → rendue telle quelle).
+- `Persona.roleKey` — `packages/core/src/persona.ts:26`, défensif au parse (`:90-92`).
+- **Jurisprudence interne** : la facette portefeuille de G6 identifie par
+  **`roleKey === "portefeuille"`**, **jamais** par le nom — `packages/core/src/frame.ts:604`, avec
+  test prouvant qu'une **persona renommée** reste reconnue
+  (`packages/core/__tests__/frame.test.ts:168`).
 
-### 2.4 La source pressentie **EXISTE** — mais elle n'est ni au bon endroit, ni à la bonne clé
+### 2.4 La source pressentie par E1 **n'est plus la source**
 
-`cible-ollama-modeles-agents.md` **n'est pas une source fantôme.** Fichier réel :
-**`/Users/sjupin/work/iakaframe/specs/instructions/cible-ollama-modeles-agents.md`** — dans le
-**dépôt canon `iakaframe`**, **pas** dans `iakaFrameGUI`. Sa table est en `:25-34`.
+E1 demandait : *« Confirmer la source de la table de suggestion (réutiliser
+`cible-ollama-modeles-agents.md` ?) »* (`E1-evolution-binding-ar1.md:196`).
 
-Elle pose **quatre problèmes** qu'il faut nommer avant de s'en servir :
+Le fichier **existe** — `/Users/sjupin/work/iakaframe/specs/instructions/cible-ollama-modeles-agents.md`,
+table en `:25-34` — mais il est **clé par nom de persona** (ce que G6 a proscrit), **incomplet**
+(8 entrées pour 9 rôles : le rôle `frame` n'y figure pas), **périmé** (`qwen2.5-coder`,
+`qwen2.5-vl`) et **hors dépôt** (`@iakaframe/core` ne peut pas l'importer). Il le dit lui-même :
+*« Tableau à ajuster selon l'état de l'art »* (`:36-37`).
 
-| # | Problème | Constat |
+> **Réponse à E1 : NON.** La source n'est ni ce fichier ni aucun autre document — **c'est le nœud
+> interrogé**. Ce fichier reste une doc du dépôt canon (il documente notamment la découverte
+> `/api/tags` côté PowerShell, `:17-19`), mais **il n'a plus de rôle dans la forge**.
+
+### 2.5 ⚠️ **Correction d'un constat erroné du cadrage initial** — la découverte EXISTE DÉJÀ
+
+La première version de ce document affirmait que la GUI ne savait pas découvrir les modèles
+(« zéro occurrence de `/api/tags` », comportement testé négativement
+`src/components/SettingsRoot.test.tsx:242`) et chiffrait cette capacité comme **un lot backend à
+ouvrir**. **C'était vrai pour `/api/tags` et trompeur au fond : la capacité est livrée sous un
+autre endpoint.**
+
+**`llm_models`** — `src-tauri/src/llm.rs:619` :
+
+- fait **`GET {host}/v1/models`** (compatible OpenAI — donc **Ollama ET LiteLLM**), URL construite
+  par `openai_models_url` (`:644`) ;
+- **garde d'hôte** `host_allowed` (`:632`), **timeout dur** (défaut **10 s**, `:637`), **Bearer
+  optionnel** lu **côté Rust** pour que le GUI ne détienne jamais le secret (`:648-657`) ;
+- **ne renvoie JAMAIS d'`Err`** : tout échec devient `{ models: [], reason: Some(...) }` —
+  hôte refusé (`:633`), injoignable (`:662`), statut non-2xx (`:665`), corps illisible (`:669`),
+  aucun modèle (`:673`). La clé **n'apparaît jamais** dans `reason` (`:616`).
+- Type de retour `ModelsResult` — `llm.rs:588-602` (`ok` `:596`, `empty` `:599`).
+- Façade TS : `LlmModelsResult` — `src/api/backend.ts:379-382` ; `llmModels(endpoint, apiKey?,
+  timeoutMs?)` — `:390-396`, exportée `:775`.
+
+> **C'est exactement le patron d'aveu honnête dont Q-3 a besoin** : *jamais une fausse liste,
+> toujours une raison lisible, et la saisie manuelle reste ouverte.* Il est **déjà écrit, déjà
+> testé**. Q-3 n'a **rien de nouveau à construire côté backend**.
+
+### 2.6 La limite réelle — **la garde d'hôte**, et le trou `ollama-lan`
+
+`host_allowed` — `src-tauri/src/llm.rs:47` — autorise un hôte **si et seulement si** :
+
+- son schéma est `http`/`https` (`:48-50`), **ET**
+- son hostname est **loopback** (`localhost`, `127.0.0.1`, `::1`, `[::1]` — `is_loopback` `:35-37`),
+  **OU** il **égale exactement** l'hôte de l'`authoringEndpoint` **persisté** (`:54-57`).
+
+**Tout le reste est refusé** — invariant de sécurité **CA9**, testé sans réseau
+(`llm.rs:688` `host_allowed_accepte_loopback`).
+
+**Conséquence par nœud** :
+
+| Nœud | Hôte de découverte | Passe la garde ? |
 |---|---|---|
-| **S-1** | **Mauvaise clé** | La table est indexée par **nom de persona** (colonne « Agent » : Odin, Aragorn, Gandalf, Gimli, Legolas, Helm, Loki, Nathalie) — `cible-ollama-modeles-agents.md:27-34`. C'est **exactement ce que G6 a proscrit** (§ 2.3). Un renommage de persona casserait la table. La colonne « Rôle » existe (`portefeuille/raisonnement`, `coordination`, `cadrage/raisonnement`, `dev/code`, `qualité/tests`, `prod/ops`, `design/vision`, `guides/rédaction`) mais elle est **descriptive, pas normalisée** sur `CANONICAL_ROLE_KEYS`. |
-| **S-2** | **Incomplète — 8 entrées pour 9 rôles** | Le **9ᵉ rôle `frame`** (`roles.ts:55`, `roleIndex` 8, ajouté sans renumérotation) **n'a aucune ligne**. Toute table dérivée telle quelle laisserait ce rôle sans suggestion. |
-| **S-3** | **Périmée** | Elle recommande `qwen3`, `deepseek-r1`, `qwen2.5-coder`, `llama3.1`, `qwen2.5-vl`, `mistral`. Au 2026-08-01 : `qwen3-coder:30b` existe et supplante `qwen2.5-coder` sur 24 Go+ ; `qwen2.5vl` est concurrencé par **`qwen3-vl` désormais local** en 6 tags (§ 0). |
-| **S-4** | **Hors dépôt** | Elle vit dans `iakaframe`, pas dans `iakaFrameGUI`. **`@iakaframe/core` ne peut pas l'importer.** Toute réutilisation est une **recopie manuelle** — donc une **divergence programmée** entre les deux dépôts. |
+| `ollama-localhost` | `http://localhost:11434` | ✅ loopback |
+| `openwebui` | Ollama loopback sous-jacent (runner `ollama-local`, `binding.ts:84`) | ✅ loopback |
+| **`ollama-lan`** | le **`lanHost`** saisi au déploiement (`NodeSelector.tsx:54`, `useForgeDeploy.ts:228-234`) | ❌ **REFUSÉ**, sauf s'il **égale** l'`authoringEndpoint` réglé |
 
-> Le document le dit lui-même : *« Les tags exacts (taille/quant) sont laissés au `ollama pull`.
-> Tableau à ajuster selon l'état de l'art (le cadrage vérifie le web avant de figer) »*
-> (`cible-ollama-modeles-agents.md:36-37`). **Il ne s'est jamais présenté comme une source figée.**
+> **Le trou est réel et nommé** : un nœud Ollama **LAN** qui n'est pas, par ailleurs, l'endpoint
+> d'authoring **ne sera pas découvert**. Traitement retenu : § 7.
 
-### 2.5 La forge **ne sait pas** ce qui est installé sur le nœud Ollama
+### 2.7 Ce que `settings.json` contient — et sa frontière
 
-- Aucun appel à `/api/tags` nulle part dans `src/` (recherche dépôt : **zéro occurrence**).
-- Le backend Rust n'expose **qu'un** wire Ollama : `llm_complete` / `llm_complete_stream` →
-  `POST {host}/api/chat`, allow-listé et borné — `src/api/backend.ts:316`, `:346`, `:286`.
-  **C'est un wire d'inférence, pas un wire de découverte.**
-- L'écran Réglages **assume explicitement** cette lacune : « modèles `/v1/models` — inutile pour
-  Ollama (dont les modèles ne s'exposent pas par ce wire ici) » `src/components/SettingsRoot.tsx:302`,
-  et **aucun bouton de découverte** pour la source `ollama` — comportement **testé** :
-  `src/components/SettingsRoot.test.tsx:242`.
-- Le dépôt canon, lui, **sait le faire** : `iakaframe-alternatives.ps1` confronte la table aux
-  modèles réellement installés via **`/api/tags`** (`cible-ollama-modeles-agents.md:17-19`).
-  **La capacité existe côté PowerShell, pas côté GUI.**
+`<workspace>/settings.json`, via `src-tauri/src/settings.rs` : `iakaframe_home` (`:129`),
+`authoring_model` (`:142`), `authoring_endpoint` (`:155`), `project_dir` (`:162`),
+`authoring_api_key` (`:180`) + leurs setters (`:135`, `:148`, `:173`, `:168`, `:186`) ;
+façade TS `src/api/backend.ts:195`, `:207`, `:210`, `:225`.
 
-> **Conséquence dure pour le périmètre** : aujourd'hui, la forge **ne peut pas** savoir si un
-> modèle suggéré est présent sur le nœud. Toute option qui l'exige **ajoute une commande Tauri et
-> un appel réseau** — donc un lot d'un autre ordre de grandeur (cf. § 5, option C).
+**Trois de ces commentaires posent la même frontière, mot pour mot** :
+*« Réglage build-time, **DISTINCT du runner d'EXÉCUTION du Binding** (frontière authoring ≠
+exécution) »* — `settings.rs:140`, `:153`, `:178`.
+
+> **Fait structurant pour Q-3.a** : `settings.json` est l'artefact de l'**authoring**. Le Binding
+> est l'artefact de l'**exécution**. Y loger une donnée de déploiement **franchirait une frontière
+> que le code défend explicitement à trois endroits**.
 
 ---
 
-## 3. Le vrai point de bascule — **contenu volatil ≠ mécanisme stable**
+## 3. Le point de bascule — **mécanisme stable vs contenu volatil**, résolu par soustraction
 
-Q-3 mélange deux questions de natures opposées. **Les séparer est le cœur de ce cadrage.**
+Le diagnostic du cadrage initial est **validé** : Q-3 mêlait deux natures opposées.
 
 ```
- ┌─ MÉCANISME (stable, versionné avec le code) ─────────────────────────┐
- │  « il existe une suggestion, clé = roleKey, elle amorce le champ,    │
- │    l'utilisateur confirme, absence de suggestion → model:"" »        │
- │  → change tous les 2 ans. A sa place dans @iakaframe/core.           │
+ ┌─ MÉCANISME (stable) ────────────────────────────────────────────────┐
+ │  « on interroge le nœud · on pré-remplit par rôle · l'utilisateur    │
+ │    confirme · l'échec retombe sur model:"" »                        │
+ │  → change tous les 2 ans. Va dans le CODE (@iakaframe/core + UI).   │
  └──────────────────────────────────────────────────────────────────────┘
- ┌─ CONTENU (volatil, à réviser sans release) ──────────────────────────┐
+ ┌─ CONTENU (volatil) ─────────────────────────────────────────────────┐
  │  « cadrage → deepseek-r1:14b ; dev → qwen3-coder:30b ; … »           │
- │  → change tous les 3 mois (démontré § 0). N'a PAS sa place           │
- │    dans une constante compilée.                                      │
+ │  → change tous les 3 mois (§ 0).                                     │
+ │  ⇒ **SUPPRIMÉ. Il n'y a plus de contenu à loger nulle part.**        │
  └──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Q-6 (« le schéma Binding vit dans le cœur ») a été tranché OUI — et c'était juste : un
-*schéma* est un mécanisme.** En déduire que la *table* y va aussi serait une **fausse symétrie** :
-la table est un **contenu**. C'est précisément la distinction que le décideur doit arbitrer en § 6.
+Le cadrage initial proposait de **déplacer** le contenu (option B : fichier de configuration
+éditable). **Le décideur fait mieux : il le supprime.** La liste des candidats devient une
+**propriété du nœud**, lue à la demande. Il ne reste **que du mécanisme** — donc **rien à
+maintenir, rien à faire périmer, rien à persister**.
 
 ---
 
 ## 4. Périmètre — DANS / HORS
 
 **DANS**
-- Un point d'entrée pur au cœur : *donner un `roleKey` (et le nœud), obtenir un modèle suggéré ou
-  rien*. Défensif, **jamais d'exception**, `null`/`""` si aucune suggestion.
-- La **clé** de la table et son **vocabulaire** (§ 6, Q-3.b).
-- Le **foyer** du contenu de la table (§ 6, Q-3.a).
-- Le **point de confirmation** dans le flux : `LiaisonPanel` (§ 6, Q-3.d).
-- La **non-régression** : sans confirmation, `model` reste `""` (§ 6, Q-3.e).
-- Couverture des **9 rôles canon**, `frame` inclus (comble **S-2**).
+
+- Interroger le nœud cible via **`llmModels`** (existant, `backend.ts:390`) au moment de la liaison.
+- Transformer le champ modèle de `LiaisonPanel` en **liste déroulante alimentée par la découverte**,
+  **restant librement éditable**.
+- **Pré-remplir** chaque persona par une **règle de motif** sur le nom du modèle, clé **`roleKey`**
+  (§ 6), couvrant les **9 rôles canon**.
+- **Repli honnête** quand la découverte échoue ou rend une liste vide : `model: ""` + `reason`
+  affichée + saisie manuelle (§ 5.3).
+- Non-régression : `""` reste le défaut sûr, évolution **additive** (§ 9, Q-3.e).
 
 **HORS**
-- **Toute découverte réseau** des modèles installés (`/api/tags`) — nouvelle commande Tauri,
-  nouvel allow-list, gestion d'erreur/timeout : **lot distinct**, à cadrer séparément si le
-  décideur choisit l'option C en § 6 Q-3.c.
-- **Tout benchmark** ou classement automatique de modèles.
-- **Toute détection de matériel** (VRAM disponible). Voir § 7.
-- Le **`tools`** par persona (axe séparé, déjà livré, `binding.ts:44`).
-- L'**override cockpit** (`origin:"cockpit-override"`) — instruction Cockpit dédiée (E1 Q-5).
-- Toute modification du schéma `Binding`/`PersonaBinding` (`binding.ts:30-59`) : **aucune requise**.
-- Toute modification de `cible-ollama-modeles-agents.md` dans le dépôt canon (autre dépôt).
+
+- **Toute table de modèles** écrite à la main — supprimée (§ 3).
+- **Tout paramètre de VRAM / dimensionnement matériel** — supprimé : **non interrogeable** (§ 0).
+- **Toute nouvelle commande Tauri** : `llm_models` existe et suffit (§ 2.5).
+- **Tout élargissement de la garde d'hôte** `host_allowed` (`llm.rs:47`) — invariant de sécurité
+  CA9 ; le cas `ollama-lan` est traité par dégradation, pas par ouverture (§ 7).
+- **Toute persistance nouvelle** dans `settings.json` (§ 9, Q-3.a).
+- L'axe **`tools`** par persona (`binding.ts:44`), l'**override cockpit** (E1 Q-5), et toute
+  modification des schémas `Binding`/`PersonaBinding` (`binding.ts:30-59`) : **aucune requise**.
+- Tout benchmark, classement ou installation automatique de modèles (`ollama pull`).
+- Toute modification de `cible-ollama-modeles-agents.md` (autre dépôt).
 
 ---
 
-## 5. Options structurantes — foyer de la table
+## 5. Architecture retenue — le flux
 
-| | **A — constante au cœur** | **B — donnée de configuration éditable** | **C — découverte live `/api/tags`** |
-|---|---|---|---|
-| **Où** | `packages/core/src/` (à côté de `binding.ts`, comme `CANONICAL_ROLES`) | Fichier de la racine `IAKAFRAME_HOME` (ex. `library/` ou à côté du réservoir), lu par la forge, **avec repli sur A** | Interrogation du nœud Ollama au moment de la liaison |
-| **Qui peut la corriger** | **Personne sans release** : il faut recompiler + publier | **Le décideur, à l'éditeur de texte, sans release** | Personne — c'est le nœud qui répond |
-| **Périme ?** | **Oui, structurellement** (§ 0 : 9 mois ont suffi) | Oui, mais **corrigeable le jour même** | **Non** — mais ne dit pas *quel* modèle pour *quel* rôle |
-| **Suggère un modèle absent du nœud ?** | Oui, possible | Oui, possible | **Non par construction** |
-| **Coût** | **Faible** — pur, testable hors I/O | **Moyen** — un parseur défensif + un chemin de lecture + le repli | **Élevé** — commande Tauri, allow-list réseau, timeout, mode hors-ligne, tests d'intégration |
-| **Risque propre** | Table fausse gravée dans une release | Un fichier de plus à connaître ; divergence si personne ne l'édite | Écran qui dépend du réseau ; échec silencieux si le nœud est éteint |
-| **Cohérent avec le canon ?** | Duplique `cible-ollama-modeles-agents.md` (**S-4**) | Peut être **alimenté** depuis le canon sans recompiler | Ignore le canon |
+### 5.1 Quand la découverte se déclenche
 
-**Recommandation du cadrage : B, avec A en repli — et C explicitement reporté.**
+À l'**activation de la liaison** : cocher « Lier ce kit » (`LiaisonPanel.tsx:68-76`) appelle
+`enableBinding` (`useForgeDeploy.ts:165-169`). C'est là que la découverte part — **une fois**, pas
+à chaque frappe. **Pas de cache** au MVP : la liste est relue à chaque activation (simple, jamais
+périmée).
 
-Justification en une phrase : **le mécanisme va au cœur (stable), le contenu va en configuration
-(volatil)**, et un **repli compilé** garantit qu'une racine sans fichier de configuration se
-comporte quand même correctement — exactement le patron déjà employé par `CANONICAL_ROLES`
-(`roles.ts:46`), qui est le **repli synthétique** des rôles réels lus du disque (`parseRole`
-`roles.ts:99`, promotion Lot 5c `frame.ts:230`). **Ce patron est déjà éprouvé dans ce dépôt.**
+### 5.2 Quel hôte est interrogé, selon le nœud
 
----
+| Nœud | Hôte interrogé |
+|---|---|
+| `ollama-localhost` | `http://localhost:11434` |
+| `openwebui` | Ollama loopback sous-jacent (runner `ollama-local`) |
+| `ollama-lan` | le `lanHost` saisi (`useForgeDeploy.ts:228-234`) — **soumis à la garde**, cf. § 7 |
+| `claude`, `codex` | **aucune découverte** (§ 9, Q-3.f) |
 
-## 6. Questions d'arbitrage — **ce que le décideur doit trancher**
+### 5.3 Ce qui se passe quand ça échoue — **un seul comportement**
 
-> **État au 2026-08-02 : les six questions ci-dessous sont TOUTES OUVERTES.** Le décideur a
-> tranché **le seul paramètre matériel** (§ 7 — palier 12 Go). Cet arbitrage **ne préjuge d'aucune**
-> des six : il fixe *quels modèles sont atteignables*, pas *où vit la table*, *comment elle est
-> clée*, ni *comment l'utilisateur confirme*.
+`llmModels` ne rejette pas : il rend `{ models: [], reason }` (§ 2.5). Hors Tauri, la façade
+**rejette** (`BACKEND_UNAVAILABLE_MSG`, `backend.ts:387-388`) — l'appelant capte.
 
-### **Q-3.a — Foyer de la table.** Constante compilée, ou donnée éditable hors code ?
-*Reco : **donnée éditable, avec repli compilé** (option B).*
-**Conséquence si A** : chaque révision de modèle = une release de `@iakaframe/core`. Au rythme
-constaté (§ 0), c'est ~2 à 4 releases/an **pour du contenu**.
-**Conséquence si B** : le décideur corrige un fichier texte et redéploie — mais il faut **définir
-le chemin et le format**, et accepter un artefact de configuration de plus.
-→ **Trancher.**
+**Les deux cas convergent sur le même comportement, sans exception** :
 
-### **Q-3.b — Clé de la table.** Par `roleKey` canon, ou par nom de persona ?
-*Reco : **`roleKey`**, sans alternative sérieuse.*
-Motifs, tous adossés au code : c'est la convention **déjà gravée et testée** par G6
-(`frame.ts:604`, test `frame.test.ts:168`) ; `roleKey` est **déjà présent** au point d'atterrissage
-(`LiaisonPanel.tsx:105`) ; le vocabulaire est **fermé et stable** (`roles.ts:46-56`) ; et
-`roleLabel` est **tolérant** aux clés hors liste (`roles.ts:79`), donc une méthode tierce ne casse
-rien. **Retenir le nom de persona reproduirait le défaut S-1** de la source canon.
-→ **Confirmer.** Et **acter que les 9 rôles sont couverts**, `frame` inclus (comble **S-2**).
+1. la liste déroulante est **vide** → le champ reste une **saisie libre** (comportement d'aujourd'hui) ;
+2. la **`reason`** est **affichée telle quelle** à l'utilisateur (aveu honnête, jamais masqué) ;
+3. le modèle pré-rempli est **`""`** ;
+4. l'avertissement existant « modèle requis » (`LiaisonPanel.tsx:131-139`) **fait le reste** —
+   il est déjà là, non bloquant.
 
-### **Q-3.c — Modèle suggéré absent du nœud Ollama.** Que fait la forge ?
-Trois comportements possibles :
-1. **Suggérer quand même**, sans vérifier — l'utilisateur voit le nom, corrige s'il le faut ;
-2. **Interroger `/api/tags`** et ne suggérer que du présent ;
-3. **Retomber sur `""`** en cas de doute.
-*Reco : **1 au MVP, 2 reporté en lot distinct, jamais 3**.*
-Motifs : la découverte réseau est **hors périmètre** (§ 4) et **n'existe pas** dans la GUI
-(§ 2.5 — testé négativement, `SettingsRoot.test.tsx:242`) ; et retomber sur `""` **annulerait tout
-le bénéfice** de Q-3. Une suggestion visible mais absente du nœud reste **strictement plus utile**
-que le champ vide d'aujourd'hui : l'utilisateur peut la lire, la corriger, ou lancer le
-`ollama pull` correspondant.
-→ **Trancher**, en sachant que le choix 2 déclenche un lot backend (commande Tauri + allow-list).
-
-### **Q-3.d — Confirmation utilisateur : où, et que se passe-t-il s'il ne confirme pas ?**
-*Reco : la confirmation est **l'acte de cocher « Lier ce kit »**, dans `LiaisonPanel`
-(`LiaisonPanel.tsx:68-76`) — pas un second geste.*
-Mécanique proposée : cocher appelle `enableBinding` (`useForgeDeploy.ts:165-169`) ; les champs
-modèle s'**pré-remplissent** avec les suggestions au lieu d'être vides ; **chaque champ reste
-librement éditable** (`LiaisonPanel.tsx:129`) ; **décocher efface tout** (`clearBinding`,
-`useForgeDeploy.ts:174-175`).
-**S'il ne confirme pas** — c'est-à-dire s'il ne coche pas — **aucun binding n'est posé, aucun
-`binding.json` n'est écrit** (`useForgeDeploy.ts:274-275`), le kit reste **pur**. **Comportement
-d'aujourd'hui, à l'identique.**
-*Alternative à considérer* : une suggestion **non pré-remplie**, affichée seulement en
-`placeholder` (`LiaisonPanel.tsx:126-128`) — moins intrusive, mais elle n'épargne **aucune frappe**
-à l'utilisateur, donc elle ne résout qu'à moitié le besoin.
-→ **Trancher entre pré-remplissage et simple `placeholder`.**
-
-### **Q-3.e — Non-régression.** Le défaut sûr reste-t-il `model: ""` ?
-*Reco : **oui, sans exception**, et l'évolution doit être **additive**, comme E1.*
-Invariants à préserver, tous vérifiables :
-- `defaultBindingForNode` (`binding.ts:178`) **continue de poser `model: ""`** pour les nœuds
-  **non-Ollama** et pour **tout rôle sans suggestion** ;
-- `modelForPersona` → `""` **⇒ aucune émission de modèle** (`binding.ts:195-206`) : le pivot de
-  rétro-compatibilité est **intouché** ;
-- **sans binding, la sortie du kit reste byte-identique** au kit pur (`binding.ts:7-9`) ;
-- aucun champ ajouté à `Binding`/`PersonaBinding` (`binding.ts:30-59`).
-→ **Confirmer.**
-
-### **Q-3.f — Périmètre des nœuds.** La suggestion vaut-elle pour les seuls nœuds Ollama ?
-Q-3 ne parle que d'Ollama. Mais `defaultRunnerForNode` (`binding.ts:73-86`) mappe **aussi**
-`openwebui → ollama-local` : un nœud `openwebui` tourne donc **sur un harnais Ollama** et exige un
-modèle (`modelRequiredFor` `LiaisonPanel.tsx:22-24` : tout sauf `claude`).
-*Reco : appliquer la suggestion aux nœuds dont le runner par défaut est `ollama-local` ou
-`ollama-distant`, soit **`ollama-localhost`, `ollama-lan` et `openwebui`** — et **jamais**
-`claude` (défaut runner, modèle facultatif) **ni** `codex` (runner `chatgpt` : modèles **distants**,
-hors sujet d'une table **locale**).*
-→ **Confirmer.**
+> **Le cas est réel, pas théorique** : le nœud LAN du décideur **ne répond pas** (§ 0). Ce chemin
+> sera emprunté dès le premier essai.
 
 ---
 
-## 7. Paramètre matériel — **TRANCHÉ : palier unique 12 Go de VRAM** (2026-08-02)
+## 6. La **règle de pré-remplissage** — définition exacte
 
-> ### ✅ **PALIER RETENU : 12 Go de VRAM.**
-> **Traitement V-3** (un seul palier, déclaré explicitement) — conforme à la recommandation du
-> cadrage. **La table du § 8 n'est valable QUE pour ce palier.** Tout changement de parc
-> (nouvelle carte, seconde machine, passage en unified memory) **invalide le § 8** et impose sa
-> révision.
+> **Entrée** : `models: string[]` (dans **l'ordre rendu par le nœud**) + `roleKey: string`.
+> **Sortie** : un id **issu de `models`**, ou **`""`**. **Pure, déterministe, sans exception.**
 
-### 7.1 Pourquoi le palier est le critère d'admission, pas une annotation
+### 6.1 Table de motifs — par `roleKey`, ordonnée
 
-À 12 Go, la VRAM **n'est pas** un confort : c'est un **filtre binaire**. `qwen3-coder:30b` — la
-meilleure suggestion technique pour le développement, et celle que ce cadrage recommandait en
-première version — pèse **19 Go** et **ne se charge pas**. Le tag cesse d'être un détail
-d'installation pour devenir la **décision**.
+| `roleKey` | Motifs (ordre d'évaluation) |
+|---|---|
+| `dev` | `coder`, `code` |
+| `qualite` | `coder`, `code` |
+| `design` | `vl`, `vision` |
+| `portefeuille`, `coordination`, `cadrage`, `deploiement`, `documentation`, `frame` | *(aucun)* |
 
-### 7.2 Marge retenue : **~25 %** → budget de poids **≤ 9 Go**, zone de confort **≤ 6,5 Go**
+**Union des motifs spécialisés** = { `coder`, `code`, `vl`, `vision` } — sert au défaut (§ 6.2, ⑤).
 
-Les tailles annoncées par Ollama sont des **tailles de poids sur disque**. À l'exécution, la VRAM
-doit loger **trois postes supplémentaires** :
+### 6.2 Algorithme
 
-1. le **KV cache**, qui **croît avec la fenêtre de contexte** — de quelques centaines de Mo en
-   contexte court à **plusieurs Go** en contexte long (les architectures à GQA le réduisent
-   fortement, d'où une forte variance d'un modèle à l'autre) ;
-2. les **tampons de calcul** (activations, buffers de batch) ;
-3. le **contexte du runtime** (CUDA/Metal/ROCm), de l'ordre de **0,5 à 1 Go**.
+1. **Liste vide** → **`""`**. (fin — c'est le chemin d'échec du § 5.3)
+2. **Casse** : comparaison sur `model.toLowerCase()`, motifs déjà en minuscules.
+   **Test = sous-chaîne** (« le nom *contient* le motif »).
+3. **Ordre d'évaluation : motif d'abord, liste ensuite.** Pour chaque motif **dans l'ordre du
+   tableau**, on parcourt `models` **dans l'ordre du nœud** et on retient le **premier** id qui le
+   contient. Un motif plus spécifique gagne donc toujours : `coder` l'emporte sur `code`, **même si**
+   un id contenant `code` apparaît plus tôt dans la liste.
+4. **Plusieurs modèles matchent le même motif** → **le premier dans l'ordre rendu par le nœud**.
+   Déterministe et stable ; aucun tri, aucun score, aucun arbitrage caché.
+5. **Aucun motif ne matche, ou rôle sans motif** → **défaut généraliste** = le **premier id ne
+   contenant AUCUN motif de l'union spécialisée**. Si tous en contiennent (ou s'il n'y a qu'un seul
+   modèle) → **`models[0]`**.
+6. **`roleKey` inconnu / vide / non-string** → traité comme **rôle sans motif** (→ ⑤).
+   **Jamais d'exception** (contrat des `parse*` du cœur, cf. `roles.ts:99`, `binding.ts:107`).
 
-> ⚠️ **Ordres de grandeur, pas des specs vérifiées** — ces trois postes dépendent du modèle, du
-> pilote et de la fenêtre demandée. Marqués **à confirmer** sur la machine réelle.
+### 6.3 Déroulé sur les deux cas réels
 
-**Le risque n'est pas le crash — c'est la lenteur silencieuse.** Quand ça déborde, Ollama
-**n'échoue pas** : il **décharge des couches sur le CPU** (*partial offload*). Le modèle répond
-toujours, mais l'écroulement de vitesse est brutal, et **rien ne le signale à l'utilisateur**. Une
-table qui frôle la limite produirait donc une forge « qui marche » et pourtant inutilisable.
+**Cas A — le poste du décideur** : `models = ["llama3.1:8b"]`.
+Aucun motif ne matche → défaut généraliste → `llama3.1:8b` n'est pas spécialisé → **les 9 rôles
+reçoivent `llama3.1:8b`**. *Dégradation saine : un seul modèle disponible, il sert à tout.*
 
-D'où **deux bandes**, appliquées au § 8 :
+**Cas B — un nœud fourni** : `models = ["qwen2.5-coder:7b", "qwen3-vl:8b", "qwen3:8b"]`.
 
-| Bande | Budget de poids | Usage visé | Statut |
-|---|---|---|---|
-| 🟢 **Confort** | **≤ 6,5 Go** | contexte long (32K+), agentique multi-tours | **Suggestion primaire** du § 8 |
-| 🟡 **Palier haut** | **9,0 – 9,3 Go** | contexte court/modeste, qualité supérieure | **Montée en gamme**, colonne dédiée, jamais le défaut |
-| 🔴 **Exclu** | **> 9,3 Go** | — | Hors table (§ 8bis) |
-
-**La bande 🟡 n'est jamais posée par défaut** : à 9,3 Go de poids sur 12 Go de VRAM, il ne reste
-que ~2,7 Go pour les trois postes ci-dessus — tenable en contexte court, débordant au-delà. C'est
-un choix que **l'utilisateur** fait en connaissance de cause, pas la forge à sa place.
-
-### 7.3 Où cette hypothèse est inscrite pour qu'elle ne se perde pas
-
-Une contrainte matérielle non écrite se perd en trois mois. Elle est donc inscrite en **quatre
-endroits**, dont **deux dans l'artefact lui-même** :
-
-| # | Emplacement | Nature |
+| Rôle | Résultat | Par quelle branche |
 |---|---|---|
-| 1 | **Ce § 7** | Source de la décision (traçable, daté) |
-| 2 | **En-tête du § 8** | Le palier est rappelé **au-dessus de la table**, inséparable d'elle |
-| 3 | **Dans la table livrée** (fichier de configuration si Q-3.a = B, sinon commentaire de la constante) | **Exigé par `AC-Q3-10`** : la table porte **sa date de vérification ET son palier de VRAM** — un lecteur sait toujours *quand* elle a été vraie et *pour quelle machine* |
-| 4 | **§ 8bis** | La liste de ce que le palier **exclut** — pour que la contrainte reste **visible comme un coût**, pas comme une évidence |
+| `dev`, `qualite` | `qwen2.5-coder:7b` | motif `coder` ③ |
+| `design` | `qwen3-vl:8b` | motif `vl` ③ |
+| les 6 autres | `qwen3:8b` | défaut généraliste ⑤ (les deux premiers sont spécialisés) |
 
-> `AC-Q3-10` était déjà écrit avant que le palier soit connu. **Il devient ici le mécanisme
-> anti-oubli** : aucune table ne peut être livrée sans porter « 12 Go, vérifié le 2026-08-02 ».
+> Sans la branche ⑤ « généraliste », les six rôles non spécialisés auraient hérité de
+> `qwen2.5-coder:7b` (premier de liste) — un codeur pour rédiger de la documentation. **La branche
+> ⑤ n'est pas un raffinement cosmétique : elle évite un défaut manifestement absurde.**
 
-### 7.4 Ce qui reste ouvert côté matériel
+### 6.4 Ce que la règle **ne fait pas**
 
-**V-2 (une table par palier de VRAM)** reste **disponible sans être retenu** : si le décideur
-ajoute une seconde machine — ou passe à un GPU 24 Go+ —, la structure du § 8 (une ligne par
-`roleKey`) accepte une **colonne de palier** supplémentaire sans refonte. **Rien à re-cadrer**,
-seulement du contenu à ajouter. Le § 8bis chiffre d'ailleurs ce qu'un upgrade rendrait accessible.
-
----
-
-## 8. Contenu **indicatif** de la table — à ratifier, pas une décision du cadrage
-
-> ### 🖥️ **PALIER : 12 Go de VRAM** · vérifié le **2026-08-02** · source : `ollama.com/library/<m>/tags`
-> Cette table **n'est valable que pour ce palier** (§ 7). Bande 🟢 confort ≤ 6,5 Go (défaut) ·
-> bande 🟡 palier haut 9,0–9,3 Go (contexte court, **jamais posé par défaut**).
-
-Normalisée sur les **9 `roleKey` canon** (`roles.ts:46-56`) — comble **S-1** (clé par rôle),
-**S-2** (rôle `frame`), corrige **S-3** (obsolescence), et désormais **filtrée par le palier**.
-
-| `roleKey` | Libellé | Nature du travail | 🟢 Suggestion (défaut) | Taille | 🟡 Montée en gamme | Taille | Raison du choix pour ce rôle |
-|---|---|---|---|---|---|---|---|
-| `portefeuille` | Portefeuille | arbitrage, vue d'ensemble | `qwen3:8b` | **5,2 Go** | `qwen3:14b` | 9,3 Go | Généraliste solide à mode de réflexion ; l'arbitrage demande de la largeur, pas de la spécialisation |
-| `coordination` | Coordination | dispatch, synthèse | `qwen3:8b` | **5,2 Go** | `qwen3:14b` | 9,3 Go | Même profil ; tours courts et fréquents → la latence prime sur la puissance |
-| `cadrage` | Cadrage | raisonnement long, options | `deepseek-r1:8b` | **5,2 Go** | **`deepseek-r1:14b`** | 9,0 Go | Seul modèle local à **chaîne de pensée explicite** — c'est ce qu'on veut voir pour peser des options. **Le rôle qui justifie le plus la bande 🟡** |
-| `dev` | Développement | code, agentique | `qwen2.5-coder:7b` | **4,7 Go** | **`qwen2.5-coder:14b`** | 9,0 Go | ⚠️ **`qwen3-coder` est HORS PALIER** (§ 8bis) : son plus petit tag est 19 Go. `qwen2.5-coder` redevient le meilleur codeur **atteignable** — la source canon avait raison **par accident** |
-| `qualite` | Qualité | tests, revue | `qwen2.5-coder:7b` | **4,7 Go** | `qwen2.5-coder:14b` | 9,0 Go | Même famille que `dev` : lire du code et le critiquer relève de la même compétence |
-| `deploiement` | Déploiement | ops, scripts | `qwen3:8b` | **5,2 Go** | `qwen3:14b` | 9,3 Go | ⚠️ **`gpt-oss:20b` est HORS PALIER** (14 Go, § 8bis). Repli sur le généraliste ; l'ops mêle shell, YAML et prose → un généraliste sert mieux qu'un codeur pur |
-| `design` | Design | vision, maquettes | **`qwen3-vl:8b`** | **6,1 Go** | *(aucune — voir note)* | — | **Seule ligne où le palier ne coûte rien** : `qwen3-vl:8b` est la génération courante et **tient confortablement**. Corrige `qwen2.5-vl` de la source canon (**S-3**) |
-| `documentation` | Documentation | rédaction, guides | `mistral:7b` | **4,4 Go** | `mistral:7b-q8_0` | 7,7 Go | Réputé pour la fluidité en français ; conforme à la source canon. La montée en gamme se fait ici **en quantization**, faute de tag intermédiaire |
-| **`frame`** | **Constructeur de frame** | structure, cohérence | `qwen3:8b` | **5,2 Go** | `qwen3:14b` | 9,3 Go | **AJOUT** — **absent de la source canon** (**S-2**). Travail structurel sur des `.md` et des refs → généraliste, pas codeur |
-
-**Note `design`** : pas de montée en gamme proposée. Le tag suivant est `qwen3-vl:30b` (**20 Go**)
-— il n'existe **rien entre 6,1 et 20 Go** dans cette famille. Le dire franchement vaut mieux que
-d'inventer un palier intermédiaire.
-
-**Aucun rôle n'est laissé sans candidat** à 12 Go. Le palier **dégrade** quatre lignes
-(`dev`, `qualite`, `deploiement`, et `cadrage` en défaut), il n'en **supprime** aucune.
-
-> ### **Statut de ce tableau : matière à ratification, pas une décision du cadrage.**
-> **Les trois réserves initiales sont MAINTENUES** — la contrainte s'est précisée, elle n'a levé
-> aucune incertitude :
-> 1. **Réserve `deploiement`** — le choix d'origine (`gpt-oss`) reposait sur des classements
->    d'agrégateurs **non confirmés** par la bibliothèque officielle. Le palier l'a écarté pour une
->    raison de taille, **pas** parce que la réserve serait levée : elle reste entière, et le repli
->    `qwen3:8b` est lui-même **à confirmer** à l'usage.
-> 2. **Réserve `mistral`** — n'expose **qu'un seul tag** (`7b`, 4,4 Go). Sa place tenait mal au
->    palier 24 Go ; elle tient **mieux** à 12 Go, mais le modèle reste **ancien** face aux `qwen3`.
->    *À confirmer.*
-> 3. **Réserve de péremption** — **tout ce tableau sera périmé.** `qwen3-vl` est passé de
->    cloud-only à six tags locaux en ~9 mois (§ 0). **C'est l'argument central de Q-3.a** : ce
->    contenu n'a pas sa place dans une constante compilée.
->
-> **Réserve supplémentaire (nouvelle, née du palier)** : les tailles ci-dessus sont des **poids sur
-> disque**. La tenue réelle en 12 Go dépend du KV cache et de la fenêtre de contexte (§ 7.2) —
-> **ordres de grandeur, non mesurés sur la machine cible**. Les lignes 🟡 à 9,0–9,3 Go sont les
-> plus exposées au *partial offload* silencieux. **À confirmer par un essai réel.**
+Elle **ne classe pas** les modèles, **ne mesure rien**, **ne connaît aucun modèle par son nom**.
+Elle n'a **aucune connaissance à maintenir** — seulement quatre motifs. C'est le prix à payer pour
+n'avoir plus **aucune table**. Sa fragilité est nommée en **R-3** (§ 8).
 
 ---
 
-## 8bis. Ce que le palier 12 Go **exclut** — le coût, chiffré
+## 7. Le trou `ollama-lan` — nommé, et **délibérément non refermé au MVP**
 
-Liste courte et volontairement lisible : **ce que le décideur perd** aujourd'hui, et donc **ce
-qu'un upgrade matériel rachèterait**.
+**Le problème** : `host_allowed` (`llm.rs:47`) n'autorise que loopback **ou** l'`authoringEndpoint`
+persisté. Un `lanHost` saisi dans le flux de déploiement (`useForgeDeploy.ts:228-234`) **n'est pas**
+l'`authoringEndpoint` → **découverte refusée**, `reason` = message d'hôte refusé (`llm.rs:633`).
 
-| Modèle écarté | Taille réelle | Rôle qu'il servait | Ce qu'on perd concrètement |
-|---|---|---|---|
-| **`qwen3-coder:30b`** | **19 Go** | `dev`, `qualite` | **La perte la plus lourde.** Codeur MoE (~3,3 B actifs) à **contexte 256K**, taillé pour l'agentique multi-fichiers. **Aucun tag plus petit n'existe** (9 tags vérifiés, le plancher est 19 Go) — impossible de « descendre en gamme » dans cette famille |
-| **`gpt-oss:20b`** | **14 Go** | `deploiement` | Raisonnement de bon niveau à contexte 128K. Rate le palier de **2 Go** — le plus proche du seuil, donc le **premier candidat** en cas d'upgrade |
-| `deepseek-r1:32b` | 20 Go | `cadrage` | Raisonnement nettement supérieur au `14b` sur les problèmes longs |
-| `qwen3:30b` / `qwen3:32b` | 19 / 20 Go | rôles généralistes | Le palier de qualité au-dessus de `14b` |
-| `qwen3-vl:30b` / `:32b` | 20 / 21 Go | `design` | Vision haut de gamme — mais `8b` couvre déjà l'essentiel ici |
-| `llama3.3:70b`, `deepseek-r1:70b`, `qwen3-coder:480b`, `deepseek-r1:671b` | 43 → 404 Go | — | **Hors d'atteinte à toute échelle domestique** ; mentionnés pour clore la question |
+**Trois façons de le fermer** :
 
-**Lecture pour un arbitrage matériel** — trois seuils utiles :
+| | Traitement | Coût / risque |
+|---|---|---|
+| **T-1** | **Ne rien changer** — `ollama-lan` dégrade sur le chemin § 5.3 (liste vide + aveu + saisie manuelle) | **Zéro risque. Zéro régression** : c'est exactement le comportement d'aujourd'hui pour ce nœud |
+| **T-2** | **Contournement documenté** : régler l'`authoringEndpoint` (`SettingsRoot`, `backend.ts:225`) sur l'hôte LAN → la garde passe **sans modification de code** | Zéro code ; mais **couple** un réglage d'authoring à un besoin de déploiement — exactement la frontière que `settings.rs:140/:153/:178` défend |
+| **T-3** | **Élargir la garde** au `lanHost` du flux de déploiement | **Touche un invariant de sécurité testé (CA9)**. Une allow-list qui s'ouvre depuis un champ de formulaire n'est plus une allow-list |
 
-- **16 Go** → débloque **`gpt-oss:20b`** (14 Go) et met les tags `14b` en bande confort. Gain
-  modéré mais réel sur `cadrage` et `deploiement`.
-- **24 Go** → débloque **`qwen3-coder:30b`** (19 Go), `qwen3:30b`, `deepseek-r1:32b`,
-  `qwen3-vl:30b`. **C'est le seuil qui change la nature du poste** : il rend l'agentique de code
-  local sérieusement praticable.
-- **32 Go+** → confort sur les 30b avec contexte long, sans *partial offload*.
+**Retenu : T-1**, avec **T-2 mentionné comme contournement** dans le message d'aveu.
+**T-3 est renvoyé au § 11** — élargir une garde de sécurité n'est pas une décision que le cadrage
+prend au détour d'un lot d'ergonomie.
 
-> **Ce paragraphe n'est pas une recommandation d'achat** — le cadrage n'a pas mandat pour cela.
-> C'est la **contrepartie chiffrée** de la contrainte, pour que le décideur arbitre en sachant ce
-> que 12 Go coûtent.
+> **Conséquence assumée** : sur `ollama-lan`, Q-3 **n'apporte rien** au MVP. C'est **honnête et sans
+> régression** — le nœud LAN du décideur ne répond de toute façon pas (§ 0).
 
 ---
 
-## 9. Critères d'acceptation VÉRIFIABLES
+## 8. Réserves nommées
 
-> À n'implémenter **qu'après arbitrage** du § 6. Formulés pour être vrais **quelle que soit** la
-> réponse à Q-3.a (foyer), sauf mention contraire.
+**Réserves maintenues** (elles survivent au changement de nature) :
 
-- **AC-Q3-1 — Clé par rôle, jamais par nom.** La résolution d'une suggestion prend un **`roleKey`**
-  en entrée. Test : deux personas de **noms différents** mais de **même `roleKey`** obtiennent la
-  **même** suggestion ; une persona **renommée** conserve la sienne. *(Miroir exact du test G6
-  `packages/core/__tests__/frame.test.ts:168`.)*
+- **R-1 — Péremption de l'écosystème.** Les modèles locaux bougent en **mois** (§ 0). *La
+  résolution retenue neutralise cette réserve pour la forge* — il n'y a plus de contenu à périmer.
+  Elle reste vraie **pour `cible-ollama-modeles-agents.md`** dans le dépôt canon, qui continue, lui,
+  de porter une table datée et clé par nom de persona.
+- **R-2 — Découverte ≠ pertinence.** Le nœud dit ce qu'il **a**, jamais ce qui est **bon** pour un
+  rôle. Un nœud ne contenant qu'un modèle de vision proposerait ce modèle pour le développement. La
+  forge **n'a aucun moyen de le savoir** et **ne prétendra pas le savoir** — l'utilisateur reste
+  juge, le champ reste éditable.
+
+**Réserve nouvelle** :
+
+- **R-3 — La règle de motif repose sur une convention de nommage que RIEN ne garantit.**
+  Ollama n'impose **aucune sémantique** aux noms de modèles ; ils viennent des éditeurs.
+  - **Faux négatifs** (un codeur non détecté) : `devstral` ne contient **ni** `coder` **ni** `code`
+    → il recevrait le défaut généraliste alors que c'est un modèle de code.
+  - **Faux positifs** : `vl` est **court** ; toute suite de deux lettres peut apparaître
+    accidentellement dans un nom sans rapport avec la vision.
+  - **Aucun signal** n'est donné à l'utilisateur quand la règle se trompe : le champ est simplement
+    pré-rempli avec un mauvais candidat.
+  > **Le décideur a tranché en connaissance de cause.** L'atténuation est **structurelle** : le
+  > champ est **toujours éditable** et **toujours visible** (§ 9, Q-3.d) — une erreur de motif est
+  > **corrigible en un geste**, jamais silencieuse au point d'être irrattrapable. Enrichir la table
+  > de motifs est possible (§ 11, **P-O-3**), au prix d'**une fragilité accrue à chaque ajout**.
+
+**Réserves supprimées** (tombées avec le paramètre matériel) : les réserves sur `deploiement` /
+`gpt-oss`, sur `mistral`, et sur l'écart poids-sur-disque vs occupation réelle en contexte —
+**sans objet** : plus aucun modèle n'est nommé par la forge.
+
+---
+
+## 9. ✅ Verdict d'arbitrage du décideur (2026-08-02) — **les six questions sont tranchées**
+
+> **Jalon VALIDÉ.** Le décideur tranche **Q-3.a → Q-3.f** et **supprime le paramètre matériel**.
+> Verdict fondateur, textuel : *« si ollama liste un modèle on le liste, si litellm liste un modèle
+> idem »* — **la source des candidats est le nœud, plus aucune table.**
+
+| Question | Décision tranchée | Conséquence |
+|---|---|---|
+| **Q-3.a** — foyer de la table | **SANS OBJET** : il n'y a plus de table. **Rien de neuf n'est persisté** — ni dans `settings.json`, ni ailleurs | La règle de motif (§ 6) est un **mécanisme** → elle vit dans le **code** (`@iakaframe/core`), versionnée avec lui. `settings.json` **reste authoring-only**, frontière `settings.rs:140/:153/:178` **intacte**. **Simplification, pas oubli** |
+| **Q-3.b** — clé de la table | **`roleKey` canon**, jamais le nom de persona. **Les 9 rôles sont couverts, `frame` inclus** | Aligné sur la jurisprudence G6 (`frame.ts:604`, test `frame.test.ts:168`). **Comble S-2** (le rôle `frame` manquait à la source canon). `roleKey` est déjà au point d'atterrissage (`LiaisonPanel.tsx:105`) |
+| **Q-3.c** — modèle absent du nœud | **Reformulée : on interroge la source.** La question devient « que faire quand la découverte **échoue** ou rend une liste **vide** » → **`model: ""` + aveu honnête + saisie manuelle** | Réutilise `llm_models` (`llm.rs:619`) **tel quel** : il ne lève jamais, il rend `reason`. **Aucune commande Tauri nouvelle.** Chemin unique décrit en § 5.3 |
+| **Q-3.d** — confirmation | **Pré-remplissage**, pas simple `placeholder`. Champ = **liste déroulante** alimentée par la découverte, **librement éditable**. **Cocher « Lier ce kit » reste l'acte de confirmation** | Ne pas cocher ⇒ `binding === null` ⇒ **aucun `binding.json`** (`useForgeDeploy.ts:274-275`) ⇒ **kit pur, comportement d'aujourd'hui**. Décocher efface (`:174-175`). Règle de motif définie en § 6, **fragilité inscrite en R-3** |
+| **Q-3.e** — non-régression | **CONFIRMÉ.** `model: ""` reste le défaut sûr ; évolution **additive**, comme E1 | 4 invariants préservés : `defaultBindingForNode` pose toujours `""` (`binding.ts:178`, `:187`) ; `""` ⇒ aucune émission (`:195-206`) ; **sans binding, sortie byte-identique** (`:7-9`) ; **aucun champ ajouté** aux schémas (`:30-59`). **Les deux chemins vers `""`** (nœud hors périmètre / découverte échouée) **convergent sur le même comportement** — § 5.3 |
+| **Q-3.f** — périmètre des nœuds | **CONFIRMÉ** : `ollama-localhost`, `ollama-lan`, `openwebui`. **Jamais `claude` ni `codex`** | **Pas d'élargissement** aux sources OpenAI-compatibles au seul motif que `/v1/models` le permettrait → renvoyé en § 11 (**P-O-1**). Nuance : `modelRequiredFor` (`LiaisonPanel.tsx:22-24`) vaut `node !== "claude"`, donc **`codex` exige un modèle mais n'a pas de découverte** → il **conserve la saisie libre** actuelle |
+| **(supprimé)** — paramètre VRAM | **SUPPRIMÉ.** Plus aucun palier matériel déclaré | Motif : **aucun endpoint Ollama n'expose la VRAM totale** ; `/api/ps` ne rend que la VRAM consommée, champ omis à 0 (§ 0). Un palier serait une **déclaration humaine invérifiable**. Avec lui tombent la table indicative, les bandes de confort et le critère qui les inscrivait |
+
+---
+
+## 10. Critères d'acceptation VÉRIFIABLES
+
+- **AC-Q3-1 — Clé par rôle, jamais par nom.** La résolution prend un **`roleKey`**. Test : deux
+  personas de **noms différents** mais de **même `roleKey`** obtiennent le **même** pré-remplissage ;
+  une persona **renommée** conserve le sien. *(Miroir de `packages/core/__tests__/frame.test.ts:168`.)*
 - **AC-Q3-2 — Les 9 rôles canon sont couverts.** Pour **chaque** clé de `CANONICAL_ROLE_KEYS`
-  (`roles.ts:59`), la table rend une suggestion **non vide** — **`frame` inclus** (**S-2** comblé).
-  Test : itération sur `CANONICAL_ROLE_KEYS`, aucune entrée manquante.
-- **AC-Q3-3 — Défensif, jamais d'exception.** `roleKey` inconnu / `null` / non-string / `""` →
-  **pas de suggestion** (`null` ou `""`), **jamais d'exception**. *(Contrat des `parse*` du cœur,
-  cf. `roles.ts:99`, `binding.ts:107`.)*
-- **AC-Q3-4 — Non-régression : `""` reste le défaut sûr.** `defaultBindingForNode(team, node)`
-  (`binding.ts:178`) pose **toujours `model: ""`** pour un nœud **non-Ollama** (`claude`, `codex`)
-  et pour **tout rôle sans suggestion**. Les tests existants de `packages/core/__tests__/binding.test.ts`
-  **restent verts sans modification**.
-- **AC-Q3-5 — Périmètre des nœuds (si Q-3.f confirmé).** La suggestion s'applique **exactement**
-  à `ollama-localhost`, `ollama-lan`, `openwebui` ; `claude` et `codex` conservent `model: ""`.
-  Test paramétré sur les 5 `NodeKind` (`packages/core/src/node.ts:18-23`).
-- **AC-Q3-6 — Kit pur inchangé.** **Sans binding**, la sortie de génération reste
-  **byte-identique** à aujourd'hui (invariant `binding.ts:7-9`). Les tests de parité
-  (`packages/core/__tests__/parite-generateurs.test.ts`, `adapters*.test.ts`) **restent verts sans
-  modification**.
-- **AC-Q3-7 — Confirmation explicite (si Q-3.d = pré-remplissage).** Tant que « Lier ce kit »
-  n'est **pas** coché : `binding === null`, **aucun `binding.json`** n'est ajouté à l'arbre
-  (`useForgeDeploy.ts:274-275`). Après avoir coché : les champs modèle des personas des nœuds
-  Ollama sont **pré-remplis** et **restent éditables** (`LiaisonPanel.tsx:129`). **Décocher
-  efface** (`useForgeDeploy.ts:174-175`).
-- **AC-Q3-8 — Aucun I/O réseau ajouté (si Q-3.c = 1).** Aucune commande Tauri ajoutée ; **aucun
-  appel à `/api/tags`** ; le seul wire Ollama reste `llm_complete`/`llm_complete_stream`
-  (`src/api/backend.ts:316`, `:346`). Vérifié par recherche : **zéro** occurrence de `api/tags`.
-- **AC-Q3-9 — Zéro doublon (si Q-3.a = B).** La table de repli est définie **une seule fois** ; le
-  fichier de configuration, quand il existe, **remplace** l'entrée correspondante et ne la duplique
-  pas. Le `placeholder` codé en dur `"ex. qwen2.5-coder:14b"` (`LiaisonPanel.tsx:127`) est
-  **remplacé** par la suggestion résolue — **plus aucun nom de modèle en dur dans l'UI**.
-- **AC-Q3-10 — Traçabilité de la source.** La table porte, **dans le même artefact**, sa **date de
-  vérification** et son **palier de VRAM** (§ 7) — pour qu'un lecteur sache **quand** elle a été
-  vraie et **pour quelle machine**.
+  (`roles.ts:59`) — **`frame` inclus** — et pour une liste découverte **non vide**, la règle rend un
+  id **appartenant à cette liste** (jamais `""`, jamais un id inventé). Test : itération sur
+  `CANONICAL_ROLE_KEYS`.
+- **AC-Q3-3 — Déterminisme de la règle (§ 6).** Sur le **cas B** (§ 6.3) :
+  `dev`/`qualite`→`qwen2.5-coder:7b` (motif `coder`), `design`→`qwen3-vl:8b` (motif `vl`), les **6**
+  autres→`qwen3:8b` (**défaut généraliste**, pas `models[0]`). Test : la **priorité motif > ordre de
+  liste** est prouvée par un cas où un id contenant `code` précède un id contenant `coder`.
+- **AC-Q3-4 — Défensif, jamais d'exception.** `roleKey` inconnu / `""` / non-string, et `models`
+  contenant des entrées vides → **aucune exception** ; `models` **vide** → **`""`**.
+- **AC-Q3-5 — Chemin d'échec unique et honnête.** Découverte en échec (**hôte refusé**, **injoignable**,
+  **liste vide**) ⇒ **les trois** produisent le **même** état : liste déroulante vide, **`reason`
+  affichée telle quelle**, modèle **`""`**, **saisie manuelle possible**. Test : les 3 `reason` de
+  `llm_models` (`llm.rs:633`, `:662`, `:673`) mènent au même rendu. **Jamais une fausse liste.**
+- **AC-Q3-6 — Non-régression : `""` reste le défaut sûr.** `defaultBindingForNode` (`binding.ts:178`)
+  pose **toujours `model: ""`** pour `claude` et `codex`, et pour tout rôle sans candidat. Les tests
+  existants de `packages/core/__tests__/binding.test.ts` **restent verts sans modification**.
+- **AC-Q3-7 — Kit pur inchangé.** **Sans binding**, la sortie de génération reste **byte-identique**
+  (invariant `binding.ts:7-9`). `parite-generateurs.test.ts` et `adapters*.test.ts` **restent verts
+  sans modification**.
+- **AC-Q3-8 — Confirmation explicite.** Tant que « Lier ce kit » n'est **pas** coché :
+  `binding === null`, **aucun `binding.json`** dans l'arbre (`useForgeDeploy.ts:274-275`). Après
+  avoir coché sur un nœud du périmètre : les champs sont **pré-remplis** et **restent éditables**
+  (`LiaisonPanel.tsx:129`). **Décocher efface** (`useForgeDeploy.ts:174-175`).
+- **AC-Q3-9 — Périmètre des nœuds.** La découverte est déclenchée **exactement** pour
+  `ollama-localhost`, `ollama-lan`, `openwebui` ; **jamais** pour `claude` ni `codex`. Test paramétré
+  sur les 5 `NodeKind` (`packages/core/src/node.ts:18-23`) comptant les appels à `llmModels`.
+- **AC-Q3-10 — Aucune commande Tauri nouvelle.** La découverte passe **exclusivement** par
+  `llmModels` (`backend.ts:390`) / `llm_models` (`llm.rs:619`). Vérifié par recherche : **zéro**
+  occurrence de `api/tags` ; `src-tauri` **inchangé** ; `host_allowed` (`llm.rs:47`) **non modifié**.
+- **AC-Q3-11 — Plus aucun nom de modèle en dur.** Le `placeholder` `"ex. qwen2.5-coder:14b"`
+  (`LiaisonPanel.tsx:127`) est **supprimé**. Recherche : **aucun identifiant de modèle littéral** ne
+  subsiste dans `src/` ni dans `packages/core/src/`, **hors** les 4 **motifs** de § 6.1 (`coder`,
+  `code`, `vl`, `vision`) — qui sont des **fragments**, pas des noms de modèles.
+- **AC-Q3-12 — Rien de neuf n'est persisté.** `settings.json` **ne gagne aucune clé** : la liste des
+  clés écrites par `settings.rs` est **inchangée** (`:135`, `:148`, `:168`, `:173`, `:186`). Aucun
+  cache de liste découverte n'est écrit sur disque.
 
 ---
 
-## 10. Ce qui reste à décider ailleurs (nommé, pas cadré ici)
+## 11. Points ouverts — **renvoyés, aucun bloquant**
 
-- **Lot « découverte des modèles installés »** — si Q-3.c = 2 : commande Tauri `/api/tags`,
-  allow-list de l'hôte, timeout, mode hors-ligne, et **réconciliation** suggestion ↔ présence
-  (le dépôt canon a déjà ce comportement en PowerShell :
-  `iakaframe/specs/instructions/cible-ollama-modeles-agents.md:17-19`).
-- **Convergence des deux dépôts (S-4)** — `cible-ollama-modeles-agents.md` (canon) et la table
-  GUI sont **deux copies** d'une même connaissance. Décider laquelle **fait foi**, ou les faire
-  dériver d'une source unique. **Non tranché ici** : cela touche le dépôt canon, hors périmètre de
-  cette instruction.
-- **Override cockpit** (E1 Q-5) — la suggestion est un **défaut de forge** (`forge-default`,
-  `binding.ts:190`) ; le Cockpit garde son pouvoir d'override. Instruction Cockpit dédiée.
+- **P-O-1 — Élargir la découverte aux sources OpenAI-compatibles.** `/v1/models` est **générique** :
+  la même mécanique servirait LiteLLM et OpenAI. **Non retenu ici** (Q-3.f borne à trois nœuds
+  Ollama). *Le cadrage note que l'extension serait presque gratuite techniquement* — mais elle
+  **change le périmètre du Binding**, donc elle appartient au décideur.
+- **P-O-2 — Fermer le trou `ollama-lan` (T-3, § 7).** Élargir `host_allowed` (`llm.rs:47`) au
+  `lanHost` du flux de déploiement. **Arbitrage de sécurité dédié** : c'est un invariant CA9 testé,
+  pas un réglage d'ergonomie.
+- **P-O-3 — Enrichir la table de motifs** (§ 6.1) : `devstral`, `starcoder`, `magistral`… **Chaque
+  ajout accroît la fragilité R-3** et rapproche d'une table déguisée — exactement ce que le verdict
+  a supprimé. À n'ouvrir que sur constat d'usage.
+- **P-O-4 — Cache de la liste découverte.** Écarté au MVP (relecture à chaque activation). À
+  reconsidérer si la latence gêne.
+- **P-O-5 — Statut de `cible-ollama-modeles-agents.md`** dans le dépôt canon. Il **n'est plus la
+  source** de la forge (§ 2.4), mais il reste publié et daté. Décider s'il est **amendé** (mention
+  de son périmètre PowerShell), ou **laissé tel quel**. **Touche l'autre dépôt — hors périmètre.**
+- **P-O-6 — Override cockpit** (E1 Q-5) : le pré-remplissage est un **défaut de forge**
+  (`origin: "forge-default"`, `binding.ts:190`). Le Cockpit garde son pouvoir d'override.
+  Instruction Cockpit dédiée.
+- **P-O-7 — Renommage du fichier** (cf. en-tête) →
+  `Q3-decouverte-modeles-noeud-preremplissage-binding.md`, avec mise à jour des références
+  (`E1-evolution-binding-ar1.md:227`, `etat-des-lieux.md`).
 
 ---
 
-## 11. Jalon (gate humain)
+## 12. Jalon (gate humain)
 
 | Émetteur | Contenu | Récepteur |
 |---|---|---|
-| 🔵 Cadrage (P1) | Instruction `Q3-table-modele-local-role-ollama.md` : constat du comportement réel (`model: ""`), état de l'art vérifié au 2026-08-01, statut de la source pressentie (**existe**, mais S-1→S-4), options de foyer (§ 5), arbitrages Q-3.a→Q-3.f (§ 6), paramètre VRAM à trancher (§ 7), table indicative (§ 8), critères d'acceptation (§ 9) | 🟢 Le décideur → valide → implémentation (P2 — Développement) |
+| 🔵 Cadrage (P1) | Instruction fermée : verdict d'arbitrage Q-3.a→Q-3.f (§ 9), architecture du flux (§ 5), règle de pré-remplissage exacte (§ 6), traitement du trou `ollama-lan` (§ 7), réserves R-1→R-3 (§ 8), 12 critères d'acceptation (§ 10), 7 points renvoyés (§ 11) | 🟢 Le décideur → **validé** → implémentation (P2 — Développement) |
 
-**Rien n'est implémenté avant cet arbitrage.** Le comportement actuel (`model: ""`) reste en place
-et **reste sûr**.
+**Prêt pour implémentation.** Aucune commande Tauri à écrire, aucun schéma à modifier, aucune donnée
+à persister. Le comportement actuel (`model: ""`) **reste le défaut sûr** sur tous les chemins.
 
 ---
 
-## 12. Journal de décision
+## 13. Journal de décision
 
-- **2026-07-07** — E1 pose Q-3 (politique de Binding par défaut par nœud), reco : suggestion par
-  rôle sur Ollama, à confirmer par l'utilisateur ; source pressentie
-  `cible-ollama-modeles-agents.md`. *(`E1-evolution-binding-ar1.md:193-196`.)*
-- **2026-07-30** — « Go bloc » sur Q-1/Q-2/Q-4/Q-5/Q-6. **Q-3 laissée explicitement ouverte** :
-  le runner par défaut est livré, la table ne l'est pas. *(`E1-evolution-binding-ar1.md:225-227`.)*
-- **2026-08-02** — **Le décideur tranche le paramètre matériel : palier unique = 12 Go de VRAM**
-  (traitement **V-3**, conforme à la reco). Conséquences instruites le jour même : seconde passe de
-  vérification **tag par tag** (§ 0bis) ; **§ 7 fermé** (marge ~25 % → poids ≤ 9 Go, confort
-  ≤ 6,5 Go, risque de *partial offload* silencieux documenté) ; **§ 8 re-normalisé** sur les 9
-  `roleKey` avec tag précis + taille vérifiée + raison par rôle ; **§ 8bis** ajouté (ce que le
-  palier exclut + seuils d'upgrade). **Deux suggestions du cadrage initial invalidées par le
-  matériel** : `qwen3-coder:30b` (19 Go, aucun tag plus petit n'existe) et `gpt-oss:20b` (14 Go).
-  **Aucun rôle laissé sans candidat.** Les **trois réserves du § 8 sont maintenues** et une
-  quatrième est ajoutée (poids sur disque ≠ occupation réelle en contexte). **Les six questions
-  Q-3.a→Q-3.f restent OUVERTES** — le décideur n'a tranché que la VRAM.
-- **2026-08-01** — **Cadrage de Q-3 (ce document).** Constats : `model: ""` confirmé
-  (`binding.ts:187`) ; la source pressentie **existe** dans le dépôt canon mais est **clé par nom
-  de persona** (S-1), **incomplète de 1 rôle** (S-2), **périmée** (S-3) et **hors dépôt** (S-4) ;
-  la GUI **ne sait pas** interroger `/api/tags` (S-2.5). Vérification web du jour : `qwen3-vl` est
-  passé de cloud-only à **6 tags locaux**, `qwen3-coder:30b` supplante `qwen2.5-coder` —
-  **la donnée périme en mois, pas en années**. D'où la thèse du cadrage : **séparer le mécanisme
-  (cœur, stable) du contenu (configuration, volatile)**. **Aucune décision prise** — six
-  arbitrages (§ 6) + le paramètre VRAM (§ 7) sont remis au décideur.
+- **2026-07-07** — E1 pose Q-3 (politique de Binding par défaut par nœud). Reco : suggestion par
+  rôle sur Ollama, confirmée par l'utilisateur ; source pressentie `cible-ollama-modeles-agents.md`.
+  *(`E1-evolution-binding-ar1.md:193-196`.)*
+- **2026-07-30** — « Go bloc » sur Q-1/Q-2/Q-4/Q-5/Q-6. **Q-3 laissée ouverte** : le runner par
+  défaut est livré (`defaultRunnerForNode`), la table ne l'est pas.
+  *(`E1-evolution-binding-ar1.md:225-227`.)*
+- **2026-08-01** — **Cadrage initial.** Constats : `model: ""` confirmé (`binding.ts:187`) ; la
+  source pressentie **existe** mais est clé par **nom de persona**, **incomplète** (rôle `frame`
+  manquant), **périmée** et **hors dépôt**. Thèse posée : **séparer le mécanisme du contenu**. Six
+  questions ouvertes + un paramètre matériel non tranché.
+- **2026-08-02 (matin)** — Le décideur déclare un palier de **12 Go de VRAM**. Table re-normalisée
+  sur ce palier ; `qwen3-coder:30b` (19 Go) et `gpt-oss:20b` (14 Go) écartés comme infaisables.
+- **2026-08-02 — VERDICTS : changement de nature de Q-3.**
+  - **Paramètre matériel SUPPRIMÉ**, et avec lui **le § 7 (palier, marges, bandes)**, **le § 8bis
+    (exclusions, seuils d'upgrade)**, **la table indicative du § 8** et le critère qui l'inscrivait
+    (**ex-`AC-Q3-10`**). Motif : **aucun endpoint Ollama n'expose la VRAM totale** — le palier était
+    une déclaration invérifiable.
+  - **La source des candidats devient le NŒUD** : *« si ollama liste un modèle on le liste, si
+    litellm liste un modèle idem »*. **Plus aucune table à maintenir.** La thèse « mécanisme vs
+    contenu » est validée **dans son diagnostic** et résolue **par soustraction**, plus radicalement
+    que l'option B (fichier de configuration) que proposait le cadrage.
+  - **⚠️ Erreur du cadrage initial, actée sans maquillage** : le § 2.5 affirmait que la GUI ne
+    savait pas découvrir les modèles et chiffrait Q-3.c option 2 comme **« un lot backend : commande
+    Tauri + allow-list »**. **C'était faux.** Le constat portait sur `/api/tags` alors que la
+    capacité était **déjà livrée** sous `/v1/models` — `llm_models` (`llm.rs:619`), avec garde
+    d'hôte, timeout, bearer et **aveu honnête sans jamais lever**. Le cadrage a mesuré l'absence
+    d'un endpoint au lieu de mesurer la **capacité**. **L'essentiel du coût annoncé n'existait pas.**
+  - **Six questions tranchées** (§ 9) : Q-3.a **sans objet** (rien de neuf persisté ;
+    `settings.json` reste *authoring-only*) · Q-3.b **`roleKey`, 9 rôles** · Q-3.c **on interroge,
+    échec → `""` + aveu** · Q-3.d **pré-remplissage en liste déroulante éditable** · Q-3.e
+    **confirmé, 4 invariants** · Q-3.f **confirmé sur 3 nœuds, sans élargissement**.
+  - **Limite nommée** : la garde d'hôte (`llm.rs:47`) **refuse un `ollama-lan`** qui n'est pas
+    l'`authoringEndpoint`. Traitement **T-1** (dégradation honnête, zéro régression) ; l'élargir est
+    renvoyé en **P-O-2** comme **arbitrage de sécurité**.
+  - **Réserves** : R-1 et R-2 maintenues ; **R-3 ajoutée** (la règle de motif repose sur une
+    convention de nommage que rien ne garantit — faux négatif `devstral`, faux positifs sur `vl`) ;
+    celles liées à la VRAM supprimées.
+  - **Instruction FERMÉE**, prête pour l'implémentation. **Titre du fichier périmé** : renommage
+    recommandé, **non effectué** (P-O-7).
