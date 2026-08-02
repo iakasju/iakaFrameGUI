@@ -32,6 +32,7 @@ export * from "./roster";
 export * from "./runner";
 export * from "./node";
 export * from "./binding";
+export * from "./discovery";
 export * from "./frame";
 export * from "./element-pool";
 export * from "./llm";

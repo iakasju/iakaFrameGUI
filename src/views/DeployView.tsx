@@ -64,6 +64,9 @@ export function DeployView({ forge }: { forge: UseForgeTeams }) {
           node={deploy.node}
           team={selectedTeam}
           binding={deploy.binding}
+          discoveredModels={deploy.discoveredModels}
+          discoveryReason={deploy.discoveryReason}
+          discovering={deploy.discovering}
           onEnable={deploy.enableBinding}
           onClear={deploy.clearBinding}
           onSetRunner={deploy.setPersonaRunner}

@@ -9,6 +9,11 @@
  *  3. **Déployer** : écrit l'arbre via la **façade unique** `kitDeploy(destDir, files, {force})`
  *     — non destructif (autorité `kit_deploy` Rust, inchangé), retour succès/conflit explicite.
  *
+ * Q-3 : à l'**activation de la liaison**, il interroge en outre le **nœud** pour lui faire dire
+ * quels modèles il porte (`llmModels` → `llm_models`, **commande existante**) et **pré-remplit**
+ * chaque persona par `roleKey` (§ 6 de l'instruction Q-3). La liste découverte est **volatile** :
+ * relue à chaque activation, **jamais persistée** (aucune clé nouvelle, aucun cache disque).
+ *
  * Garde-fou clé (U-8) : tout changement de **team** ou de **nœud/host** **invalide** le kit et
  * le résultat affichés (on ne déploie jamais un kit périmé). Persistance légère (Q-4) du dernier
  * `node`/`destDir`/`lanHost` via `localStorage` (config non sensible, best-effort).
@@ -16,7 +21,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   defaultBindingForNode,
+  discoveryEndpointForNode,
   getAdapter,
+  prefillBindingModels,
   serializeBinding,
   type Binding,
   type KitFileTree,
@@ -44,6 +51,13 @@ export interface UseForgeDeploy {
   lanHost: string;
   // --- État de liaison (P7, optionnel) ---
   binding: Binding | null;
+  // --- Découverte des modèles au nœud (Q-3) : jamais persistée, relue à chaque activation ---
+  /** Ids rendus par le nœud interrogé (`GET {host}/v1/models`). Vide = rien à proposer. */
+  discoveredModels: string[];
+  /** Aveu honnête quand la liste est vide (hôte refusé / injoignable / aucun modèle). */
+  discoveryReason: string | null;
+  /** Découverte en cours (l'appel a un timeout dur côté Rust). */
+  discovering: boolean;
   // --- État du kit / aperçu ---
   kit: KitFileTree | null;
   selectedPath: string | null;
@@ -101,6 +115,20 @@ function lsSet(key: string, value: string): void {
   }
 }
 
+// --- Q-3 : aveux de découverte (§ 5.3). Aucun n'est un nom de modèle ; tous convergent sur le
+// MÊME état visible : liste vide + raison affichée + `model: ""` + saisie manuelle ouverte. ---
+
+/** La façade ne peut pas répondre : hors Tauri, façade partielle, ou rejet de l'appel. */
+export const DISCOVERY_UNAVAILABLE_REASON =
+  "découverte indisponible — saisie manuelle du modèle";
+
+/** Le nœud a répondu mais n'expose aucun modèle, et sans raison explicite. */
+export const DISCOVERY_EMPTY_REASON = "aucun modèle exposé par le nœud";
+
+/** `ollama-lan` sans host saisi : il n'y a **rien** à interroger (aucun appel à l'aveuglette). */
+export const DISCOVERY_NO_HOST_REASON =
+  "hôte LAN non renseigné — saisie manuelle du modèle";
+
 export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
   const api = deps.api ?? backend;
   const { teamById } = deps;
@@ -113,6 +141,11 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
   const [node, setNode] = useState<NodeKind | null>(null);
   const [lanHost, setLanHostState] = useState<string>("");
   const [binding, setBinding] = useState<Binding | null>(null);
+  // Q-3 : découverte des modèles AU NŒUD. État volatil de session — **rien n'est persisté**
+  // (ni `settings.json`, ni cache disque, ni localStorage) : la liste est relue à chaque activation.
+  const [discoveredModels, setDiscoveredModels] = useState<string[]>([]);
+  const [discoveryReason, setDiscoveryReason] = useState<string | null>(null);
+  const [discovering, setDiscovering] = useState<boolean>(false);
   const [kit, setKit] = useState<KitFileTree | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [destDir, setDestDirState] = useState<string>("");
@@ -138,15 +171,28 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
     setResult(null);
   }, []);
 
+  // Jeton de course : seule la découverte la PLUS RÉCENTE peut écrire dans l'état. Une réponse
+  // tardive (timeout dur de 10 s côté Rust) ne ressuscite donc jamais une liste périmée.
+  const discoveryRunRef = useRef(0);
+
+  /** Remet la découverte à zéro (changement de team/nœud, ou liaison retirée). */
+  const resetDiscovery = useCallback((): void => {
+    discoveryRunRef.current += 1;
+    setDiscoveredModels([]);
+    setDiscoveryReason(null);
+    setDiscovering(false);
+  }, []);
+
   // --- Sélections (chacune invalide le kit périmé) ---
 
   const selectTeam = useCallback(
     (id: string | null): void => {
       setSelectedTeamId(id);
       setBinding(null); // le binding est PAR (team, nœud) → réinitialisé au changement de team.
+      resetDiscovery();
       invalidateKit();
     },
-    [invalidateKit],
+    [invalidateKit, resetDiscovery],
   );
 
   const selectNode = useCallback(
@@ -154,27 +200,93 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       setNode(n);
       lsSet(LS_NODE, n);
       setBinding(null); // le binding est PAR nœud (E1 Q-2) → réinitialisé au changement de nœud.
+      resetDiscovery();
       invalidateKit();
     },
-    [invalidateKit],
+    [invalidateKit, resetDiscovery],
   );
 
   // --- Liaison (P7) : optionnelle, produit un Binding origin:"forge-default" ---
 
-  /** Active la liaison en initialisant le binding par défaut du (team, nœud) courant. */
+  /**
+   * **Découverte des modèles au nœud** (Q-3 § 5) — déclenchée à l'activation de la liaison, **une
+   * fois**, jamais à la frappe. Passe **exclusivement** par `llmModels` (`llm_models` : garde
+   * d'hôte, timeout dur, Bearer lu côté Rust) — **aucune commande nouvelle**.
+   *
+   * **Un seul chemin d'échec** (§ 5.3) : hôte refusé, injoignable, ou aucun modèle produisent le
+   * MÊME état — liste vide, `reason` conservée **telle quelle**, modèles laissés à `""`, saisie
+   * manuelle ouverte. Jamais une fausse liste, jamais une exception qui remonte au flux.
+   */
+  const discoverModels = useCallback(
+    async (team: Team, n: NodeKind, host: string): Promise<void> => {
+      const run = (discoveryRunRef.current += 1);
+      const stale = (): boolean => discoveryRunRef.current !== run;
+      const endpoint = discoveryEndpointForNode(n, host);
+      if (endpoint === null) {
+        // Hors périmètre (`claude`/`codex`) : aucun appel, aucun aveu — la saisie libre suffisait
+        // déjà. `ollama-lan` sans host : rien à interroger, mais on le DIT.
+        setDiscoveredModels([]);
+        setDiscoveryReason(n === "ollama-lan" ? DISCOVERY_NO_HOST_REASON : null);
+        return;
+      }
+      setDiscovering(true);
+      try {
+        const res = await api.llmModels?.(endpoint);
+        if (stale()) return;
+        const models = res?.models ?? [];
+        if (models.length === 0) {
+          // Chemin unique : la raison du nœud est reprise VERBATIM quand elle existe.
+          setDiscoveredModels([]);
+          setDiscoveryReason(
+            res ? (res.reason ?? DISCOVERY_EMPTY_REASON) : DISCOVERY_UNAVAILABLE_REASON,
+          );
+          return;
+        }
+        setDiscoveredModels(models);
+        setDiscoveryReason(null);
+        // Pré-remplissage par `roleKey` (§ 6) des seules liaisons encore vides. Le garde-fou
+        // `prev.node/teamId` empêche une réponse tardive de polluer un autre (team, nœud) ; si la
+        // liaison a été décochée entre-temps (`prev === null`), rien n'est ressuscité.
+        setBinding((prev) =>
+          prev && prev.node === n && prev.teamId === team.id
+            ? prefillBindingModels(prev, team, models)
+            : prev,
+        );
+        invalidateKit();
+      } catch {
+        // Hors Tauri / rejet de façade : aveu honnête, saisie manuelle conservée.
+        if (stale()) return;
+        setDiscoveredModels([]);
+        setDiscoveryReason(DISCOVERY_UNAVAILABLE_REASON);
+      } finally {
+        if (!stale()) setDiscovering(false);
+      }
+    },
+    [api, invalidateKit],
+  );
+
+  /**
+   * Active la liaison en initialisant le binding par défaut du (team, nœud) courant — `model: ""`
+   * partout, **immédiatement** (défaut sûr synchrone) — puis lance la découverte, qui viendra
+   * pré-remplir. Cocher reste **l'acte de confirmation** (Q-3.d).
+   */
   const enableBinding = useCallback((): void => {
     if (selectedTeamId === null || node === null) return;
     const team = teamByIdRef.current(selectedTeamId);
     if (!team) return;
     setBinding(defaultBindingForNode(team, node));
+    setDiscoveredModels([]);
+    setDiscoveryReason(null);
     invalidateKit();
-  }, [selectedTeamId, node, invalidateKit]);
+    void discoverModels(team, node, lanHost);
+  }, [selectedTeamId, node, lanHost, invalidateKit, discoverModels]);
 
   /** Retire la liaison → retour au **kit pur** (comportement P4 d'origine). */
   const clearBinding = useCallback((): void => {
     setBinding(null);
+    resetDiscovery();
     invalidateKit();
-  }, [invalidateKit]);
+  }, [invalidateKit, resetDiscovery]);
 
   /** Change le runner d'une persona dans le binding courant (no-op si pas de binding). */
   const setPersonaRunner = useCallback(
@@ -307,6 +419,9 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       node,
       lanHost,
       binding,
+      discoveredModels,
+      discoveryReason,
+      discovering,
       kit,
       selectedPath,
       destDir,
@@ -334,6 +449,9 @@ export function useForgeDeploy(deps: UseForgeDeployDeps): UseForgeDeploy {
       node,
       lanHost,
       binding,
+      discoveredModels,
+      discoveryReason,
+      discovering,
       kit,
       selectedPath,
       destDir,
