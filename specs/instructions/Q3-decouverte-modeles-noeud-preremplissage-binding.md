@@ -1,11 +1,14 @@
 # Instruction — Q-3 : **découverte des modèles au nœud** & pré-remplissage du Binding par rôle
 
-> ⚠️ **Titre du fichier périmé.** Ce document s'appelle encore
-> `Q3-table-modele-local-role-ollama.md` alors qu'**il n'y a plus de table de modèles** : la liste
-> vient du nœud interrogé. **Renommage recommandé** →
-> `Q3-decouverte-modeles-noeud-preremplissage-binding.md`.
-> **Non effectué** : un renommage casse les références croisées (`E1-evolution-binding-ar1.md:227`,
-> `etat-des-lieux.md`) — c'est au décideur de le déclencher.
+> ✅ **Fichier renommé le 2026-08-02** sur décision du décideur (**P-O-7 tranché**).
+> Ancien nom : `Q3-table-modele-local-role-ollama.md` — périmé, car **il n'y a plus de table de
+> modèles** : la liste vient du nœud interrogé.
+> *Note de traçabilité* : le cadrage annonçait une référence croisée dans
+> `E1-evolution-binding-ar1.md:227` — **elle n'existait pas** (E1 § 10bis ne cite aucun nom de
+> fichier). Les seules références réelles étaient dans `specs/etat-des-lieux.md`, mises à jour.
+> Les mentions de l'ancien nom subsistant dans le **journal** de l'état des lieux sont
+> **historiques et volontairement conservées** (journal append-only : il consigne ce qui était
+> vrai à sa date).
 
 > **Nature** : cadrage de l'arbitrage laissé ouvert par `E1-evolution-binding-ar1.md` § 10bis.
 > **Cadreur** : l'architecte-cadreur (P1 — Cadrage), **read-only sur le code, aucun code produit**.
@@ -464,9 +467,10 @@ prend au détour d'un lot d'ergonomie.
 - **P-O-6 — Override cockpit** (E1 Q-5) : le pré-remplissage est un **défaut de forge**
   (`origin: "forge-default"`, `binding.ts:190`). Le Cockpit garde son pouvoir d'override.
   Instruction Cockpit dédiée.
-- **P-O-7 — Renommage du fichier** (cf. en-tête) →
-  `Q3-decouverte-modeles-noeud-preremplissage-binding.md`, avec mise à jour des références
-  (`E1-evolution-binding-ar1.md:227`, `etat-des-lieux.md`).
+- ~~**P-O-7 — Renommage du fichier**~~ → **TRANCHÉ ET FAIT le 2026-08-02** (cf. en-tête).
+  Fichier renommé en `Q3-decouverte-modeles-noeud-preremplissage-binding.md`. La référence
+  annoncée dans `E1-evolution-binding-ar1.md:227` **n'existait pas** ; `specs/etat-des-lieux.md`
+  a été mis à jour. **Ce point n'est plus ouvert.**
 
 ---
 
@@ -522,3 +526,10 @@ prend au détour d'un lot d'ergonomie.
     celles liées à la VRAM supprimées.
   - **Instruction FERMÉE**, prête pour l'implémentation. **Titre du fichier périmé** : renommage
     recommandé, **non effectué** (P-O-7).
+- **2026-08-02 (soir)** — **P-O-7 tranché par le décideur : le fichier est renommé** en
+  `Q3-decouverte-modeles-noeud-preremplissage-binding.md` (`git mv`, historique préservé). Le
+  cadrage annonçait une référence croisée à mettre à jour dans `E1-evolution-binding-ar1.md:227` :
+  **vérification faite, elle n'existait pas** — E1 § 10bis ne cite aucun nom de fichier. Seul
+  `specs/etat-des-lieux.md` référençait réellement l'ancien nom. **Correction apportée à E1 au
+  passage** : son § 10bis affirmait encore « **Q-3 reste OUVERTE** », péremption corrigée — Q-3 est
+  close depuis ce jour.

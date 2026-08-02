@@ -222,9 +222,17 @@ modèle — **pas** que le **Kit** n'en contient jamais (le Kit lié **peut** l�
 | **Q-5** — override cockpit | **Persistant**, mais **détail Cockpit** (instruction dédiée, hors forge). | ⏳ `origin:"cockpit-override"` prévu ; la forge n'émet que `forge-default`. |
 | **Q-6** — foyer du schéma | **Dans `@iakaframe/core`** (partagé forge↔cockpit). | ✅ `packages/core/src/binding.ts`. |
 
-> **Q-3 reste OUVERTE (hors bloc).** Le *runner par défaut par nœud* est livré (`defaultRunnerForNode`), mais la
+> ~~**Q-3 reste OUVERTE (hors bloc).**~~ Le *runner par défaut par nœud* est livré (`defaultRunnerForNode`), mais la
 > **table de suggestion modèle-local ↔ rôle pour Ollama** n'est pas tranchée (le défaut pose `model: ""`). À cadrer
 > séparément (source pressentie : `cible-ollama-modeles-agents.md`).
+>
+> ✅ **Q-3 est FERMÉE depuis le 2026-08-02** — cadrage : `Q3-decouverte-modeles-noeud-preremplissage-binding.md`.
+> **Le libellé ci-dessus est périmé sur le fond, pas seulement sur le statut** : il n'y a **plus de
+> table de suggestion** du tout. Le décideur a **supprimé le paramètre matériel** (aucun endpoint
+> Ollama n'expose la VRAM totale) et retenu la **découverte live du nœud** (`GET /v1/models`) comme
+> source des candidats, avec un **pré-remplissage par rôle** (clé `roleKey`). La source pressentie
+> `cible-ollama-modeles-agents.md` a été **écartée** (clée par nom de persona, 8 entrées pour
+> 9 rôles, contenu périmé, hors dépôt). **Le bloc E1 est donc intégralement tranché.**
 
 ---
 

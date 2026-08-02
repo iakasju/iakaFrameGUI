@@ -62,9 +62,16 @@
 - **Prochaine etape concrete** — **implementer Q-3** (execution, sur instruction fermee) :
   brancher `llm_models` sur `LiaisonPanel`, transformer les champs modele en listes
   deroulantes alimentees par la decouverte, et implementer la regle de pre-remplissage
-  en 6 etapes du § 6 avec ses criteres d'acceptation. **Prealable non technique** :
-  trancher **P-O-7** (renommer le fichier `Q3-table-modele-local-role-ollama.md`, dont le
-  titre ne decrit plus rien — casserait `E1-evolution-binding-ar1.md:227` et ce fichier).
+  en 6 etapes du § 6 avec ses criteres d'acceptation. **Plus aucun prealable** : P-O-7 a
+  ete tranche et execute le 02/08 (fichier renomme en
+  `Q3-decouverte-modeles-noeud-preremplissage-binding.md`).
+
+> **Note sur le renommage (P-O-7, fait le 2026-08-02).** Le cadrage annoncait que le
+> renommage casserait une reference dans `E1-evolution-binding-ar1.md:227` : **verification
+> faite, cette reference n'existait pas**. Corrige au passage dans E1 : son § 10bis
+> affirmait encore « Q-3 reste OUVERTE ». Les occurrences de l'ancien nom qui subsistent
+> dans le **journal ci-dessous** sont **historiques et conservees volontairement** — le
+> journal est append-only, il consigne ce qui etait vrai a sa date.
 
 - **Pieges connus**
   - **Le statut des instructions derive du code — 2e occurrence en une semaine** (E1 le
