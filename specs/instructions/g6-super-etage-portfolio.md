@@ -329,6 +329,71 @@ Aucun point **bloquant** : ce sont des choix de design **assumés par Gandalf**,
 
 ---
 
+## 10bis. Réconciliation doc↔code — G6 est LIVRÉ (constat du 2026-08-01)
+
+> **Nature du défaut : dette de traçabilité, pas un cadrage manquant.** Même classe que celle
+> réconciliée pour E1 le 2026-07-30. Le § Statut portait encore « PROPOSÉ — en attente de
+> validation » alors que le journal `specs/etat-des-lieux.md` acte, à **v0.3.4 (2026-07-19)**, un
+> **gate PASS (AC-1..9 + AC-F ; 428 front + 63 Rust verts)**. Vérification faite en lecture :
+> **G6 est intégralement implémenté**, et **dépassé** par les lots postérieurs (AR-1 multi-frame,
+> Lots 5b/5c, T1→T6, pointeur de frame active). Ce § formalise la **validation a posteriori**.
+
+### Critères d'acceptation §9 — état réel
+
+| AC | Verdict | Réalité code (preuve `chemin:ligne`) |
+|---|---|---|
+| **AC-1** entité de 1er ordre | ✅ | `packages/core/src/index.ts:35` (`export * from "./frame"`) ; `Frame` `packages/core/src/frame.ts:203`, `FrameAssembly` `:181`, `FramePortfolioFacet` `:193`, `buildFrame` `:623`, `parseFrame` `:768`, `checkFrameRefs` `:431`, `FrameIntegrityReport` `:107`, `FrameMissingRef` `:97`, `FRAME_TYPES` `:62`. Test `packages/core/__tests__/frame.test.ts:127` |
+| **AC-2** inventaire | ⚠️ **dépassé** — **12** types, pas 11 | `FRAME_TYPES` `frame.ts:62` = 8 pools + **4** collections (`COLLECTION_FRAME_TYPES` `:59` inclut **`frames`**, AR-1). Test `frame.test.ts:138`. `workflows` compté **une fois** (G5) : `src/forge/frame.test.ts:171` |
+| **AC-3** facette portefeuille | ✅ | `detectPortfolioFacet` `frame.ts:590` ; détection **par rôle** `:604` (`roleKey === "portefeuille"`), **jamais** par le nom. Tests : nominal `frame.test.ts:159`, **persona renommée** `:168`, sans scaffold → `null` `:179` |
+| **AC-4** assemblage résolu | ✅ **étendu** | `resolveAssembly` `frame.ts:546` ; test `frame.test.ts:190`. Étendu AR-1 : pivot = **frame active** parmi N (`:198`, `:202`) + **repli legacy** zéro-régression (`:219`) |
+| **AC-5** intégrité dans le périmètre | ✅ **étendu** | `checkFrameRefs` `frame.ts:431` ; tests `frame.test.ts:229`, `:235`. Étendu T1/T3/T5/T6 (`frame.ts:486`, `:495`, `:504`, `:471`) — tests `frame.test.ts:411`→`:517` |
+| **AC-6** `parseFrame` défensif | ✅ | `frame.ts:768` (non-record → `null` `:769` ; pas de `counts` → `null` `:771`). Tests `frame.test.ts:249`, `:256`, `:276` |
+| **AC-7** zéro nouvel I/O backend | ⚠️ **CADUC — dépassé sciemment** | `loadFrame` `src/forge/frame.ts:74` fait désormais **4** `libraryList` (ajout de **`frames`** `:86`, AR-1) **+** `api.activeFrameId?.()` `:91` (instruction `pointeur-frame-active.md`). Assertion mise à jour : `src/forge/frame.test.ts:170` = `["bindings","frames","methods","teams"]`. **L'AC-7 littéral (3 I/O) n'est plus le contrat** |
+| **AC-8** zéro doublon de types | ✅ | Aucune occurrence de `FrameInventory` **en code** (recherche dépôt : seulement cette instruction + 2 commentaires historiques `frame.ts:17`, `:614`). Forge = **re-exports seuls** `src/forge/frame.ts:37-58` ; unique point de contact backend `:65` (`_POOL_TYPE_COMPAT`) |
+| **AC-9** raccord UI read-only | ✅ | Facette `src/components/OpenFramePanel.tsx:113-124` ; assemblage résolu `:157-161`. Tests `src/components/OpenFramePanel.test.tsx:36` (facette), `:61` (assemblage), **`:71` (aucun contrôle d'édition)** |
+| **AC-F** consolidation critère F | ✅ | Test dédié `packages/core/__tests__/frame.test.ts:248` (« AC-6 / AC-F ») |
+
+### Points §10 — tranchés **de fait** par le code
+
+| # | Point | Décision matérialisée | Preuve `chemin:ligne` |
+|---|---|---|---|
+| **P-1** | Nom de l'entité | **`Frame`** (reco suivie) ; « portfolio » reste le **niveau de scaffold** + la **facette** | `frame.ts:203` (`interface Frame`), `:249` (champ `portfolio`) |
+| **P-2** | Portée de migration | **Promotion** (reco suivie) : source unique au cœur, forge en re-exports, **zéro** `FrameInventory` résiduel | `src/forge/frame.ts:37-58` |
+| **P-3** | `parseFrame(unknown)` | **Conservé** (reco suivie) : garde minimale, pas un désérialiseur ; n'invente **aucune** liste (`:793-801` tout vide) | `frame.ts:768` |
+| **P-4** | Facette `backlog` | **Dérivée** (reco suivie), et **raffinée** : constante `PORTFOLIO_BACKLOG_ENTRY` **résolue par lookup** dans `PORTFOLIO_SCAFFOLD.entries` (repli `"BACKLOG.md"`), posée **seulement si** un scaffold `portfolio` est présent | `frame.ts:270-272` (dérivation), `:609` (conditionnalité) |
+
+### Ce qui **excède** le cadrage G6 (livré hors périmètre §5, à ratifier au même titre)
+
+Le `Frame` réel porte des champs **absents du schéma §5** — additions de lots postérieurs, chacune
+adossée à son instruction, mais **jamais rapatriée dans ce document** :
+
+- **AR-1 / réservoir de frames** : `FrameDescriptor` `frame.ts:144`, `parseFrameDescriptor` `:348`,
+  champ `Frame.frames` `:247`, `FrameAssembly.frame` `:182`, `activeFrameIsDangling` `:522`.
+- **Pointeur de frame active** : 2e paramètre `buildFrame(raw, activeFrameId?)` `frame.ts:623`,
+  résolution pointeur→défaut→1re `:553-556`.
+- **Lots 5b/5c — promotion des pools parsés** : `personas` `:216`, `principles` `:223`,
+  `rituals` `:224`, `scaffolds` `:226`, `roles` `:230`, `guardrails` `:233`, `skills` `:236`,
+  `workflows` `:239`.
+- **T2/T4 — triplet d'assignment** : `FrameAssignment` `frame.ts:121` (`{runner, model, tools}`),
+  `FrameBinding.assignments` `:134` (le §5 ne prévoyait que `personaIds`).
+- **Source unique de libellés** : `FRAME_TYPE_LABELS` `frame.ts:77`.
+
+> **Rien n'est orphelin** : aucun AC ni P-x de §9/§10 n'est **non couvert**. Les seuls écarts sont
+> **AC-2** (11→12) et **AC-7** (3→4 I/O + pointeur) — deux **dépassements assumés** par des
+> instructions postérieures, pas des régressions. Ce document est **la doc périmée**, pas le code.
+
+### Ce que le décideur doit trancher ici
+
+1. **Validation a posteriori de G6** (P-1→P-4 conformes aux recos) — oui / non.
+2. **Ratification des deux dérives d'AC** : acter qu'**AC-2 devient « 12 types »** et qu'**AC-7
+   devient « 4 `libraryList` + pointeur, aucune commande Tauri neuve »** — ou exiger un retour.
+3. **Sort de ce document** : le §5 (schéma) est **en retard** sur le code d'une dizaine de champs.
+   Soit on le **fige comme archive historique** (le code fait foi), soit on le **remet à niveau**.
+   *Reco du cadrage : archive historique* — le maintenir à jour dupliquerait la doc du module, déjà
+   portée en en-tête de `packages/core/src/frame.ts:1-23`.
+
+---
+
 ## 11. Jalon (gate humain)
 
 ```
@@ -363,7 +428,33 @@ Aucun point **bloquant** : ce sont des choix de design **assumés par Gandalf**,
 
 ## Statut
 
-**PROPOSÉ — en attente de validation décideur.** À « JALON VALIDÉ » → implémentation **G6** (Gimli) :
-entité `Frame` dans `@iakaframe/core` (promotion du socle + assemblage résolu + facette
-portefeuille), forge `loadFrame` adossé (I/O only), raccord UI minimal, contre les critères §9
-(dont **F**). Aucune modification de StefFrame2, aucun nouvel I/O backend.
+**VALIDÉ A POSTERIORI par le décideur le 2026-08-02** — instruction **CLOSE** (cf. **§ 10bis**).
+
+- ~~PROPOSÉ — en attente de validation décideur~~ — **statut périmé, corrigé le 2026-08-01.**
+- ~~IMPLÉMENTÉ ET GATÉ — en attente de validation a posteriori~~ — **tranché le 2026-08-02.**
+- **Réalité** : G6 est livré et gaté **PASS** à **v0.3.4 (2026-07-19)** (AC-1..9 + AC-F ; 428 front
+  + 63 Rust verts, cf. `specs/etat-des-lieux.md`). L'entité `Frame` vit dans
+  `packages/core/src/frame.ts` ; la forge `src/forge/frame.ts` est réduite à l'I/O + re-exports ;
+  l'UI `src/components/OpenFramePanel.tsx` affiche facette et assemblage en read-only.
+- **P-1→P-4 ont été tranchés de fait, tous conformes aux recommandations** — preuves `chemin:ligne`
+  en § 10bis.
+- **Deux écarts d'AC à ratifier** (dépassements assumés par des instructions postérieures, pas des
+  régressions) : **AC-2** 11 → **12** types (`frames`, AR-1) et **AC-7** 3 → **4** `libraryList`
+  + lecture du pointeur de frame active (aucune commande Tauri neuve pour autant).
+- **Aucun AC ni P-x orphelin.** Il ne reste **aucun reste dû** au titre de G6 : ce document est de
+  la **doc en retard**, pas du travail en attente.
+
+### Verdict du décideur (2026-08-02)
+
+Les **trois** points de fin de § 10bis sont tranchés :
+
+| # | Point | Décision | Conséquence |
+|---|---|---|---|
+| **1** | Validation a posteriori de G6 (P-1→P-4 conformes aux recos) | **OUI — validé** | G6 est clos. Aucun reste dû, aucun retour exigé. |
+| **2** | Ratification des deux dérives d'AC | **RATIFIÉES** | **AC-2** devient « **12** types » (`frames`, AR-1, `frame.ts:59`). **AC-7** devient « **4** `libraryList` + lecture du pointeur de frame active, **aucune commande Tauri neuve** » (`src/forge/frame.ts:86,91` ; assertion `src/forge/frame.test.ts:170`). |
+| **3** | Sort du § 5 (schéma en retard d'une dizaine de champs) | **ARCHIVE HISTORIQUE** (reco du cadrage suivie) | Le **code fait foi**. Le § 5 n'est plus maintenu ; la doc vivante du module est l'en-tête de `packages/core/src/frame.ts:1-23`. Ne pas le remettre à niveau : ce serait dupliquer une doc déjà portée ailleurs. |
+
+> **Le § 5 est donc à lire comme une trace du cadrage de 2026-07-19, pas comme le contrat courant.**
+> Toute divergence entre le § 5 et `packages/core/src/frame.ts` se résout **en faveur du code**.
+
+**Portée de ce verdict** : il clôt G6 et **rien d'autre**. Il ne préjuge d'aucune instruction aval.
