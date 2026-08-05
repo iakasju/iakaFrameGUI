@@ -96,7 +96,8 @@ npm run test:coverage  # tests + couverture
 - [`specs/contrat-concepts.md`](./specs/contrat-concepts.md) — le modèle formel.
 - [`specs/glossaire-concepts.md`](./specs/glossaire-concepts.md) — le glossaire.
 - [`specs/instructions/`](./specs/instructions/) — les instructions de travail, une par lot.
-- [`CLAUDE.md`](./CLAUDE.md) — contrat de travail des agents sur ce dépôt.
+- [`CLAUDE.md`](./CLAUDE.md) — contrat de travail de l'agent d'exécution sur ce dépôt
+  (le nom du fichier dépend du runner ; la méthode, elle, n'en dépend pas).
 
 ## Méthode
 
