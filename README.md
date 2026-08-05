@@ -19,17 +19,23 @@ Frontière avec [IakaCockpit](https://github.com/iakasju/IakaCockpit) : la forge
 La version scellée courante est **[v0.1.4](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.4)** — voir
 [toutes les versions](https://github.com/iakasju/iakaFrameGUI/releases).
 
-### macOS (Apple Silicon)
+### Binaires prêts à l'emploi
 
-Téléchargez **`iakaFrameGUI_v0.1.4_macos-arm64.dmg`** depuis la
-[page de la release](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.4),
-ouvrez-le et glissez l'application dans `Applications`.
+Tous les systèmes sont couverts. Prenez le fichier de votre plateforme sur la
+[page de la release](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.4) :
 
-> L'application n'est pas signée par un certificat Apple. Au premier lancement, faites
-> **clic droit → Ouvrir** puis confirmez : un double-clic direct serait bloqué par macOS.
+| Système | Fichier à télécharger |
+|---|---|
+| **Windows** | `iakaFrameGUI_0.1.4_x64-setup.exe` (installeur) ou `_x64_en-US.msi` |
+| **macOS Apple Silicon** | `iakaFrameGUI_v0.1.4_macos-arm64.dmg` |
+| **Linux (Debian/Ubuntu)** | `iakaFrameGUI_0.1.4_amd64.deb` |
+| **Linux (Fedora/RHEL)** | `iakaFrameGUI-0.1.4-1.x86_64.rpm` |
+| **Linux (portable)** | `iakaFrameGUI_0.1.4_amd64.AppImage` |
 
-Pour les autres plateformes — Windows, Linux, macOS Intel — construisez depuis les sources
-comme ci-dessous.
+> **macOS** — l'application n'est pas signée par un certificat Apple. Au premier lancement,
+> faites **clic droit → Ouvrir** puis confirmez : un double-clic direct serait bloqué.
+>
+> **Linux** — l'AppImage se lance sans installation, après `chmod +x`.
 
 ### Construire depuis les sources
 
