@@ -1,8 +1,9 @@
 // Tests du générateur de manifeste et de la garde d'alignement (auto-update.md, étape 7).
 // Purement locaux : aucun réseau, aucun jeton, aucune release réelle — on ne teste ici que la
 // partie du script qui DÉCIDE, pas celle qui téléverse.
-import { describe, it, expect } from "vitest";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { describe, it, expect, beforeAll } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -12,7 +13,9 @@ import {
   buildManifest,
   cargoVersion,
   collectArtifactsFromDir,
+  commitAndPushManifest,
   downloadBase,
+  MANIFEST_PATH,
   parseArgs,
   platformOfArtifact,
   PUBLISH_BRANCH,
@@ -165,6 +168,87 @@ describe("assertPublishBranch — publier ailleurs que sur main est sans effet",
 
   it("refuse une HEAD détachée (branche inconnue) plutôt que de publier au hasard", () => {
     expect(() => assertPublishBranch(null)).toThrow(/refusee/);
+  });
+});
+
+describe("commitAndPushManifest — rejouer une publication identique est un NO-OP propre", () => {
+  /**
+   * Un dépôt jetable avec son `origin` local (bare, sur disque) : aucun réseau, aucun dépôt réel
+   * touché. C'est le seul moyen honnête de couvrir ce point — le défaut ne vivait pas dans une
+   * fonction pure mais dans la plomberie git elle-même (`git commit` sort `1` quand il n'y a rien à
+   * commiter, ce qui faisait tomber le script APRÈS les téléversements).
+   */
+  function labRepo() {
+    const root = mkdtempSync(join(tmpdir(), "iakaframegui-lab-"));
+    const bare = join(root, "origin.git");
+    const work = join(root, "work");
+    execFileSync("git", ["init", "--quiet", "--bare", "-b", "main", bare]);
+    execFileSync("git", ["init", "--quiet", "-b", "main", work]);
+    const git = (...args) => execFileSync("git", args, { cwd: work, encoding: "utf8" });
+    git("config", "user.email", "lab@example.invalid");
+    git("config", "user.name", "lab");
+    git("remote", "add", "origin", bare);
+    writeFileSync(join(work, "README.md"), "lab\n");
+    git("add", "-A");
+    git("commit", "--quiet", "-m", "seed");
+    git("push", "--quiet", "-u", "origin", "HEAD");
+    return { work, git, count: () => Number(git("rev-list", "--count", "HEAD").trim()) };
+  }
+
+  /** Écrit le manifeste au chemin exact que le script s'autorise à commiter. */
+  function writeManifest(work, body) {
+    mkdirSync(join(work, "updater"), { recursive: true });
+    writeFileSync(join(work, MANIFEST_PATH), body);
+  }
+
+  /** Runner silencieux : même contrat que `gitRun` (rend la sortie), sans polluer le journal. */
+  const quiet = (args, { cwd }) =>
+    execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+
+  // UN SEUL dépôt jetable pour les trois étapes : elles forment une séquence réelle (publier,
+  // republier à l'identique, republier modifié) et un dépôt neuf par étape coûterait ~2 s chacun
+  // pour rejouer exactement les mêmes gestes. L'ordre est ici porteur de sens, pas un accident.
+  let lab;
+  beforeAll(() => {
+    lab = labRepo();
+  });
+
+  it("1. première publication : le manifeste est commité et poussé", () => {
+    const before = lab.count();
+    writeManifest(lab.work, '{"version":"0.1.5"}\n');
+
+    expect(commitAndPushManifest("v0.1.5", { run: quiet, cwd: lab.work })).toEqual({
+      committed: true,
+    });
+    expect(lab.count()).toBe(before + 1);
+    expect(lab.git("log", "-1", "--pretty=%s").trim()).toBe(
+      "chore(release): manifeste de mise a jour v0.1.5",
+    );
+    // Le commit ne porte QUE le manifeste (garde de chemin déjà en place, re-vérifiée ici).
+    expect(lab.git("show", "--name-only", "--pretty=", "HEAD").trim()).toBe(MANIFEST_PATH);
+  });
+
+  it("2. rejeu à l'identique : aucun commit, aucune exception, pas d'abandon en fin de course", () => {
+    const after = lab.count();
+
+    // Le geste que la release Forgejo autorise explicitement (« deja presente — reutilisee ») :
+    // republier le même tag. Avant correction, `git commit -- updater/latest.json` sortait `1`
+    // (« nothing added to commit ») et faisait tomber le script — APRÈS les téléversements.
+    expect(commitAndPushManifest("v0.1.5", { run: quiet, cwd: lab.work })).toEqual({
+      committed: false,
+    });
+    expect(lab.count()).toBe(after);
+    expect(lab.git("status", "--porcelain").trim()).toBe("");
+  });
+
+  it("3. manifeste réellement modifié après un rejeu : le commit repart", () => {
+    const after = lab.count();
+    writeManifest(lab.work, '{"version":"0.1.6"}\n');
+
+    expect(commitAndPushManifest("v0.1.6", { run: quiet, cwd: lab.work })).toEqual({
+      committed: true,
+    });
+    expect(lab.count()).toBe(after + 1);
   });
 });
 

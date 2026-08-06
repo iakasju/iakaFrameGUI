@@ -364,6 +364,55 @@ export function assertPublishBranch(branch, wanted = PUBLISH_BRANCH) {
   return { ok: true, branch };
 }
 
+/** Le manifeste, relatif à la racine — seul chemin que ce script a le droit de commiter. */
+export const MANIFEST_PATH = "updater/latest.json";
+
+/**
+ * Exécute un `git` dans le dépôt. `capture` rend la sortie au lieu de la laisser filer à l'écran :
+ * c'est ce qui permet de *lire* l'état de l'index sans polluer le journal de publication.
+ */
+export function gitRun(args, { cwd = ROOT, capture = false } = {}) {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: capture ? ["ignore", "pipe", "inherit"] : "inherit",
+  });
+}
+
+/**
+ * Commit du manifeste **s'il a changé**, puis push. Rejouer une publication identique doit être un
+ * NO-OP propre.
+ *
+ * Ce que ça répare : la release Forgejo est explicitement idempotente (« deja presente — reutilisee »),
+ * donc republier un même tag est un geste **prévu**. Mais quand le manifeste produit était identique
+ * à celui déjà versionné, `git commit -- updater/latest.json` sortait `1` (« nothing added to
+ * commit ») et faisait tomber le script — **après** les téléversements. Un chemin nominal se
+ * terminait donc par un échec, en fin de course, alors que tout s'était bien passé.
+ *
+ * On interroge donc l'index (`diff --cached` sur le seul chemin du manifeste) avant de commiter, et
+ * on pousse dans les deux cas : un run précédent a pu commiter sans réussir à pousser, et un push
+ * sans rien à envoyer est déjà un no-op côté git.
+ *
+ * @returns {{ committed: boolean }} `false` = manifeste inchangé, aucun commit créé.
+ */
+export function commitAndPushManifest(tag, { run = gitRun, cwd = ROOT } = {}) {
+  run(["add", MANIFEST_PATH], { cwd });
+  const staged = run(["diff", "--cached", "--name-only", "--", MANIFEST_PATH], {
+    cwd,
+    capture: true,
+  });
+  const committed = String(staged ?? "").trim().length > 0;
+  if (committed) {
+    run(["commit", "-m", `chore(release): manifeste de mise a jour ${tag}`, "--", MANIFEST_PATH], {
+      cwd,
+    });
+  } else {
+    console.log(`manifeste inchange — aucun commit (republication a l'identique de ${tag})`);
+  }
+  run(["push", "origin", "HEAD"], { cwd });
+  return { committed };
+}
+
 /** Branche git courante du dépôt (`null` en HEAD détachée ou hors dépôt). */
 export function currentBranch(root = ROOT) {
   try {
@@ -482,21 +531,15 @@ async function main(argv) {
   //     Le push vise `HEAD` et non `HEAD:main` **à dessein** : la garde de branche a déjà établi que
   //     HEAD est `main`, et viser HEAD garantit qu'une garde contournée ne pousserait pas une
   //     branche de feature sur la branche de publication.
+  //     Le reste du geste — dont le no-op d'une republication à l'identique — vit dans
+  //     `commitAndPushManifest`, où il est testable sans réseau ni release réelle.
   if (args.push) {
-    execFileSync("git", ["add", "updater/latest.json"], { cwd: ROOT, stdio: "inherit" });
-    execFileSync(
-      "git",
-      [
-        "commit",
-        "-m",
-        `chore(release): manifeste de mise a jour ${args.tag}`,
-        "--",
-        "updater/latest.json",
-      ],
-      { cwd: ROOT, stdio: "inherit" },
+    const { committed } = commitAndPushManifest(args.tag);
+    console.log(
+      committed
+        ? "manifeste pousse — la mise a jour est desormais visible des clients"
+        : "rien a pousser — la mise a jour etait deja visible des clients",
     );
-    execFileSync("git", ["push", "origin", "HEAD"], { cwd: ROOT, stdio: "inherit" });
-    console.log("manifeste pousse — la mise a jour est desormais visible des clients");
   }
   return 0;
 }
