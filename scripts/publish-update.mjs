@@ -12,7 +12,9 @@
 //   node scripts/publish-update.mjs v0.1.5 --from ./dist   # artefacts locaux, sans GitHub
 //   node scripts/publish-update.mjs v0.1.5 --check-only    # garde d'alignement SEULE (C7)
 //   node scripts/publish-update.mjs v0.1.5 --dry-run       # tout sauf écrire/téléverser/pousser
-//   node scripts/publish-update.mjs v0.1.5 --no-push       # écrit le manifeste, ne commite ni ne pousse
+//   node scripts/publish-update.mjs v0.1.5 --no-push       # publie et écrit, mais NE REND PAS VISIBLE
+//                                                          # (release + binaires + manifeste local ;
+//                                                          #  ni commit ni push → aucun client ne voit)
 //   node scripts/publish-update.mjs v0.1.5 --notes "…"     # notes de version du manifeste
 //
 // Jetons : `$GITHUB_TOKEN` (lecture de la release amont), `$FORGEJO_TOKEN` (ou `~/work/.env`) pour
@@ -409,9 +411,16 @@ async function main(argv) {
   console.log(`versions alignees sur ${versionOfTag(args.tag)} (package/tauri.conf/Cargo/tag)`);
   if (args.checkOnly) return 0;
 
-  // (1bis) Garde de branche — AVANT toute écriture distante. Échouer après avoir créé une release
-  // Forgejo à moitié remplie laisserait un état sale à nettoyer à la main. Sans `--push`, il n'y a
-  // rien à rendre visible : la garde ne s'applique pas.
+  // (1bis) Garde de branche. Elle protège **le geste qui rend visible** — le commit et le push du
+  // manifeste sur la branche que l'endpoint updater lit. Elle est posée ici, avant les écritures
+  // distantes, pour ne pas laisser derrière un échec tardif une release Forgejo à moitié remplie.
+  //
+  // Sous `--no-push`, elle ne s'applique PAS, et il faut le dire exactement : le script crée quand
+  // même la release Forgejo et téléverse les binaires **sans aucune garde de branche**. Ce n'est pas
+  // une garde oubliée, c'est le mode d'emploi de l'étape 6b — « publier les binaires, puis ouvrir le
+  // robinet » : tant que le manifeste n'est pas sur `main`, aucun client ne voit quoi que ce soit,
+  // quelle que soit la branche depuis laquelle on a téléversé. Ce qui est gardé, c'est le robinet ;
+  // ce qui ne l'est pas, c'est le dépôt des binaires — et ce dernier est sans effet client.
   if (args.push && !args.dryRun) {
     const branch = currentBranch();
     assertPublishBranch(branch);
