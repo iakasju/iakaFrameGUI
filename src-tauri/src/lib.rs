@@ -13,6 +13,21 @@
 //!      SEUL, hôte allow-listé (loopback + `authoringEndpoint` réglé), timeout dur. C'est de
 //!      l'authoring BUILD-TIME (composer la charte d'un élément), **jamais** un runner d'EXÉCUTION
 //!      du Binding. La frontière authoring ≠ exécution reste entière (cf. `llm.rs`).
+//!
+//! CONTRÔLE DE VERSION DE L'APPLI (auto-update.md) — **ni une dérogation, ni un cas des deux
+//! ci-dessus**. Le plugin `updater` émet un egress HTTP sortant vers l'endpoint **réglé en
+//! configuration** (`tauri.conf.json` > `plugins.updater.endpoints`, liste ordonnée) pour lire un
+//! manifeste de version, puis télécharge une charge utile **vérifiée par signature minisign** avant
+//! toute installation. Ce n'est **NI un appel runner** (aucun LLM, aucune décision déléguée à un
+//! modèle), **NI un sous-processus** (aucun binaire tiers exécuté, l'allow-list `shell:allow-execute`
+//! reste inchangée) : c'est l'appli qui se demande si elle est à jour. Il n'entame donc pas
+//! l'invariant AR-1/AR-6 et n'a pas à figurer parmi ses dérogations — il est documenté ici au même
+//! niveau de soin parce qu'un auditeur qui voit un egress doit en trouver la raison. Bornes : un
+//! endpoint de configuration (pas d'URL calculée), une clé publique en dur dans la config (une
+//! charge non signée par la clé privée correspondante est **refusée**), et une installation qui
+//! n'est **jamais** déclenchée sans clic explicite (D3). Le transport LAN est en clair
+//! (`dangerousInsecureTransportProtocol`) : assumé et borné — la confiance vient de la **signature**,
+//! pas du transport ; à retirer le jour où le flux passe en HTTPS.
 
 pub mod handoff;
 pub mod kit_deploy;
@@ -43,6 +58,11 @@ pub fn run() {
         // sous-commande `review`, un argv figé (seul `<id>` est un validateur). Ce n'est PAS un
         // appel runner (LLM) ; aucune logique de revue n'est réimplémentée en Rust. Cf. § 4.2bis.
         .plugin(tauri_plugin_shell::init())
+        // Plugins `updater` + `process` (auto-update.md, étape 2) — montage PASSE-PLAT : aucune
+        // logique métier côté Rust, la machine à états vit dans le front (`useAppUpdate`). Le
+        // contrôle de version n'est ni un appel runner ni un sous-processus (cf. en-tête du module).
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             ping,
             teams_store::team_list,
