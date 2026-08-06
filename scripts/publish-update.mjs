@@ -129,6 +129,34 @@ export function platformOfArtifact(name) {
 }
 
 /**
+ * PRÉ-VOL sur les NOMS SEULS : refuse un bundle macOS qui ne porte pas d'architecture.
+ *
+ * Cas RÉEL, et c'est le chemin `--from <dir>` que ce script documente lui-même : un build **local**
+ * nomme le bundle `iakaFrameGUI.app.tar.gz`, **sans** architecture — c'est `tauri-action` qui injecte
+ * `_aarch64` / `_x64` au moment de la publication. `platformOfArtifact` rend donc `null`, et macOS
+ * serait **omis du manifeste** : signalé en sortie, mais omis — une plateforme entière privée de
+ * mise à jour pour un défaut de nommage. On refuse **avant toute écriture Forgejo**, en disant quoi
+ * faire ; aucune architecture n'est devinée (servir un binaire arm64 à un Mac Intel serait pire).
+ *
+ * @param {string[]} names noms de fichiers bruts (répertoire d'artefacts, assets de release)
+ * @returns {{ ok: true }}
+ * @throws {Error} en citant les noms fautifs et le renommage attendu.
+ */
+export function assertNamedArchitectures(names, product = REPO_NAME) {
+  const guilty = names.filter(
+    (n) => n.toLowerCase().endsWith(".app.tar.gz") && platformOfArtifact(n) === null,
+  );
+  if (guilty.length > 0) {
+    throw new Error(
+      `bundle macOS sans architecture : ${guilty.join(", ")} — publication refusee avant toute ` +
+        `ecriture. Renommer en « ${product}_aarch64.app.tar.gz » ou « ${product}_x64.app.tar.gz » ` +
+        "(le .sig avec) puis relancer ; aucune architecture n'est devinee.",
+    );
+  }
+  return { ok: true };
+}
+
+/**
  * Construit le manifeste `latest.json` attendu par le plugin updater.
  *
  * Règles dures :
@@ -395,6 +423,8 @@ async function main(argv) {
       `aucun artefact signe dans ${dir} — le CI a-t-il bien recu les secrets de signature ?`,
     );
   }
+  // Tout ce qui se vérifie sur les NOMS se vérifie ici, avant la moindre écriture distante.
+  assertNamedArchitectures(readdirSync(dir));
 
   // (3) Release Forgejo + téléversement des binaires ET de leurs `.sig`.
   const { manifest, missing, used } = buildManifest({

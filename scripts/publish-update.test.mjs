@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  assertNamedArchitectures,
   assertPublishBranch,
   assertVersionsAligned,
   buildManifest,
@@ -87,6 +88,35 @@ describe("platformOfArtifact — ce qui est une cible de mise à jour, et ce qui
     expect(platformOfArtifact("app_0.1.5_amd64.deb")).toBeNull();
     expect(platformOfArtifact("app-0.1.5-1.x86_64.rpm")).toBeNull();
     expect(platformOfArtifact("app_0.1.5_aarch64.dmg")).toBeNull();
+  });
+});
+
+describe("assertNamedArchitectures — le bundle local sans architecture est REFUSÉ, pas omis", () => {
+  it("refuse le nom que produit réellement un build local (`iakaFrameGUI.app.tar.gz`)", () => {
+    // Sans cette garde, `platformOfArtifact` rend `null` et macOS disparaît du manifeste :
+    // signalé en sortie, mais publié sans macOS. Le chemin `--from <dir>` est exactement celui-là.
+    expect(platformOfArtifact("iakaFrameGUI.app.tar.gz")).toBeNull();
+    expect(() => assertNamedArchitectures(["iakaFrameGUI.app.tar.gz"])).toThrow(
+      /sans architecture/,
+    );
+    // Le message dit QUOI FAIRE : le renommage attendu, avec les deux formes acceptées.
+    expect(() => assertNamedArchitectures(["iakaFrameGUI.app.tar.gz"])).toThrow(
+      /iakaFrameGUI_aarch64\.app\.tar\.gz/,
+    );
+  });
+
+  it("laisse passer les noms déjà suffixés par `tauri-action`", () => {
+    expect(assertNamedArchitectures(FOUR.map((a) => a.name))).toEqual({ ok: true });
+  });
+
+  it("ignore les fichiers hors périmètre updater (.dmg, .deb, .sig)", () => {
+    expect(
+      assertNamedArchitectures([
+        "iakaFrameGUI.dmg",
+        "iaka-frame-gui_0.1.5_amd64.deb",
+        "iakaFrameGUI_aarch64.app.tar.gz.sig",
+      ]),
+    ).toEqual({ ok: true });
   });
 });
 
