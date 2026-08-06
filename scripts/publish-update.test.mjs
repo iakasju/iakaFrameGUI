@@ -3,9 +3,10 @@
 // partie du script qui DÉCIDE, pas celle qui téléverse.
 import { describe, it, expect, beforeAll } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   assertNamedArchitectures,
   assertPublishBranch,
@@ -249,6 +250,44 @@ describe("commitAndPushManifest — rejouer une publication identique est un NO-
       committed: true,
     });
     expect(lab.count()).toBe(after + 1);
+  });
+});
+
+describe("--check-only ne mesure QUE l'alignement (C7)", () => {
+  const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const SCRIPT = join(ROOT, "scripts", "publish-update.mjs");
+  const repoVersion = () => JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version;
+
+  it("sort 0 sur une version alignée, quelle que soit la branche courante", () => {
+    // C7 est une mesure d'ALIGNEMENT. Si `--check-only` se mettait à échouer pour une autre raison
+    // — typiquement la garde de branche, qui refuse tout sauf `main` — le critère deviendrait
+    // inutilisable là où on s'en sert vraiment : depuis une branche de feature, avant de taguer.
+    // Ce test tourne donc là où il est : dans le dépôt, sur la branche de travail du moment.
+    const version = repoVersion();
+    const out = execFileSync(process.execPath, [SCRIPT, `v${version}`, "--check-only"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    expect(out).toContain(`versions alignees sur ${version}`);
+  });
+
+  it("échoue pour DÉSALIGNEMENT, et jamais pour une histoire de branche", () => {
+    let failure = null;
+    try {
+      execFileSync(process.execPath, [SCRIPT, "v9.9.9", "--check-only"], {
+        cwd: ROOT,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (e) {
+      failure = e;
+    }
+    expect(failure).not.toBeNull();
+    expect(failure.status).toBe(1);
+    expect(failure.stderr).toContain("versions desalignees");
+    // Le motif cité est l'alignement, pas la branche : c'est ce qui rend le verdict lisible.
+    expect(failure.stderr).not.toContain("branche");
   });
 });
 
