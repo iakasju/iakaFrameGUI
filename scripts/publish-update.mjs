@@ -36,6 +36,12 @@ export const REPO_OWNER = "sjupin";
 export const REPO_NAME = "iakaFrameGUI";
 export const FORGEJO_BASE = "http://192.168.2.11:3001";
 
+/**
+ * LA branche que l'endpoint updater lit (`raw/branch/main/updater/latest.json`). Publier depuis une
+ * autre branche est sans effet côté clients : c'est un échec, pas une variante — d'où la garde.
+ */
+export const PUBLISH_BRANCH = "main";
+
 /** Racine du dépôt (le script vit dans `scripts/`). */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -302,7 +308,46 @@ async function forgejoUpload(releaseId, filePath, name, token) {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Pilote
+// 6. Garde de branche — le manifeste n'est visible que depuis `main`
+// ---------------------------------------------------------------------------
+
+/**
+ * Refuse net une publication lancée depuis une autre branche que `main`.
+ *
+ * Sans cette garde, lancé depuis une branche de feature, le script commitait le manifeste, le
+ * poussait **sur cette branche**, puis annonçait « la mise a jour est desormais visible des
+ * clients » — alors que l'endpoint interrogé est `raw/branch/main/updater/latest.json` : rien
+ * n'avait bougé chez personne. Un échec silencieux annoncé comme un succès est pire qu'un échec.
+ *
+ * @returns {{ ok: true, branch: string }}
+ * @throws {Error} en citant la branche vue et la branche attendue.
+ */
+export function assertPublishBranch(branch, wanted = PUBLISH_BRANCH) {
+  if (branch !== wanted) {
+    throw new Error(
+      `publication refusee : branche courante « ${branch ?? "(inconnue)"} », attendue « ${wanted} ». ` +
+        `L'endpoint updater lit raw/branch/${wanted}/updater/latest.json — un manifeste pousse ` +
+        `ailleurs n'est vu par AUCUN client. Basculer sur ${wanted} (ou utiliser --no-push).`,
+    );
+  }
+  return { ok: true, branch };
+}
+
+/** Branche git courante du dépôt (`null` en HEAD détachée ou hors dépôt). */
+export function currentBranch(root = ROOT) {
+  try {
+    const out = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    return out === "HEAD" ? null : out;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Pilote
 // ---------------------------------------------------------------------------
 
 export function parseArgs(argv) {
@@ -331,6 +376,15 @@ async function main(argv) {
   assertVersionsAligned(args.tag, versions);
   console.log(`versions alignees sur ${versionOfTag(args.tag)} (package/tauri.conf/Cargo/tag)`);
   if (args.checkOnly) return 0;
+
+  // (1bis) Garde de branche — AVANT toute écriture distante. Échouer après avoir créé une release
+  // Forgejo à moitié remplie laisserait un état sale à nettoyer à la main. Sans `--push`, il n'y a
+  // rien à rendre visible : la garde ne s'applique pas.
+  if (args.push && !args.dryRun) {
+    const branch = currentBranch();
+    assertPublishBranch(branch);
+    console.log(`branche de publication : ${branch}`);
+  }
 
   // (2) Artefacts : locaux (--from) ou release GitHub du tag.
   const dir = args.from ? resolve(args.from) : await fetchGithubArtifacts(args.tag);
@@ -365,7 +419,8 @@ async function main(argv) {
     }
   }
 
-  // (4) Manifeste versionné : c'est CE fichier, poussé sur `main`, qui ouvre le robinet.
+  // (4) Manifeste versionné : c'est CE fichier, poussé sur la branche de publication (garantie
+  //     `main` par la garde de branche ci-dessus), qui ouvre le robinet.
   const outDir = join(ROOT, "updater");
   mkdirSync(outDir, { recursive: true });
   const outFile = join(outDir, "latest.json");
@@ -378,11 +433,23 @@ async function main(argv) {
   console.log(`manifeste ecrit : ${outFile}`);
 
   // (5) Commit + push. Jamais de --force : le feed vit dans l'historique de `main`.
+  //     Le commit est LIMITÉ AU CHEMIN du manifeste (`-- updater/latest.json`) : sans ça, il
+  //     emportait tout ce qui traînait dans l'index de la copie de travail — une publication ne
+  //     doit jamais embarquer du code au passage.
+  //     Le push vise `HEAD` et non `HEAD:main` **à dessein** : la garde de branche a déjà établi que
+  //     HEAD est `main`, et viser HEAD garantit qu'une garde contournée ne pousserait pas une
+  //     branche de feature sur la branche de publication.
   if (args.push) {
     execFileSync("git", ["add", "updater/latest.json"], { cwd: ROOT, stdio: "inherit" });
     execFileSync(
       "git",
-      ["commit", "-m", `chore(release): manifeste de mise a jour ${args.tag}`],
+      [
+        "commit",
+        "-m",
+        `chore(release): manifeste de mise a jour ${args.tag}`,
+        "--",
+        "updater/latest.json",
+      ],
       { cwd: ROOT, stdio: "inherit" },
     );
     execFileSync("git", ["push", "origin", "HEAD"], { cwd: ROOT, stdio: "inherit" });

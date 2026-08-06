@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  assertPublishBranch,
   assertVersionsAligned,
   buildManifest,
   cargoVersion,
@@ -13,6 +14,7 @@ import {
   downloadBase,
   parseArgs,
   platformOfArtifact,
+  PUBLISH_BRANCH,
   versionOfTag,
 } from "./publish-update.mjs";
 
@@ -118,6 +120,21 @@ describe("assertVersionsAligned — la garde qui empêche l'updater de mentir (C
     expect(() =>
       assertVersionsAligned("v0.1.5", { pkg: "0.1.5", conf: "0.1.5", cargo: null }),
     ).toThrow(/illisible/);
+  });
+});
+
+describe("assertPublishBranch — publier ailleurs que sur main est sans effet", () => {
+  it("laisse passer la branche de publication", () => {
+    expect(assertPublishBranch(PUBLISH_BRANCH)).toEqual({ ok: true, branch: "main" });
+  });
+
+  it("refuse une branche de feature en citant les deux branches", () => {
+    expect(() => assertPublishBranch("feat/auto-update")).toThrow(/feat\/auto-update/);
+    expect(() => assertPublishBranch("feat/auto-update")).toThrow(/main/);
+  });
+
+  it("refuse une HEAD détachée (branche inconnue) plutôt que de publier au hasard", () => {
+    expect(() => assertPublishBranch(null)).toThrow(/refusee/);
   });
 });
 
