@@ -12,6 +12,7 @@
 //   node scripts/publish-update.mjs v0.1.5 --from ./dist   # artefacts locaux, sans GitHub
 //   node scripts/publish-update.mjs v0.1.5 --check-only    # garde d'alignement SEULE (C7)
 //   node scripts/publish-update.mjs v0.1.5 --dry-run       # tout sauf écrire/téléverser/pousser
+//   node scripts/publish-update.mjs v0.1.5 --no-push       # écrit le manifeste, ne commite ni ne pousse
 //   node scripts/publish-update.mjs v0.1.5 --notes "…"     # notes de version du manifeste
 //
 // Jetons : `$GITHUB_TOKEN` (lecture de la release amont), `$FORGEJO_TOKEN` (ou `~/work/.env`) pour
@@ -395,7 +396,10 @@ export function parseArgs(argv) {
 async function main(argv) {
   const args = parseArgs(argv);
   if (args.tag === null) {
-    console.error("usage : node scripts/publish-update.mjs vX.Y.Z [--from <dir>] [--check-only]");
+    console.error(
+      "usage : node scripts/publish-update.mjs vX.Y.Z " +
+        "[--from <dir>] [--check-only] [--dry-run] [--no-push] [--notes <texte>]",
+    );
     return 2;
   }
 
