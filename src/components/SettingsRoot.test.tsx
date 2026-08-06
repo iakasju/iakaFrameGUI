@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SettingsRoot } from "./SettingsRoot";
 import type { Backend } from "../api/backend";
+import type { UseAppUpdate } from "../hooks/useAppUpdate";
 
 function fakeApi(over: Partial<Backend> = {}): Backend {
   return {
@@ -214,6 +215,43 @@ describe("SettingsRoot — endpoint d'authoring optionnel (§ D3)", () => {
     await waitFor(() =>
       expect(setAuthoringEndpoint).toHaveBeenCalledWith("http://192.168.2.11:11434"),
     );
+  });
+});
+
+describe("SettingsRoot — section « Mises à jour » (auto-update.md, C4)", () => {
+  /** Contrôle de version injecté : la section se teste sans plugin Tauri ni réseau. */
+  function fakeUpdate(over: Partial<UseAppUpdate> = {}): UseAppUpdate {
+    return {
+      status: "idle",
+      version: null,
+      progressPct: null,
+      error: null,
+      errorVisible: false,
+      check: async () => {},
+      install: async () => {},
+      dismiss: () => {},
+      ...over,
+    };
+  }
+
+  it("contrôle manuel en échec → message d'erreur VISIBLE à l'écran (C4)", async () => {
+    // C4 : « Vérifier les mises à jour » box injoignable doit PARLER — c'est la contrepartie du
+    // silence du contrôle au démarrage (C2). L'erreur n'est montrée que si `errorVisible`.
+    render(
+      <SettingsRoot
+        api={fakeApi()}
+        update={fakeUpdate({
+          status: "error",
+          error: "error sending request for url (http://192.168.2.11:3001/…)",
+          errorVisible: true,
+        })}
+      />,
+    );
+    await screen.findByText("/home/user/work/iakaframe");
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Contrôle des mises à jour impossible");
+    // La cause est citée telle quelle : un message d'erreur qui ne dit pas pourquoi ne sert à rien.
+    expect(alert.textContent).toContain("error sending request for url");
   });
 });
 
