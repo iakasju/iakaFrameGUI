@@ -1,0 +1,402 @@
+// publish-update.mjs — LE PAS DE RECOPIE de la chaîne de mise à jour (auto-update.md, étape 6b).
+//
+// Pourquoi ce script existe : le builder (GitHub Actions) et le canal de distribution (Forgejo sur
+// le LAN iakabox) sont **deux mondes disjoints** — GitHub ne peut pas atteindre le LAN. Il faut donc
+// un pas exécuté **depuis le poste**, box en ligne, qui prend les binaires signés produits par le CI
+// et les republie sur Forgejo avec le manifeste que le client interroge. Ce n'est pas un défaut du
+// montage : c'est le prix de D2 (« changer de canal ne doit coûter qu'une URL »), et il disparaît le
+// jour où le flux passe sur un site public.
+//
+// Usage :
+//   node scripts/publish-update.mjs v0.1.5                 # GitHub → Forgejo → manifeste → push
+//   node scripts/publish-update.mjs v0.1.5 --from ./dist   # artefacts locaux, sans GitHub
+//   node scripts/publish-update.mjs v0.1.5 --check-only    # garde d'alignement SEULE (C7)
+//   node scripts/publish-update.mjs v0.1.5 --dry-run       # tout sauf écrire/téléverser/pousser
+//   node scripts/publish-update.mjs v0.1.5 --notes "…"     # notes de version du manifeste
+//
+// Jetons : `$GITHUB_TOKEN` (lecture de la release amont), `$FORGEJO_TOKEN` (ou `~/work/.env`) pour
+// la publication. **Jamais** en dur, jamais écrits dans un fichier suivi, jamais affichés.
+//
+// Le script s'arrête NET à la première anomalie : mieux vaut une publication interrompue qu'un
+// manifeste qui ment sur ce qui est réellement téléchargeable.
+import { execFileSync } from "node:child_process";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+  mkdirSync,
+} from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+export const REPO_OWNER = "sjupin";
+export const REPO_NAME = "iakaFrameGUI";
+export const FORGEJO_BASE = "http://192.168.2.11:3001";
+
+/** Racine du dépôt (le script vit dans `scripts/`). */
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Base des URL de téléchargement d'une release Forgejo — les URL du manifeste sont ABSOLUES. */
+export function downloadBase(base = FORGEJO_BASE, owner = REPO_OWNER, repo = REPO_NAME) {
+  return `${base}/${owner}/${repo}/releases/download`;
+}
+
+// ---------------------------------------------------------------------------
+// 1. Garde d'alignement des versions
+// ---------------------------------------------------------------------------
+
+/** Retire le `v` d'un tag (`v0.1.5` → `0.1.5`). Le manifeste porte la version SANS `v`. */
+export function versionOfTag(tag) {
+  return String(tag).replace(/^v/, "");
+}
+
+/** Lit la version déclarée par `Cargo.toml` (section `[package]`, sans dépendance TOML). */
+export function cargoVersion(text) {
+  const pkg = text.split(/^\[/m).find((s) => s.startsWith("package]"));
+  const m = pkg ? pkg.match(/^\s*version\s*=\s*"([^"]+)"/m) : null;
+  return m ? m[1] : null;
+}
+
+/**
+ * Vérifie que `package.json`, `tauri.conf.json`, `Cargo.toml` et le tag portent LA MÊME version.
+ * Une dérive ici et l'updater ment sur la version disponible : le client télécharge un binaire qui
+ * s'annonce autrement que ce que le manifeste promet, et la boucle « une version toujours dispo »
+ * s'installe. On échoue donc explicitement, en citant les quatre valeurs vues.
+ *
+ * @returns {{ ok: true, version: string }}
+ * @throws {Error} avec le détail des quatre valeurs en cas de dérive.
+ */
+export function assertVersionsAligned(tag, versions) {
+  const wanted = versionOfTag(tag);
+  const seen = {
+    tag: wanted,
+    "package.json": versions.pkg,
+    "tauri.conf.json": versions.conf,
+    "Cargo.toml": versions.cargo,
+  };
+  const bad = Object.entries(seen).filter(([, v]) => v !== wanted);
+  if (bad.length > 0) {
+    const detail = Object.entries(seen)
+      .map(([k, v]) => `  ${k.padEnd(16)} ${v ?? "(illisible)"}`)
+      .join("\n");
+    throw new Error(
+      `versions desalignees — le tag ${tag} ne correspond pas aux fichiers du depot :\n${detail}`,
+    );
+  }
+  return { ok: true, version: wanted };
+}
+
+/** Lit les trois versions du dépôt (chemins réels). */
+export function readRepoVersions(root = ROOT) {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
+  const conf = JSON.parse(
+    readFileSync(join(root, "src-tauri", "tauri.conf.json"), "utf8"),
+  ).version;
+  const cargo = cargoVersion(readFileSync(join(root, "src-tauri", "Cargo.toml"), "utf8"));
+  return { pkg, conf, cargo };
+}
+
+// ---------------------------------------------------------------------------
+// 2. Classement des artefacts par plateforme
+// ---------------------------------------------------------------------------
+
+/** Les 4 cibles du workflow de release, dans l'ordre où on veut les voir. */
+export const PLATFORMS = ["darwin-aarch64", "darwin-x86_64", "linux-x86_64", "windows-x86_64"];
+
+/**
+ * Devine la plateforme updater d'un artefact d'après son nom. `null` = ce fichier n'est pas une
+ * cible de mise à jour (ex. `.deb`, `.rpm`, `.dmg` — voir le hors-lot de l'instruction).
+ */
+export function platformOfArtifact(name) {
+  const n = name.toLowerCase();
+  if (n.endsWith(".app.tar.gz")) {
+    if (n.includes("aarch64") || n.includes("arm64")) return "darwin-aarch64";
+    if (n.includes("x64") || n.includes("x86_64")) return "darwin-x86_64";
+    return null;
+  }
+  if (n.endsWith(".appimage")) return "linux-x86_64";
+  if (n.endsWith("-setup.exe")) return "windows-x86_64";
+  return null;
+}
+
+/**
+ * Construit le manifeste `latest.json` attendu par le plugin updater.
+ *
+ * Règles dures :
+ * - `version` **sans** le `v` du tag ;
+ * - `signature` = le **contenu** du `.sig`, jamais son chemin ;
+ * - URL **absolues** vers la release Forgejo du tag ;
+ * - une plateforme dont l'artefact (ou sa signature) manque est **omise** et signalée — jamais
+ *   écrite avec une URL fantôme, qui produirait un échec de téléchargement chez le client.
+ *
+ * @param {{ tag: string, notes?: string, pubDate?: string, base?: string,
+ *           artifacts: Array<{ name: string, signature: string }> }} input
+ * @returns {{ manifest: object, missing: string[], used: Record<string,string> }}
+ */
+export function buildManifest(input) {
+  const { tag, notes = "", pubDate, artifacts, base } = input;
+  const version = versionOfTag(tag);
+  const urlBase = `${base ?? downloadBase()}/${tag}`;
+  const platforms = {};
+  const used = {};
+  for (const art of artifacts) {
+    const plat = platformOfArtifact(art.name);
+    if (plat === null) continue;
+    const sig = (art.signature ?? "").trim();
+    if (sig.length === 0) continue;
+    // Premier arrivé, premier servi : deux artefacts pour une même plateforme est anormal, on
+    // garde le premier et on le dit plutôt que d'en écraser un silencieusement.
+    if (platforms[plat] !== undefined) continue;
+    platforms[plat] = {
+      signature: sig,
+      url: `${urlBase}/${encodeURIComponent(art.name)}`,
+    };
+    used[plat] = art.name;
+  }
+  const missing = PLATFORMS.filter((p) => platforms[p] === undefined);
+  const manifest = {
+    version,
+    notes,
+    pub_date: pubDate ?? new Date().toISOString(),
+    platforms,
+  };
+  return { manifest, missing, used };
+}
+
+/**
+ * Apparie les fichiers d'un répertoire : tout `<nom>.sig` désigne l'artefact `<nom>`. La signature
+ * est le CRITÈRE : un binaire sans `.sig` n'est pas publiable (le client le refuserait de toute
+ * façon), il est donc ignoré ici plutôt que de gonfler un manifeste inutilisable.
+ */
+export function collectArtifactsFromDir(dir) {
+  const files = readdirSync(dir);
+  const out = [];
+  for (const f of files) {
+    if (!f.endsWith(".sig")) continue;
+    const name = f.slice(0, -4);
+    if (!files.includes(name)) continue;
+    out.push({
+      name,
+      signature: readFileSync(join(dir, f), "utf8").trim(),
+      path: join(dir, name),
+      sigPath: join(dir, f),
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Jetons — lus dans l'environnement, jamais en dur, jamais affichés
+// ---------------------------------------------------------------------------
+
+/** Lit une clé dans `~/work/.env` (source unique du portefeuille) sans rien exporter. */
+export function readEnvFile(key, file = join(homedir(), "work", ".env")) {
+  if (!existsSync(file)) return null;
+  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m && m[1] === key) return m[2].replace(/^["']|["']$/g, "").trim() || null;
+  }
+  return null;
+}
+
+function forgejoToken() {
+  const tok = process.env.FORGEJO_TOKEN || readEnvFile("FORGEJO_TOKEN");
+  if (!tok) {
+    throw new Error(
+      "FORGEJO_TOKEN absent (ni environnement, ni ~/work/.env) — publication impossible. " +
+        "Ne PAS ecrire de jeton dans le depot.",
+    );
+  }
+  return tok;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Récupération des artefacts amont (GitHub) — repli `--from <dir>`
+// ---------------------------------------------------------------------------
+
+function githubRepoSlug() {
+  try {
+    const url = execFileSync("git", ["remote", "get-url", "github"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    }).trim();
+    const m = url.match(/github\.com[:/]+([^/]+)\/([^/.]+)/);
+    if (m) return `${m[1]}/${m[2]}`;
+  } catch {
+    /* pas de remote github : on le dira au moment de s'en servir */
+  }
+  return null;
+}
+
+async function fetchGithubArtifacts(tag) {
+  const slug = githubRepoSlug();
+  if (slug === null) {
+    throw new Error(
+      "aucun remote `github` — utiliser --from <dir> pour publier depuis des artefacts locaux.",
+    );
+  }
+  const token = process.env.GITHUB_TOKEN || readEnvFile("GITHUB_TOKEN");
+  const headers = { Accept: "application/vnd.github+json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const relRes = await fetch(`https://api.github.com/repos/${slug}/releases/tags/${tag}`, {
+    headers,
+  });
+  if (!relRes.ok) {
+    throw new Error(`release GitHub ${tag} introuvable (HTTP ${relRes.status}) sur ${slug}`);
+  }
+  const rel = await relRes.json();
+  const dir = mkdtempSync(join(tmpdir(), "iakaframegui-update-"));
+  console.log(`  telechargement des artefacts GitHub dans ${dir}`);
+  for (const asset of rel.assets ?? []) {
+    const res = await fetch(asset.url, {
+      headers: { ...headers, Accept: "application/octet-stream" },
+    });
+    if (!res.ok) throw new Error(`telechargement de ${asset.name} echoue (HTTP ${res.status})`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    writeFileSync(join(dir, asset.name), buf);
+  }
+  return dir;
+}
+
+// ---------------------------------------------------------------------------
+// 5. Release Forgejo + téléversement
+// ---------------------------------------------------------------------------
+
+async function forgejoRelease(tag, notes, token) {
+  const api = `${FORGEJO_BASE}/api/v1/repos/${REPO_OWNER}/${REPO_NAME}/releases`;
+  const head = { Authorization: `token ${token}`, "Content-Type": "application/json" };
+  const existing = await fetch(`${api}/tags/${encodeURIComponent(tag)}`, {
+    headers: { Authorization: `token ${token}` },
+  });
+  if (existing.ok) {
+    const rel = await existing.json();
+    console.log(`  release Forgejo ${tag} deja presente (id ${rel.id}) — reutilisee`);
+    return rel;
+  }
+  const res = await fetch(api, {
+    method: "POST",
+    headers: head,
+    body: JSON.stringify({ tag_name: tag, name: tag, body: notes, draft: false, prerelease: false }),
+  });
+  if (!res.ok) {
+    throw new Error(`creation de la release Forgejo ${tag} echouee (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+async function forgejoUpload(releaseId, filePath, name, token) {
+  const api =
+    `${FORGEJO_BASE}/api/v1/repos/${REPO_OWNER}/${REPO_NAME}/releases/${releaseId}/assets` +
+    `?name=${encodeURIComponent(name)}`;
+  const form = new FormData();
+  form.append("attachment", new Blob([readFileSync(filePath)]), name);
+  const res = await fetch(api, {
+    method: "POST",
+    headers: { Authorization: `token ${token}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`televersement de ${name} echoue (HTTP ${res.status})`);
+}
+
+// ---------------------------------------------------------------------------
+// 6. Pilote
+// ---------------------------------------------------------------------------
+
+export function parseArgs(argv) {
+  const args = { tag: null, from: null, notes: "", checkOnly: false, dryRun: false, push: true };
+  for (let i = 0; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === "--from") args.from = argv[++i];
+    else if (a === "--notes") args.notes = argv[++i] ?? "";
+    else if (a === "--check-only") args.checkOnly = true;
+    else if (a === "--dry-run") args.dryRun = true;
+    else if (a === "--no-push") args.push = false;
+    else if (!a.startsWith("--") && args.tag === null) args.tag = a;
+  }
+  return args;
+}
+
+async function main(argv) {
+  const args = parseArgs(argv);
+  if (args.tag === null) {
+    console.error("usage : node scripts/publish-update.mjs vX.Y.Z [--from <dir>] [--check-only]");
+    return 2;
+  }
+
+  // (1) Garde d'alignement — toujours, y compris en --check-only.
+  const versions = readRepoVersions();
+  assertVersionsAligned(args.tag, versions);
+  console.log(`versions alignees sur ${versionOfTag(args.tag)} (package/tauri.conf/Cargo/tag)`);
+  if (args.checkOnly) return 0;
+
+  // (2) Artefacts : locaux (--from) ou release GitHub du tag.
+  const dir = args.from ? resolve(args.from) : await fetchGithubArtifacts(args.tag);
+  if (!existsSync(dir)) throw new Error(`repertoire d'artefacts introuvable : ${dir}`);
+  const artifacts = collectArtifactsFromDir(dir);
+  if (artifacts.length === 0) {
+    throw new Error(
+      `aucun artefact signe dans ${dir} — le CI a-t-il bien recu les secrets de signature ?`,
+    );
+  }
+
+  // (3) Release Forgejo + téléversement des binaires ET de leurs `.sig`.
+  const { manifest, missing, used } = buildManifest({
+    tag: args.tag,
+    notes: args.notes,
+    artifacts,
+  });
+  for (const [plat, name] of Object.entries(used)) console.log(`  ${plat.padEnd(15)} ${name}`);
+  for (const plat of missing) console.warn(`  ${plat.padEnd(15)} MANQUANT — plateforme omise`);
+  if (Object.keys(manifest.platforms).length === 0) {
+    throw new Error("aucune plateforme publiable — manifeste non ecrit");
+  }
+
+  if (!args.dryRun) {
+    const token = forgejoToken();
+    const rel = await forgejoRelease(args.tag, args.notes, token);
+    for (const art of artifacts) {
+      if (platformOfArtifact(art.name) === null) continue;
+      await forgejoUpload(rel.id, art.path, art.name, token);
+      await forgejoUpload(rel.id, art.sigPath, `${art.name}.sig`, token);
+      console.log(`  televerse ${art.name} (+ .sig)`);
+    }
+  }
+
+  // (4) Manifeste versionné : c'est CE fichier, poussé sur `main`, qui ouvre le robinet.
+  const outDir = join(ROOT, "updater");
+  mkdirSync(outDir, { recursive: true });
+  const outFile = join(outDir, "latest.json");
+  const body = `${JSON.stringify(manifest, null, 2)}\n`;
+  if (args.dryRun) {
+    console.log(body);
+    return 0;
+  }
+  writeFileSync(outFile, body);
+  console.log(`manifeste ecrit : ${outFile}`);
+
+  // (5) Commit + push. Jamais de --force : le feed vit dans l'historique de `main`.
+  if (args.push) {
+    execFileSync("git", ["add", "updater/latest.json"], { cwd: ROOT, stdio: "inherit" });
+    execFileSync(
+      "git",
+      ["commit", "-m", `chore(release): manifeste de mise a jour ${args.tag}`],
+      { cwd: ROOT, stdio: "inherit" },
+    );
+    execFileSync("git", ["push", "origin", "HEAD"], { cwd: ROOT, stdio: "inherit" });
+    console.log("manifeste pousse — la mise a jour est desormais visible des clients");
+  }
+  return 0;
+}
+
+// Exécution seulement quand le fichier est appelé directement (importable en test).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main(process.argv.slice(2))
+    .then((code) => process.exit(code))
+    .catch((e) => {
+      console.error(`publish-update : ${e.message}`);
+      process.exit(1);
+    });
+}

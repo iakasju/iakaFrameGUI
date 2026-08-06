@@ -90,6 +90,12 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signature minisign des artefacts de mise a jour (auto-update.md, etape 6a). SANS ces
+          # deux secrets, le bundler ne produit AUCUN fichier `.sig` et l'auto-update ne sert a
+          # rien : le client refuse une charge utile non signee. Leur pose dans les reglages du
+          # depot est un GATE HUMAIN — elle ne peut pas etre faite depuis le depot.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: ${{ github.event.inputs.tag || github.ref_name }}
