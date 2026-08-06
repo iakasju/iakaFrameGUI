@@ -234,6 +234,23 @@ describe("SettingsRoot — section « Mises à jour » (auto-update.md, C4)", ()
     };
   }
 
+  it("« Vérifier les mises à jour » demande un contrôle VERBOSE — le maillon qui rend C4 vivant", async () => {
+    // LA JONCTION, et elle seule. Les deux moitiés de C4 étaient couvertes séparément : le hook sait
+    // rendre une erreur visible quand on le lui demande (`verbose` → `errorVisible`), et la section
+    // sait l'afficher quand `errorVisible` est vrai. Rien ne vérifiait le maillon entre les deux —
+    // que le bouton demande bien un contrôle VERBEUX. Remplacer `check(true)` par `check()` laissait
+    // `SettingsRoot.test.tsx` ET `useAppUpdate.test.ts` verts pendant que C4 était mort en
+    // production : l'erreur d'un contrôle explicitement demandé serait restée muette à l'écran.
+    const check = vi.fn<UseAppUpdate["check"]>(async () => {});
+    render(<SettingsRoot api={fakeApi()} update={fakeUpdate({ check })} />);
+    await screen.findByText("/home/user/work/iakaframe");
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier les mises à jour" }));
+    await waitFor(() => expect(check).toHaveBeenCalledTimes(1));
+    // `true` et pas « un booléen quelconque » : c'est l'argument qui distingue le contrôle demandé
+    // du contrôle silencieux du démarrage.
+    expect(check).toHaveBeenCalledWith(true);
+  });
+
   it("contrôle manuel en échec → message d'erreur VISIBLE à l'écran (C4)", async () => {
     // C4 : « Vérifier les mises à jour » box injoignable doit PARLER — c'est la contrepartie du
     // silence du contrôle au démarrage (C2). L'erreur n'est montrée que si `errorVisible`.
