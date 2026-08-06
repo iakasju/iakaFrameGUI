@@ -50,6 +50,8 @@ import {
   mdToKit,
 } from "./mappers";
 import { SettingsRoot } from "../components/SettingsRoot";
+import { UpdateBanner } from "../components/UpdateBanner";
+import { useAppUpdate } from "../hooks/useAppUpdate";
 import { OpenFramePanel } from "../components/OpenFramePanel";
 import { AssemblyView } from "./AssemblyView";
 import { PersonaReservoir } from "./PersonaReservoir";
@@ -100,6 +102,10 @@ const kitBody = (k: Kit): string =>
 
 export function ForgeShell() {
   const handoff = useForgeHandoff();
+  // Contrôle de version de l'appli (auto-update.md) : UNE seule instance pour toute la coquille —
+  // le bandeau et l'entrée « Mises à jour » des Réglages partagent le même état (deux instances
+  // donneraient deux vérités : un bandeau qui annonce et un écran qui dit « à jour »).
+  const update = useAppUpdate();
   const [nav, setNav] = useState<NavKey>("team");
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Sous-surfaces de l'entrée « méthode » (Lot 5) : la **discipline** (principes/rôles/…) et le
@@ -326,6 +332,9 @@ export function ForgeShell() {
         </button>
       </div>
 
+      {/* Bandeau de mise à jour : muet tant qu'il n'a rien à dire (box éteinte = invisible, C2). */}
+      <UpdateBanner update={update} />
+
       {/* Entrées documentaires : gestes fichier + titre + pastille de mode (édition/création). */}
       {activeDoc !== null && (
         <>
@@ -350,7 +359,7 @@ export function ForgeShell() {
 
       {settingsOpen && (
         <div className="settings-panel">
-          <SettingsRoot />
+          <SettingsRoot update={update} />
         </div>
       )}
 
