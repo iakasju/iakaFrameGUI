@@ -13,6 +13,8 @@ import { useCallback, useEffect, useState } from "react";
 import { backend, type Backend } from "../api/backend";
 import { CharteSelector } from "./CharteSelector";
 import { INFERENCE_SOURCES, deriveSourceId, extractModelName } from "./inferenceSources";
+import { useAppUpdate, type UseAppUpdate } from "../hooks/useAppUpdate";
+import { APP_VERSION, PRIMARY_UPDATE_ENDPOINT } from "../api/updateConfig";
 
 /** Aucun dossier de projet réglé : la forge ne sait pas où lire le pointeur de frame active. */
 export const NO_PROJECT_HINT =
@@ -22,7 +24,20 @@ export const NO_PROJECT_HINT =
 export const NO_ACTIVE_FRAME_HINT =
   "aucun pointeur posé — la frame « default » du réservoir est active";
 
-export function SettingsRoot({ api = backend }: { api?: Backend }) {
+export function SettingsRoot({
+  api = backend,
+  update: updateProp,
+}: {
+  api?: Backend;
+  /**
+   * Contrôle de version PARTAGÉ avec la coquille (bandeau). Absent (écran monté seul, tests) : on
+   * en crée un local **sans contrôle au démarrage** — un écran de réglages ne déclenche pas de
+   * trafic tant qu'on ne lui a rien demandé.
+   */
+  update?: UseAppUpdate;
+}) {
+  const ownUpdate = useAppUpdate({ autoCheck: false });
+  const update = updateProp ?? ownUpdate;
   const [home, setHome] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -573,6 +588,61 @@ export function SettingsRoot({ api = backend }: { api?: Backend }) {
             <em className="no-model">{NO_PROJECT_HINT}</em>
           </p>
         )}
+      </div>
+
+      {/* Mises à jour (auto-update.md, étape 5) — contrôle MANUEL : l'erreur y est VISIBLE (C4),
+          contrairement au contrôle silencieux du démarrage. L'endpoint est affiché parce que savoir
+          d'où vient une mise à jour fait partie du contrat (et se lit dans `tauri.conf.json`). */}
+      <div className="settings-block" aria-label="Mises à jour de l'application">
+        <h3>Mises à jour</h3>
+        <p className="settings-line">
+          Version installée : <code className="model-value">{APP_VERSION}</code>
+        </p>
+        <div className="settings-actions">
+          <button
+            type="button"
+            className="docbtn"
+            disabled={update.status === "checking" || update.status === "downloading"}
+            onClick={() => void update.check(true)}
+          >
+            {update.status === "checking" ? "Vérification…" : "Vérifier les mises à jour"}
+          </button>
+          {update.status === "available" && (
+            <button
+              type="button"
+              className="docbtn"
+              onClick={() => void update.install()}
+              title="Télécharge, installe, puis redémarre l'application"
+            >
+              Installer et redémarrer
+            </button>
+          )}
+        </div>
+        {update.status === "up-to-date" && (
+          <p className="settings-line" role="status">
+            Aucune mise à jour disponible — cette version est la plus récente.
+          </p>
+        )}
+        {update.status === "available" && (
+          <p className="settings-line" role="status">
+            Version <code className="model-value">{update.version}</code> disponible.
+          </p>
+        )}
+        {update.status === "downloading" && (
+          <p className="settings-line" role="status">
+            Téléchargement en cours
+            {update.progressPct === null ? "…" : ` — ${update.progressPct} %`}
+          </p>
+        )}
+        {update.status === "error" && update.errorVisible && (
+          <p className="settings-line err" role="alert">
+            Contrôle des mises à jour impossible
+            {update.error ? ` : ${update.error}` : "."}
+          </p>
+        )}
+        <p className="settings-hint">
+          Source interrogée : <code>{PRIMARY_UPDATE_ENDPOINT}</code>
+        </p>
       </div>
     </section>
   );

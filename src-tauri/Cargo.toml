@@ -47,3 +47,12 @@ reqwest = { version = "0.11", default-features = false, features = ["json", "str
 # Consommation du `bytes_stream()` de reqwest (StreamExt::next) pour la lecture NDJSON ligne par ligne.
 # Deja present dans Cargo.lock (tire par tokio/tauri) — addition sans resolution reseau.
 futures-util = "0.3"
+# AUTO-UPDATE (auto-update.md, etapes 2-3). Ce n'est NI un appel runner (LLM), NI un sous-processus :
+# c'est le CONTROLE DE VERSION de l'appli elle-meme — un egress HTTP sortant vers l'endpoint REGLE en
+# configuration (`tauri.conf.json` > plugins.updater.endpoints), dont la charge utile est VERIFIEE par
+# signature minisign avant installation. Il ne se range donc PAS parmi les derogations AR-1/AR-6
+# ci-dessus (shell, llm) : il ne partage ni leur nature ni leur surface. Cf. src/lib.rs.
+tauri-plugin-updater = "2"
+# Redemarrage de l'appli apres installation d'une mise a jour (`relaunch()`), declenche UNIQUEMENT par
+# un clic explicite de l'utilisateur (D3 : l'appli propose, l'humain decide). Passe-plat, aucune logique.
+tauri-plugin-process = "2"
