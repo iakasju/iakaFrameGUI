@@ -1,97 +1,46 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-08-02 23:20 (motif: pause).
+> Genere par iakaframe (CLI) le 2026-08-10 20:16 (motif: version).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
 | Champ | Valeur |
 |---|---|
-| Version | v0.1.4 |
+| Version | v0.1.6 |
 | Branche | main |
-| Dernier commit | 6219601 feat(gui): Q-3 decouverte des modeles au noeud + pre-remplissage du Binding par role |
+| Dernier commit | 2912b20 chore(release): manifeste de mise a jour v0.1.6 |
 | Arbre | propre |
-| Fichiers (hors .git/node_modules) | 26208 |
-| Note | Session du 2026-08-02 : cycle COMPLET parcouru en une session (2 arbitrages bloques -> cadrage -> verdicts -> reecriture -> implementation -> gate vert). 6 commits, tous pousses. (1) G6 super-etage portefeuille : statut mensonger corrige et instruction CLOSE, ratifiee a posteriori sur 3 points (validation oui ; AC-2 passe a 12 types via frames/AR-1 ; AC-7 passe a 4 libraryList + pointeur ; paragraphe 5 fige en ARCHIVE HISTORIQUE, le code fait foi). (2) Q-3 : a CHANGE DE NATURE puis a ete LIVREE. Le parametre VRAM est supprime (aucun endpoint Ollama n expose la VRAM totale ; /api/ps ne rend que la VRAM consommee par les modeles charges) ; la source des candidats devient la DECOUVERTE LIVE du noeud via GET /v1/models (commande llm_models existante, aucune commande Tauri neuve) ; pre-remplissage par regle de motif clee roleKey sur 9 roles. Six questions tranchees. Fichier renomme (P-O-7) en Q3-decouverte-modeles-noeud-preremplissage-binding.md ; la reference E1:227 annoncee cassee N EXISTAIT PAS, et la vraie peremption d E1 (paragraphe 10bis affirmait Q-3 reste OUVERTE) a ete resorbee : le bloc E1 est desormais integralement tranche. IMPLEMENTATION : coeur pur packages/core/src/discovery.ts + raccord LiaisonPanel (input list + datalist, editable) + useForgeDeploy (etat volatil, jeton de course). Deux gardes non prevues par l instruction et ajoutees car elles evitent des defauts reels : le pre-remplissage ne pourvoit que les champs vides (sinon une frappe pendant le timeout de 10 s serait ecrasee) et un jeton de course empeche une reponse tardive de ressusciter un binding decoche. Quatrieme mode d echec decouvert (ollama-lan sans lanHost) converge sur le meme etat visible que les trois autres. GATE RELANCE ET VERIFIE INDEPENDAMMENT (pas repris du rapport d execution) : lint:all exit 0, vitest 1116 tests / 118 fichiers verts (avant 1065 / 115, soit +51 tests / +3 fichiers), cargo test 116 passed 0 failed, npm run build OK 159 modules. AUCUN test existant modifie, src-tauri INCHANGE (porcelain vide). RESTE OUVERT : recette humaine contre un noeud vivant (tout est prouve par test, RIEN par l usage) ; arbitrage AC-Q3-11 sur 3 litteraux de modele ANTERIEURS a Q-3 et hors perimetre (SettingsRoot.tsx:387 cote authoring, forge/mock/copilote.ts:36 etiquete mock, packages/core/src/llm.ts:25 en commentaire) - lot de nettoyage distinct volontairement non fait ; P-O-2 trou ollama-lan (elargir host_allowed est un arbitrage de SECURITE) ; 5 autres points ouverts non bloquants. VERSION NON CHANGEE (v0.1.4) : une feature est livree, le bump semver est une decision du decideur. |
+| Fichiers (hors .git/node_modules) | 13194 |
+| Note | Auto-update de l'application livre, gate PASS borne, publie sur le canal Forgejo LAN et bascule recettee (0.1.5 -> 0.1.6) |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
-| `6219601` | 2026-08-02 | feat(gui): Q-3 decouverte des modeles au noeud + pre-remplissage du Binding par role |
-| `2df0bed` | 2026-08-02 | docs(q3): renomme l'instruction (P-O-7 tranche) + resorbe la peremption d'E1 |
-| `ccd33d2` | 2026-08-02 | chore(iakaframe): update etat des lieux + commit global (pause) |
-| `e3522bc` | 2026-08-02 | docs(q3): VERDICT decideur - table figee remplacee par decouverte live du noeud |
-| `38b2c22` | 2026-08-02 | docs(q3): cadrage initial de la table modele-local <-> role Ollama |
-| `e517d4a` | 2026-08-02 | docs(g6): reconciliation doc-code + RATIFICATION a posteriori par le decideur |
-| `e135d4d` | 2026-07-31 | docs(specs): renseigne la version du checkpoint (v0.1.4) |
-| `54157f9` | 2026-07-31 | chore(iakaframe): update etat des lieux + commit global (pause) |
-| `5f64fa1` | 2026-07-31 | fix(deps): resorbe 2 vulnerabilites high (postcss, brace-expansion) |
-| `4052f77` | 2026-07-31 | chore(iakaframe): update etat des lieux + commit global (version v0.1.4) |
+| `2912b20` | 2026-08-10 | chore(release): manifeste de mise a jour v0.1.6 |
+| `b99f6dc` | 2026-08-10 | chore(release): v0.1.6 — version de recette pour la bascule auto-update |
+| `f43155a` | 2026-08-10 | chore(release): manifeste de mise a jour v0.1.5 |
+| `17f6def` | 2026-08-10 | chore(release): v0.1.5 — auto-update de l'application |
+| `623eefd` | 2026-08-10 | Merge branch 'feat/auto-update' — auto-update de l'appli (gate Legolas PASS borne) |
+| `08d49ae` | 2026-08-06 | test(release): --check-only mesure l'alignement seul, jamais la branche (C7) |
+| `566fe37` | 2026-08-06 | fix(release): republier un meme tag est un no-op propre, plus un abandon en fin de course |
+| `6fc6e80` | 2026-08-06 | docs(release): dit le vrai sur l'exemption --no-push (televersement non garde) |
+| `a16e868` | 2026-08-06 | test(settings): le bouton de controle demande bien un controle verbeux (C4-bis) |
+| `4fc3e97` | 2026-08-06 | test(settings): rendu du message d'erreur visible de la section Mises a jour |
 
-## Reprise du travail
+## Reprise du travail (a completer par Cowork)
 
-> Session du **2026-08-02** — **cycle complet en une session** : 2 arbitrages bloques →
-> cadrage → verdicts du decideur → reecriture → implementation → gate vert. **6 commits**,
-> tous pousses. Sante **re-mesuree ce jour**, pas reprise du 31/07.
-
-- **Ce qui vient d'etre fait**
-  1. **G6 (super-etage portefeuille) : CLOS.** Son statut mentait — « PROPOSE, en attente
-     de validation » alors qu'il etait **livre et gate PASS depuis v0.3.4 (19/07)**.
-     Ratifie a posteriori sur 3 points : validation oui ; **AC-2 → 12 types** (`frames`,
-     AR-1) ; **AC-7 → 4 `libraryList` + pointeur** ; **§ 5 fige en archive historique**
-     (le code fait foi, doc vivante = `packages/core/src/frame.ts:1-23`).
-  2. **Q-3 : cadree, fermee, PUIS LIVREE.** Elle a **change de nature** en cours de route.
-     Le **parametre VRAM est supprime** (aucun endpoint Ollama n'expose la VRAM totale) ;
-     la source des candidats devient la **decouverte live du nœud** (`GET /v1/models` via
-     `llm_models`, **aucune commande Tauri neuve**) ; **pre-remplissage** par regle de motif
-     clee `roleKey` sur les 9 roles. Fichier **renomme** (P-O-7).
-  3. **Bloc E1 integralement tranche.** Son § 10bis affirmait encore « Q-3 reste OUVERTE » :
-     peremption resorbee. *(La reference `E1:227` que le cadrage annoncait comme cassee par
-     le renommage **n'existait pas** — verifie.)*
-  4. **Implementation** : cœur pur `packages/core/src/discovery.ts` (neuf) + raccord
-     `LiaisonPanel` (`input list` + `datalist` : liste deroulante **qui reste editable**) +
-     `useForgeDeploy` (etat volatil, jeton de course). **+51 tests, +3 fichiers.**
-
-- **En cours / a reprendre** — **rien n'est en cours.** Arbre propre, `main` synchronise.
-
-- **Prochaine etape concrete** — **la RECETTE HUMAINE de Q-3**, contre un nœud vivant.
-  C'est le seul verrou : tout est prouve **par test**, **rien par l'usage**. Sequence :
-  regler un endpoint Ollama joignable → onglet Deployer → cocher « Lier ce kit » sur un
-  nœud du perimetre → verifier que la liste deroulante se peuple, que le pre-remplissage
-  atterrit par role, que le champ reste editable, puis Deployer et verifier `binding.json`.
-  **Ni le gate automatique ni l'orchestrateur ne peuvent la faire a ta place.**
-
-- **Pieges connus**
-  - **Le statut des instructions derive du code — 3 occurrences en une semaine** (E1 le
-    30/07, G6 le 02/08, E1 a nouveau le 02/08 au soir). Ne jamais croire un § Statut sans
-    le confronter au code. **Defaut de cycle, pas d'instruction.**
-  - **Q-3 n'a JAMAIS tourne contre un vrai nœud.** Aucun Ollama n'etait joignable pendant
-    l'implementation. Le premier essai reel empruntera probablement le **chemin d'echec** —
-    c'est celui qui est le mieux couvert, mais ce n'est pas une validation d'usage.
-  - **Le nœud Ollama LAN `192.168.2.11:11434` NE REPOND PAS** (teste le 02/08). Forgejo
-    repond sur `:3001` : le **service** est eteint ou deplace, pas la machine.
-  - **Le poste local n'a QU'UN modele installe** (`llama3.1:8b`, Ollama v0.20.2). La
-    suggestion par role sera **degeneree** (les 9 roles recevront ce modele) tant que rien
-    d'autre n'est `pull`. Ce n'est pas un bug.
-  - **AC-Q3-11 n'est satisfait que sur la surface Q-3.** Trois litteraux de modele
-    **anterieurs** a Q-3 subsistent hors perimetre : `SettingsRoot.tsx:387` (cote
-    **authoring**, la frontiere meme que Q-3 defend), `src/forge/mock/copilote.ts:36`
-    (mock etiquete), `packages/core/src/llm.ts:25` (commentaire). **Volontairement non
-    touches** — lot de nettoyage distinct, a arbitrer.
-  - **P-O-2 — le trou `ollama-lan` reste ouvert et c'est delibere** : `host_allowed`
-    (`llm.rs:47`) n'autorise que loopback ou l'`authoringEndpoint`. L'elargir est un
-    **arbitrage de securite** (invariant CA9 teste), pas une decision de cadrage.
-  - **R-3 — la regle de pre-remplissage est fragile par construction** : elle lit des motifs
-    dans le **nom** du modele, convention que rien ne garantit. Choix assume ; attenuation
-    structurelle = le champ reste visible et editable.
-  - **Version NON changee (v0.1.4)** alors qu'une feature est livree. Le bump semver est une
-    **decision du decideur**, pas un effet de bord du checkpoint.
+- **Ce qui vient d'etre fait** : <!-- ... -->
+- **En cours / a reprendre** : <!-- ... -->
+- **Prochaine etape concrete** : <!-- premiere action a faire en reprenant -->
+- **Pieges connus** : <!-- ... -->
 
 ## Journal (versions & pauses)
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-08-10 20:16 | version | v0.1.6 | main | Auto-update de l'application livre, gate PASS borne, publie sur le canal Forgejo LAN et bascule recettee (0.1.5 -> 0.1.6) |
 | 2026-08-02 23:20 | pause | v0.1.4 | main | Session du 2026-08-02 : cycle COMPLET parcouru en une session (2 arbitrages bloques -> cadrage -> verdicts -> reecriture -> implementation -> gate vert). 6 commits, tous pousses. (1) G6 super-etage portefeuille : statut mensonger corrige et instruction CLOSE, ratifiee a posteriori sur 3 points (validation oui ; AC-2 passe a 12 types via frames/AR-1 ; AC-7 passe a 4 libraryList + pointeur ; paragraphe 5 fige en ARCHIVE HISTORIQUE, le code fait foi). (2) Q-3 : a CHANGE DE NATURE puis a ete LIVREE. Le parametre VRAM est supprime (aucun endpoint Ollama n expose la VRAM totale ; /api/ps ne rend que la VRAM consommee par les modeles charges) ; la source des candidats devient la DECOUVERTE LIVE du noeud via GET /v1/models (commande llm_models existante, aucune commande Tauri neuve) ; pre-remplissage par regle de motif clee roleKey sur 9 roles. Six questions tranchees. Fichier renomme (P-O-7) en Q3-decouverte-modeles-noeud-preremplissage-binding.md ; la reference E1:227 annoncee cassee N EXISTAIT PAS, et la vraie peremption d E1 (paragraphe 10bis affirmait Q-3 reste OUVERTE) a ete resorbee : le bloc E1 est desormais integralement tranche. IMPLEMENTATION : coeur pur packages/core/src/discovery.ts + raccord LiaisonPanel (input list + datalist, editable) + useForgeDeploy (etat volatil, jeton de course). Deux gardes non prevues par l instruction et ajoutees car elles evitent des defauts reels : le pre-remplissage ne pourvoit que les champs vides (sinon une frappe pendant le timeout de 10 s serait ecrasee) et un jeton de course empeche une reponse tardive de ressusciter un binding decoche. Quatrieme mode d echec decouvert (ollama-lan sans lanHost) converge sur le meme etat visible que les trois autres. GATE RELANCE ET VERIFIE INDEPENDAMMENT (pas repris du rapport d execution) : lint:all exit 0, vitest 1116 tests / 118 fichiers verts (avant 1065 / 115, soit +51 tests / +3 fichiers), cargo test 116 passed 0 failed, npm run build OK 159 modules. AUCUN test existant modifie, src-tauri INCHANGE (porcelain vide). RESTE OUVERT : recette humaine contre un noeud vivant (tout est prouve par test, RIEN par l usage) ; arbitrage AC-Q3-11 sur 3 litteraux de modele ANTERIEURS a Q-3 et hors perimetre (SettingsRoot.tsx:387 cote authoring, forge/mock/copilote.ts:36 etiquete mock, packages/core/src/llm.ts:25 en commentaire) - lot de nettoyage distinct volontairement non fait ; P-O-2 trou ollama-lan (elargir host_allowed est un arbitrage de SECURITE) ; 5 autres points ouverts non bloquants. VERSION NON CHANGEE (v0.1.4) : une feature est livree, le bump semver est une decision du decideur. |
 | 2026-08-02 21:55 | pause | v0.1.4 | main | Session de cadrage du 2026-08-02 (aucun code touche). DEUX ARBITRAGES EN ATTENTE TRAITES. (1) G6 super-etage portefeuille : le statut mentait - marque PROPOSE en attente de validation alors que livre et gate PASS depuis v0.3.4 (2026-07-19). Verification AC par AC, aucun AC ni P-x orphelin, aucun reste du. RATIFIE A POSTERIORI par le decideur : validation oui, deux derives d AC ratifiees (AC-2 passe a 12 types via frames/AR-1 ; AC-7 passe a 4 libraryList + pointeur de frame active sans commande Tauri neuve), paragraphe 5 (schema) fige en ARCHIVE HISTORIQUE - le code fait foi, doc vivante = en-tete packages/core/src/frame.ts:1-23. Instruction CLOSE. Meme classe de defaut que celle reconciliee pour E1 le 30/07 : le statut d instruction ne suit pas le code - DEUXIEME occurrence en une semaine, signal sur le cycle de mise a jour des statuts. (2) Q-3 (derniere question ouverte du bloc E1) : CHANGE DE NATURE, pas amendee. Le parametre VRAM est SUPPRIME - motif technique verifie : aucun endpoint Ollama n expose la VRAM totale, /api/ps ne rend que la VRAM consommee par les modeles charges et omet le champ quand il vaut 0, donc un palier declare n etait verifiable par rien. La source des candidats devient la DECOUVERTE LIVE du noeud (/v1/models) quel que soit le fournisseur : plus aucune table de modeles a maintenir. Six questions tranchees : a caduque (rien ne subsiste), b cle par roleKey canon sur 9 roles frame inclus, c on interroge la source, d pre-remplissage par motif dans le nom avec liste deroulante editable, e model vide reste le defaut sur (additif comme E1), f perimetre ollama-localhost + ollama-lan + openwebui jamais claude ni codex. ERREUR DE CADRAGE ACTEE : le chiffrage lot backend etait faux, llm_models (src-tauri/src/llm.rs:619) faisait deja GET /v1/models avec garde d hote, timeout et aveu honnete. TROUVAILLE : settings.json est l artefact de l AUTHORING et le Binding celui de l EXECUTION, frontiere defendue mot pour mot dans le code (settings.rs:140,153,178) - la caducite de Q-3.a evite une regression d architecture. MESURE : Ollama local repond en v0.20.2 avec UN SEUL modele installe (llama3.1:8b, 4.9 Go) ; le noeud LAN 192.168.2.11:11434 NE REPOND PAS (Forgejo sur :3001 repond, donc service Ollama eteint ou deplace, pas la machine). RESTE OUVERT : 7 points renvoyes non bloquants dont P-O-2 (trou ollama-lan, elargir la garde host_allowed llm.rs:47 est un arbitrage de SECURITE pas de cadrage) et P-O-7 (renommer Q3-table-modele-local-role-ollama.md dont le titre ne decrit plus rien - casserait E1:227 et l etat des lieux). Aucun test relance cette session : les chiffres de sante restent ceux du 31/07. |
 | 2026-07-31 22:40 | pause | v0.1.4 | main | Cloture de la session d audit. ETAT FINAL, tout verifie : lint:all 0 erreur, vitest 1065 tests / 115 fichiers, cargo test 116, npm run build OK (158 modules), couverture 86.5 pct stmts / 89.2 lines / 78.3 branches, npm audit 0 vulnerabilite, vendor-check OK drift 0. TROIS GESTES LIVRES depuis le snapshot v0.1.4 : (1) versions alignees sur 0.1.4 - Cargo.toml et tauri.conf.json etaient restes en 0.1.0, un build Tauri aurait estampille l app 0.1.0 ; recompilation Rust verifiee. (2) le package-lock portait LUI AUSSI 0.1.0 en racine - quatrieme porteur manque au premier passage, corrige par npm. (3) 2 vulnerabilites high resorbees sur des deps INDIRECTES d outillage de build, jamais embarquees dans l app livree : postcss 8.5.16->8.5.25 (path traversal sur les source maps) et brace-expansion 1.1.15->1.1.18 / 5.0.7->5.0.9 (DoS) ; que des montees de PATCH, package.json inchange, recette complete passee derriere car postcss est dans la chaine Vite. NON TRAITE VOLONTAIREMENT : packages/core reste en 0.1.0 (bibliotheque distincte, versionnement unique du monorepo a trancher par le decideur) ; avertissement npm approve-scripts sur esbuild et fsevents (politique d environnement, pas une faille) ; src-tauri/target pese 4,9 Go de cache de compilation (gitignore, cargo clean au besoin). RESTE OUVERT : instruction g6-super-etage-portfolio.md en attente de validation decideur ; backlog projet 7 chantiers dont le cycle handoff forge->cockpit, le 4e onglet Workflow et l import multi-methodes. |
