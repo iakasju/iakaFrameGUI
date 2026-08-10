@@ -34,9 +34,31 @@ la dette. C'est le filet de non-régression qui est en jeu, pas la propreté.
 | # | Décision |
 |---|---|
 | **D1** | **Zéro changement de comportement.** Le lot est mécanique. Aucune signature publique modifiée, aucune logique touchée, aucun test réécrit pour « passer ». |
-| **D2** | Les **6 `doc list item`** se corrigent par l'**indentation du doc-comment**, jamais par un `#[allow]`. Ce sont des défauts de présentation réels. |
+| **D2** | Les **6 `doc list item`** se corrigent dans le doc-comment lui-même, **jamais par un `#[allow]`** — ce sont des défauts de présentation réels. **AMENDÉ le 2026-08-10** (voir ci-dessous) : le geste dépend de ce que la ligne **dit**. Si elle **continue la liste**, on l'**indente**. Si c'est une **synthèse portant sur la liste entière**, on insère une **ligne vide** — clippy propose les deux voies et la ligne vide éteint le lint tout autant. |
 | **D3** | Les **2 `too many arguments`** ne se refactorent **pas** dans ce lot : une struct de paramètres changerait la forme du code appelant, donc le comportement du diff, donc le périmètre. On les **tait par un `#[allow(clippy::too_many_arguments)]` porté sur la fonction concernée, avec un commentaire d'une ligne disant pourquoi** — un refactor éventuel est un autre lot, à cadrer. *Un `allow` motivé et localisé est une dette assumée et visible ; un `allow` global au niveau du crate serait une dette cachée : interdit.* |
 | **D4** | `cargo fmt` est appliqué **tel quel**, sans `rustfmt.toml` ajouté ni option exotique : la référence est l'outil par défaut, celui que le gate lance. |
+
+### Amendement du 2026-08-10 — D2 était une sur-généralisation
+
+Relevé par ⚒️ Gimli dans son rapport (sans dévier du cadrage, comme il devait), **confirmé sur
+pièce** par 🏹 Legolas au gate, qui a corrigé au passage la granularité : les 6 erreurs clippy ne
+sont pas 6 phrases mais **3 phrases de 2 lignes**. Le partage est net, **2 cas sur 3** :
+
+| Emplacement | Ce que la ligne dit | Geste juste |
+|---|---|---|
+| `paths.rs:103-104` | continue littéralement l'item `3)` puis ouvre le `4)` — le texte **appartient** à la liste | **indentation** (D2 d'origine, fidèle) |
+| `library_store.rs:146-147` | « Mêmes gardes d'autorité **dans les deux cas** » — conclusion des **deux** items | **ligne vide** |
+| `llm.rs:11-12` | « Ce n'est PAS un runner d'exécution […] la frontière reste entière » — conclusion de **tout l'en-tête** | **ligne vide** |
+
+Pourquoi ça compte, et pourquoi ce n'est pas une coquetterie : indentée, la phrase de
+`library_store.rs` se rattache visuellement au **seul second item**, et la doc rendue laisse
+entendre que ces gardes d'autorité ne valent que pour les skills — **c'est faux**. Celle de
+`llm.rs` devient un sous-paragraphe de « timeout dur sur le client », rattachement absurde.
+
+**Leçon de cadrage, à retenir au-delà de ce lot** : une règle vérifiée sur un cas a été édictée
+pour trois. Un cadrage qui fige un correctif **avant** d'avoir lu ce que le texte dit fabrique un
+défaut là où il croyait en supprimer un — et l'exécutant, qui a raison d'appliquer une décision
+annoncée non rediscutable, ne peut que le signaler après coup.
 
 ---
 
