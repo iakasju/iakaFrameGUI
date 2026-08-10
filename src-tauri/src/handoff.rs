@@ -45,7 +45,12 @@ fn team_dir(root: &Path, id: &str) -> Result<PathBuf, String> {
 
 /// Écrit le paquet (`team.json` + `handoff.json`) sous `<root>/<id>/`. Crée le dossier au
 /// besoin, remplace un paquet existant (re-livraison). Renvoie le chemin absolu du dossier.
-pub fn deliver_in(root: &Path, id: &str, team_json: &str, manifest_json: &str) -> Result<String, String> {
+pub fn deliver_in(
+    root: &Path,
+    id: &str,
+    team_json: &str,
+    manifest_json: &str,
+) -> Result<String, String> {
     let dir = team_dir(root, id)?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::fs::write(dir.join(TEAM_FILE), team_json).map_err(|e| e.to_string())?;
@@ -58,7 +63,11 @@ pub fn deliver_in(root: &Path, id: &str, team_json: &str, manifest_json: &str) -
 /// Livre le paquet de handoff d'une team dans le canal partagé. `team_json`/`handoff_json`
 /// sont produits par le front (`buildHandoffPackage`). Renvoie le dossier écrit.
 #[tauri::command]
-pub fn handoff_deliver(team_id: String, team_json: String, handoff_json: String) -> Result<String, String> {
+pub fn handoff_deliver(
+    team_id: String,
+    team_json: String,
+    handoff_json: String,
+) -> Result<String, String> {
     deliver_in(&resolve_handoff_root(), &team_id, &team_json, &handoff_json)
 }
 
@@ -89,7 +98,13 @@ mod tests {
     #[test]
     fn deliver_ecrit_les_deux_fichiers_sous_le_dossier_team() {
         let root = tmp_dir("deliver");
-        let dir = deliver_in(&root, "iakaframe", r#"{"id":"iakaframe"}"#, r#"{"source":"forge"}"#).unwrap();
+        let dir = deliver_in(
+            &root,
+            "iakaframe",
+            r#"{"id":"iakaframe"}"#,
+            r#"{"source":"forge"}"#,
+        )
+        .unwrap();
         assert!(dir.ends_with("iakaframe"));
         let d = Path::new(&dir);
         assert_eq!(
@@ -109,8 +124,14 @@ mod tests {
         deliver_in(&root, "t", r#"{"v":1}"#, r#"{"version":"a"}"#).unwrap();
         let dir = deliver_in(&root, "t", r#"{"v":2}"#, r#"{"version":"b"}"#).unwrap();
         let d = Path::new(&dir);
-        assert_eq!(std::fs::read_to_string(d.join("team.json")).unwrap(), r#"{"v":2}"#);
-        assert_eq!(std::fs::read_to_string(d.join("handoff.json")).unwrap(), r#"{"version":"b"}"#);
+        assert_eq!(
+            std::fs::read_to_string(d.join("team.json")).unwrap(),
+            r#"{"v":2}"#
+        );
+        assert_eq!(
+            std::fs::read_to_string(d.join("handoff.json")).unwrap(),
+            r#"{"version":"b"}"#
+        );
         std::fs::remove_dir_all(&root).ok();
     }
 

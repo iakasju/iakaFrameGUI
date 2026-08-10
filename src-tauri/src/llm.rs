@@ -8,6 +8,7 @@
 //!   - **hôte** : loopback (`localhost`/`127.0.0.1`/`::1`) OU l'endpoint d'authoring RÉGLÉ
 //!     (`authoringEndpoint`) — jamais une URL arbitraire (`host_allowed`, testé sans réseau) ;
 //!   - **temps** : timeout dur sur le client.
+//!
 //! Ce n'est PAS un runner d'exécution : on compose la CHARTE d'un élément (quels sous-éléments), on
 //! ne fait tourner aucun agent. La frontière authoring ≠ exécution reste entière.
 
@@ -24,10 +25,7 @@ fn host_of(url: &str) -> Option<String> {
         .strip_prefix("http://")
         .or_else(|| url.strip_prefix("https://"))?;
     // Coupe au premier `/`, `:` (port) → il reste l'hôte.
-    let host = rest
-        .split(['/', ':'])
-        .next()
-        .filter(|h| !h.is_empty())?;
+    let host = rest.split(['/', ':']).next().filter(|h| !h.is_empty())?;
     Some(host.to_ascii_lowercase())
 }
 
@@ -281,6 +279,8 @@ pub fn drive_sse<F: FnMut(StreamChunk)>(lines: &[&str], emit: &mut F) -> Result<
  * (hôte refusé / réseau / timeout / forme inattendue) est un `Err(String)` clair (jamais un panic).
  */
 #[tauri::command]
+// Arité imposée par le contrat IPC Tauri : la réduire changerait la signature côté front (D3).
+#[allow(clippy::too_many_arguments)]
 pub async fn llm_complete(
     provider: String,
     model: String,
@@ -296,7 +296,9 @@ pub async fn llm_complete(
     let provider_l = provider.to_ascii_lowercase();
     let openai = provider_l == "openai";
     if provider_l != "ollama" && !openai {
-        return Err(format!("provider non supporte (ollama|openai) : {provider}"));
+        return Err(format!(
+            "provider non supporte (ollama|openai) : {provider}"
+        ));
     }
     // Garde d'hôte (CA9) : loopback OU endpoint d'authoring réglé — jamais une URL arbitraire.
     // INCHANGÉE : `http://localhost:4000` (LiteLLM) passe par le loopback ; un LiteLLM LAN doit
@@ -314,9 +316,17 @@ pub async fn llm_complete(
     // structurée) vers `response_format` OpenAI (Lot 2b) ; absent ⇒ texte libre (conseil/chat).
     let (url, body, vendor) = if openai {
         let rf = openai_response_format(format.as_ref());
-        (openai_chat_url(&host), build_openai_body(&model, &system, &user, false, rf), "LiteLLM")
+        (
+            openai_chat_url(&host),
+            build_openai_body(&model, &system, &user, false, rf),
+            "LiteLLM",
+        )
     } else {
-        (format!("{}/api/chat", host.trim_end_matches('/')), build_chat_body(&model, &system, &user, format), "Ollama")
+        (
+            format!("{}/api/chat", host.trim_end_matches('/')),
+            build_chat_body(&model, &system, &user, format),
+            "Ollama",
+        )
     };
 
     let mut request = client.post(&url).json(&body);
@@ -400,10 +410,7 @@ pub fn parse_stream_line(line: &str) -> Result<Option<(String, bool)>, String> {
 /// Traite UNE ligne NDJSON complète : émet un `Token` (si le delta est non vide) via `emit`, et rend
 /// `Ok(done)` (le flux est-il clos ?) ou `Err` (ligne illisible). Point d'unité partagé par le shell
 /// async et par `drive_ndjson` (tests) — la logique d'émission est donc prouvée SANS réseau.
-pub fn handle_ndjson_line<F: FnMut(StreamChunk)>(
-    line: &str,
-    emit: &mut F,
-) -> Result<bool, String> {
+pub fn handle_ndjson_line<F: FnMut(StreamChunk)>(line: &str, emit: &mut F) -> Result<bool, String> {
     match parse_stream_line(line)? {
         None => Ok(false),
         Some((text, done)) => {
@@ -439,6 +446,8 @@ pub fn drive_ndjson<F: FnMut(StreamChunk)>(lines: &[&str], emit: &mut F) -> Resu
  * quand le flux avait déjà commencé — le partiel n'est JAMAIS passé pour complet (AC-S2).
  */
 #[tauri::command]
+// Arité imposée par le contrat IPC Tauri : la réduire changerait la signature côté front (D3).
+#[allow(clippy::too_many_arguments)]
 pub async fn llm_complete_stream(
     provider: String,
     model: String,
@@ -456,7 +465,9 @@ pub async fn llm_complete_stream(
     let provider_l = provider.to_ascii_lowercase();
     let openai = provider_l == "openai";
     if provider_l != "ollama" && !openai {
-        return Err(format!("provider non supporte (ollama|openai) : {provider}"));
+        return Err(format!(
+            "provider non supporte (ollama|openai) : {provider}"
+        ));
     }
     // Garde d'hôte (CA9) : loopback OU endpoint d'authoring réglé — MÊME allow-list que llm_complete,
     // aucun élargissement (le web live serait un autre hôte, hors périmètre). Aveu = hôte seul, sans clé.
@@ -474,9 +485,17 @@ pub async fn llm_complete_stream(
     // `ollama` → NDJSON sur `/api/chat`. La lecture de flux (SSE vs NDJSON) est choisie plus bas.
     let (url, body, vendor) = if openai {
         let rf = openai_response_format(format.as_ref());
-        (openai_chat_url(&host), build_openai_body(&model, &system, &user, true, rf), "LiteLLM")
+        (
+            openai_chat_url(&host),
+            build_openai_body(&model, &system, &user, true, rf),
+            "LiteLLM",
+        )
     } else {
-        (format!("{}/api/chat", host.trim_end_matches('/')), build_stream_chat_body(&model, &system, &user, format), "Ollama")
+        (
+            format!("{}/api/chat", host.trim_end_matches('/')),
+            build_stream_chat_body(&model, &system, &user, format),
+            "Ollama",
+        )
     };
 
     let mut request = client.post(&url).json(&body);
@@ -515,7 +534,9 @@ pub async fn llm_complete_stream(
             Err(e) => {
                 // Flux coupé en cours de route (réseau) : AVEU honnête, le partiel n'est pas complet.
                 let msg = format!("flux interrompu : {e}");
-                emit(StreamChunk::Error { message: msg.clone() });
+                emit(StreamChunk::Error {
+                    message: msg.clone(),
+                });
                 return Err(msg);
             }
         };
@@ -566,7 +587,9 @@ pub async fn llm_complete_stream(
     if !done {
         // Flux terminé SANS objet `done:true` : incomplet → aveu (jamais passé pour complet).
         let msg = "flux termine sans marqueur de fin (done)".to_string();
-        emit(StreamChunk::Error { message: msg.clone() });
+        emit(StreamChunk::Error {
+            message: msg.clone(),
+        });
         return Err(msg);
     }
     emit(StreamChunk::Done);
@@ -594,10 +617,16 @@ pub struct ModelsResult {
 
 impl ModelsResult {
     fn ok(models: Vec<String>) -> Self {
-        ModelsResult { models, reason: None }
+        ModelsResult {
+            models,
+            reason: None,
+        }
     }
     fn empty(reason: impl Into<String>) -> Self {
-        ModelsResult { models: Vec::new(), reason: Some(reason.into()) }
+        ModelsResult {
+            models: Vec::new(),
+            reason: Some(reason.into()),
+        }
     }
 }
 
@@ -624,7 +653,11 @@ pub async fn llm_models(
     // Hôte : l'endpoint réglé, ou le défaut LiteLLM (`localhost:4000`) si vide.
     let host = {
         let e = endpoint.trim();
-        if e.is_empty() { DEFAULT_OPENAI_HOST.to_string() } else { e.to_string() }
+        if e.is_empty() {
+            DEFAULT_OPENAI_HOST.to_string()
+        } else {
+            e.to_string()
+        }
     };
     // Garde d'hôte (CA9) INCHANGÉE : loopback OU endpoint d'authoring réglé. L'aveu ne porte que l'hôte.
     let settings_file = resolve_settings_file();
@@ -634,7 +667,9 @@ pub async fn llm_models(
     }
 
     let client = match reqwest::Client::builder()
-        .timeout(std::time::Duration::from_millis(timeout_ms.unwrap_or(10_000)))
+        .timeout(std::time::Duration::from_millis(
+            timeout_ms.unwrap_or(10_000),
+        ))
         .build()
     {
         Ok(c) => c,
@@ -659,7 +694,11 @@ pub async fn llm_models(
     let resp = match request.send().await {
         Ok(r) => r,
         // Injoignable (réseau / timeout) : aveu honnête (message SANS clé), jamais une fausse liste.
-        Err(e) => return ModelsResult::empty(format!("modeles indisponibles (endpoint injoignable) : {e}")),
+        Err(e) => {
+            return ModelsResult::empty(format!(
+                "modeles indisponibles (endpoint injoignable) : {e}"
+            ))
+        }
     };
     if !resp.status().is_success() {
         return ModelsResult::empty(format!("LiteLLM a repondu {} sur {url}", resp.status()));
@@ -746,7 +785,10 @@ mod tests {
         assert_eq!(b["messages"][0]["role"], serde_json::json!("system"));
         assert_eq!(b["messages"][1]["role"], serde_json::json!("user"));
         // Le bloquant reste bien stream:false (non-régression, chemin B).
-        assert_eq!(build_chat_body("m", "s", "u", None)["stream"], serde_json::json!(false));
+        assert_eq!(
+            build_chat_body("m", "s", "u", None)["stream"],
+            serde_json::json!(false)
+        );
     }
 
     #[test]
@@ -788,7 +830,9 @@ mod tests {
             chunks,
             vec![
                 StreamChunk::Token { text: "Bon".into() },
-                StreamChunk::Token { text: "jour".into() },
+                StreamChunk::Token {
+                    text: "jour".into()
+                },
                 StreamChunk::Done,
             ]
         );
@@ -797,14 +841,20 @@ mod tests {
     #[test]
     fn drive_ndjson_flux_coupe_sans_done_ne_ment_pas() {
         // Des tokens arrivent mais le flux s'épuise SANS objet done:true → Ok(false), PAS de Done émis.
-        let lines = [
-            "{\"message\":{\"content\":\"partiel\"},\"done\":false}",
-        ];
+        let lines = ["{\"message\":{\"content\":\"partiel\"},\"done\":false}"];
         let mut chunks: Vec<StreamChunk> = Vec::new();
         let closed = drive_ndjson(&lines, &mut |c| chunks.push(c)).unwrap();
-        assert!(!closed, "sans done:true, le flux n'est PAS clos (partiel honnête)");
+        assert!(
+            !closed,
+            "sans done:true, le flux n'est PAS clos (partiel honnête)"
+        );
         // Le token partiel est passé, mais AUCUN Done : l'appelant en fera un aveu (jamais complet).
-        assert_eq!(chunks, vec![StreamChunk::Token { text: "partiel".into() }]);
+        assert_eq!(
+            chunks,
+            vec![StreamChunk::Token {
+                text: "partiel".into()
+            }]
+        );
         assert!(!chunks.contains(&StreamChunk::Done));
     }
 
@@ -816,7 +866,10 @@ mod tests {
         ];
         let mut chunks: Vec<StreamChunk> = Vec::new();
         let res = drive_ndjson(&lines, &mut |c| chunks.push(c));
-        assert!(res.is_err(), "une ligne illisible interrompt le flux (aveu)");
+        assert!(
+            res.is_err(),
+            "une ligne illisible interrompt le flux (aveu)"
+        );
         // Le premier token valide a bien été émis avant l'erreur ; aucun Done fabriqué.
         assert_eq!(chunks, vec![StreamChunk::Token { text: "ok".into() }]);
     }
@@ -833,7 +886,10 @@ mod tests {
             serde_json::json!({ "kind": "done" })
         );
         assert_eq!(
-            serde_json::to_value(StreamChunk::Error { message: "coupe".into() }).unwrap(),
+            serde_json::to_value(StreamChunk::Error {
+                message: "coupe".into()
+            })
+            .unwrap(),
             serde_json::json!({ "kind": "error", "message": "coupe" })
         );
     }
@@ -842,9 +898,15 @@ mod tests {
 
     #[test]
     fn openai_chat_url_pose_le_bon_chemin() {
-        assert_eq!(openai_chat_url("http://localhost:4000"), "http://localhost:4000/v1/chat/completions");
+        assert_eq!(
+            openai_chat_url("http://localhost:4000"),
+            "http://localhost:4000/v1/chat/completions"
+        );
         // Slash terminal toléré (pas de double slash).
-        assert_eq!(openai_chat_url("http://localhost:4000/"), "http://localhost:4000/v1/chat/completions");
+        assert_eq!(
+            openai_chat_url("http://localhost:4000/"),
+            "http://localhost:4000/v1/chat/completions"
+        );
     }
 
     #[test]
@@ -857,7 +919,10 @@ mod tests {
         assert_eq!(b["messages"][1]["role"], serde_json::json!("user"));
         assert_eq!(b["messages"][1]["content"], serde_json::json!("usr"));
         // Variante streaming : seul `stream` bascule.
-        assert_eq!(build_openai_body("m", "s", "u", true, None)["stream"], serde_json::json!(true));
+        assert_eq!(
+            build_openai_body("m", "s", "u", true, None)["stream"],
+            serde_json::json!(true)
+        );
         // Sans response_format demandé (conseil/chat texte libre) : la clé n'apparaît PAS dans le corps.
         assert!(b.get("response_format").is_none());
     }
@@ -882,7 +947,9 @@ mod tests {
     #[test]
     fn openai_response_format_map_json_object_ou_none() {
         // Un schéma présent (front demande du structuré) ⇒ `{"type":"json_object"}` (MVP le + honoré).
-        let rf = openai_response_format(Some(&serde_json::json!({ "type": "object", "properties": {} })));
+        let rf = openai_response_format(Some(
+            &serde_json::json!({ "type": "object", "properties": {} }),
+        ));
         assert_eq!(rf, Some(serde_json::json!({ "type": "json_object" })));
         // Absent (conseil/chat texte libre) ⇒ aucun response_format.
         assert_eq!(openai_response_format(None), None);
@@ -893,7 +960,10 @@ mod tests {
         // Structuré demandé : le corps porte `response_format:{type:json_object}` (Lot 2b).
         let rf = openai_response_format(Some(&serde_json::json!({ "type": "object" })));
         let b = build_openai_body("gpt-4o", "s", "u", false, rf);
-        assert_eq!(b["response_format"], serde_json::json!({ "type": "json_object" }));
+        assert_eq!(
+            b["response_format"],
+            serde_json::json!({ "type": "json_object" })
+        );
         // Non structuré : aucun response_format (non-régression conseil/chat).
         let b2 = build_openai_body("gpt-4o", "s", "u", false, None);
         assert!(b2.get("response_format").is_none());
@@ -901,9 +971,15 @@ mod tests {
 
     #[test]
     fn openai_models_url_pose_le_bon_chemin() {
-        assert_eq!(openai_models_url("http://localhost:4000"), "http://localhost:4000/v1/models");
+        assert_eq!(
+            openai_models_url("http://localhost:4000"),
+            "http://localhost:4000/v1/models"
+        );
         // Slash terminal toléré (pas de double slash).
-        assert_eq!(openai_models_url("http://localhost:4000/"), "http://localhost:4000/v1/models");
+        assert_eq!(
+            openai_models_url("http://localhost:4000/"),
+            "http://localhost:4000/v1/models"
+        );
     }
 
     #[test]
@@ -917,7 +993,11 @@ mod tests {
         });
         assert_eq!(
             parse_openai_models(&resp),
-            vec!["claude-3-5-sonnet".to_string(), "gpt-4o".to_string(), "qwen2.5-coder".to_string()]
+            vec![
+                "claude-3-5-sonnet".to_string(),
+                "gpt-4o".to_string(),
+                "qwen2.5-coder".to_string()
+            ]
         );
     }
 
@@ -937,7 +1017,10 @@ mod tests {
         let resp = serde_json::json!({
             "data": [ { "id": "gpt-4o" }, { "id": "claude" }, { "id": "gpt-4o" } ]
         });
-        assert_eq!(parse_openai_models(&resp), vec!["gpt-4o".to_string(), "claude".to_string()]);
+        assert_eq!(
+            parse_openai_models(&resp),
+            vec!["gpt-4o".to_string(), "claude".to_string()]
+        );
     }
 
     #[test]
@@ -975,17 +1058,26 @@ mod tests {
     #[test]
     fn parse_openai_sse_line_delta_done_ignore_et_illisible() {
         // Delta de contenu.
-        let ev = parse_openai_sse_line("data: {\"choices\":[{\"delta\":{\"content\":\"Salut\"}}]}").unwrap();
+        let ev = parse_openai_sse_line("data: {\"choices\":[{\"delta\":{\"content\":\"Salut\"}}]}")
+            .unwrap();
         assert_eq!(ev, SseEvent::Token("Salut".into()));
         // Sentinelle de fin.
-        assert_eq!(parse_openai_sse_line("data: [DONE]").unwrap(), SseEvent::Done);
+        assert_eq!(
+            parse_openai_sse_line("data: [DONE]").unwrap(),
+            SseEvent::Done
+        );
         // Delta vide (rôle initial, pas de contenu) → Token vide, toléré.
-        let ev2 = parse_openai_sse_line("data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}").unwrap();
+        let ev2 =
+            parse_openai_sse_line("data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}")
+                .unwrap();
         assert_eq!(ev2, SseEvent::Token(String::new()));
         // Ligne blanche / commentaire keep-alive `:` / champ `event:` → ignorés.
         assert_eq!(parse_openai_sse_line("").unwrap(), SseEvent::Ignore);
         assert_eq!(parse_openai_sse_line(": ping").unwrap(), SseEvent::Ignore);
-        assert_eq!(parse_openai_sse_line("event: message").unwrap(), SseEvent::Ignore);
+        assert_eq!(
+            parse_openai_sse_line("event: message").unwrap(),
+            SseEvent::Ignore
+        );
         // `data:` avec un JSON illisible → Err (flux corrompu), jamais un panic.
         let e = parse_openai_sse_line("data: pas du json").unwrap_err();
         assert!(e.contains("illisible"));
@@ -1008,7 +1100,9 @@ mod tests {
             chunks,
             vec![
                 StreamChunk::Token { text: "Bon".into() },
-                StreamChunk::Token { text: "jour".into() },
+                StreamChunk::Token {
+                    text: "jour".into()
+                },
                 StreamChunk::Done,
             ]
         );
@@ -1020,8 +1114,16 @@ mod tests {
         let lines = ["data: {\"choices\":[{\"delta\":{\"content\":\"partiel\"}}]}"];
         let mut chunks: Vec<StreamChunk> = Vec::new();
         let closed = drive_sse(&lines, &mut |c| chunks.push(c)).unwrap();
-        assert!(!closed, "sans [DONE], le flux n'est PAS clos (partiel honnête)");
-        assert_eq!(chunks, vec![StreamChunk::Token { text: "partiel".into() }]);
+        assert!(
+            !closed,
+            "sans [DONE], le flux n'est PAS clos (partiel honnête)"
+        );
+        assert_eq!(
+            chunks,
+            vec![StreamChunk::Token {
+                text: "partiel".into()
+            }]
+        );
         assert!(!chunks.contains(&StreamChunk::Done));
     }
 
@@ -1033,7 +1135,10 @@ mod tests {
         ];
         let mut chunks: Vec<StreamChunk> = Vec::new();
         let res = drive_sse(&lines, &mut |c| chunks.push(c));
-        assert!(res.is_err(), "une ligne SSE illisible interrompt le flux (aveu)");
+        assert!(
+            res.is_err(),
+            "une ligne SSE illisible interrompt le flux (aveu)"
+        );
         assert_eq!(chunks, vec![StreamChunk::Token { text: "ok".into() }]);
     }
 
@@ -1043,6 +1148,9 @@ mod tests {
         // (LiteLLM) passe par le loopback ; un LiteLLM LAN doit égaler l'endpoint réglé.
         assert!(host_allowed("http://localhost:4000", None));
         assert!(!host_allowed("http://192.168.2.11:4000", None));
-        assert!(host_allowed("http://192.168.2.11:4000", Some("http://192.168.2.11:4000")));
+        assert!(host_allowed(
+            "http://192.168.2.11:4000",
+            Some("http://192.168.2.11:4000")
+        ));
     }
 }
