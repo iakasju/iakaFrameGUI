@@ -34,8 +34,8 @@ pub mod kit_deploy;
 pub mod library_store;
 pub mod llm;
 pub mod pathguard;
-pub mod project_conf;
 pub mod paths;
+pub mod project_conf;
 pub mod settings;
 pub mod teams_store;
 

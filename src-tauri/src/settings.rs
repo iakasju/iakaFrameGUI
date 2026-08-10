@@ -61,8 +61,8 @@ fn write_string_key(settings_file: &Path, key: &str, value: &str) -> Result<(), 
             serde_json::Value::String(trimmed.to_string()),
         );
     }
-    let text = serde_json::to_string_pretty(&serde_json::Value::Object(obj))
-        .map_err(|e| e.to_string())?;
+    let text =
+        serde_json::to_string_pretty(&serde_json::Value::Object(obj)).map_err(|e| e.to_string())?;
     std::fs::write(settings_file, text).map_err(|e| e.to_string())
 }
 
@@ -335,12 +335,21 @@ mod tests {
         write_authoring_model(&f, "openai:claude-3-5-sonnet").unwrap();
         write_authoring_endpoint(&f, "http://localhost:4000").unwrap();
         write_authoring_api_key(&f, "sk-secret-litellm").unwrap();
-        assert_eq!(read_authoring_api_key(&f), Some("sk-secret-litellm".to_string()));
+        assert_eq!(
+            read_authoring_api_key(&f),
+            Some("sk-secret-litellm".to_string())
+        );
         // Effacer la clé ne touche ni le modèle ni l'endpoint (fusion non destructive).
         write_authoring_api_key(&f, "").unwrap();
         assert_eq!(read_authoring_api_key(&f), None);
-        assert_eq!(read_authoring_model(&f), Some("openai:claude-3-5-sonnet".to_string()));
-        assert_eq!(read_authoring_endpoint(&f), Some("http://localhost:4000".to_string()));
+        assert_eq!(
+            read_authoring_model(&f),
+            Some("openai:claude-3-5-sonnet".to_string())
+        );
+        assert_eq!(
+            read_authoring_endpoint(&f),
+            Some("http://localhost:4000".to_string())
+        );
         std::fs::remove_dir_all(f.parent().unwrap()).ok();
     }
 }

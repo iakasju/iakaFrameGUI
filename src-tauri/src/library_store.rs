@@ -26,7 +26,14 @@ const LIBRARY_EXT: &str = "md";
 /// Sous-ensemble du mapping CLI. `workflows` = la collection **éditable** `<home>/workflows/`
 /// (P6b) — à ne pas confondre avec le pool d'atomes read-only `<home>/library/workflows/`
 /// (`POOL_TYPES`, Q-9).
-const COLLECTIONS: [&str; 6] = ["teams", "methods", "kits", "workflows", "bindings", "frames"];
+const COLLECTIONS: [&str; 6] = [
+    "teams",
+    "methods",
+    "kits",
+    "workflows",
+    "bindings",
+    "frames",
+];
 
 /// Types d'ATOMES du pool `library/<type>/` (référencés par les assemblages, I1). En lecture
 /// seule : la forge n'édite pas encore les atomes (E2 différé), mais doit les **scanner** pour
@@ -149,7 +156,10 @@ fn pool_file(home: &Path, pool_type: &str, id: &str) -> Result<PathBuf, String> 
     validate_pool_type(pool_type)?;
     validate_id(id)?;
     let rel = if pool_type == "skills" {
-        Path::new("library").join(pool_type).join(id.trim()).join("SKILL.md")
+        Path::new("library")
+            .join(pool_type)
+            .join(id.trim())
+            .join("SKILL.md")
     } else {
         Path::new("library")
             .join(pool_type)
@@ -271,7 +281,10 @@ pub fn pool_read_in(home: &Path, pool_type: &str, id: &str) -> Result<Option<Str
             Err(e) => Err(e.to_string()),
         };
     }
-    let skill_rel = Path::new("library").join(pool_type).join(id).join("SKILL.md");
+    let skill_rel = Path::new("library")
+        .join(pool_type)
+        .join(id)
+        .join("SKILL.md");
     let skill_path = safe_path(home, &skill_rel).map_err(|e| e.to_string())?;
     if skill_path.is_file() {
         return match std::fs::read_to_string(&skill_path) {
@@ -342,7 +355,9 @@ pub fn library_read(collection: String, id: String) -> Result<Option<String>, St
 pub fn library_write(collection: String, id: String, text: String) -> Result<(), String> {
     match resolve_iakaframe_home() {
         Some(home) => write_in(&home, &collection, &id, &text),
-        None => Err("racine bibliothèque introuvable — définir IAKAFRAME_HOME (Réglages)".to_string()),
+        None => {
+            Err("racine bibliothèque introuvable — définir IAKAFRAME_HOME (Réglages)".to_string())
+        }
     }
 }
 
@@ -669,23 +684,33 @@ mod tests {
         // round-trip (relue par `pool_read_in`), non destructive (siblings intacts), traversée
         // refusee. Remplace `pool_write_skills_dossier_est_refuse_en_5a` (5a).
         let home = tmp_dir("poolwriteskill5c");
-        let content = "---\nid: iakaframe-cadrage\nname: iakaframe-cadrage\ndescription: X\n---\n\n# corps\n";
+        let content =
+            "---\nid: iakaframe-cadrage\nname: iakaframe-cadrage\ndescription: X\n---\n\n# corps\n";
 
         // Création : le sous-dossier `<id>/` est créé et `SKILL.md` écrit sous ce dossier.
         assert!(!pool_exists_in(&home, "skills", "iakaframe-cadrage").unwrap());
         pool_write_in(&home, "skills", "iakaframe-cadrage", content).unwrap();
         let expected = home
-            .join("library").join("skills").join("iakaframe-cadrage").join("SKILL.md");
+            .join("library")
+            .join("skills")
+            .join("iakaframe-cadrage")
+            .join("SKILL.md");
         assert!(expected.is_file(), "SKILL.md doit exister sous <id>/");
         assert!(pool_exists_in(&home, "skills", "iakaframe-cadrage").unwrap());
         // Round-trip : le contenu relu est byte-identique.
         assert_eq!(
-            pool_read_in(&home, "skills", "iakaframe-cadrage").unwrap().as_deref(),
+            pool_read_in(&home, "skills", "iakaframe-cadrage")
+                .unwrap()
+                .as_deref(),
             Some(content)
         );
 
         // Non destructif : un sibling du dossier `<id>/` (sous-skill, asset) n'est PAS touché.
-        let sibling = home.join("library").join("skills").join("iakaframe-cadrage").join("ref.md");
+        let sibling = home
+            .join("library")
+            .join("skills")
+            .join("iakaframe-cadrage")
+            .join("ref.md");
         std::fs::write(&sibling, "garde-moi").unwrap();
         pool_write_in(&home, "skills", "iakaframe-cadrage", content).unwrap(); // ré-écrit SKILL.md
         assert_eq!(std::fs::read_to_string(&sibling).unwrap(), "garde-moi");
@@ -704,7 +729,10 @@ mod tests {
         let f = pool_file(&home, "skills", "iakaframe-cadrage").unwrap();
         assert_eq!(
             f,
-            home.join("library").join("skills").join("iakaframe-cadrage").join("SKILL.md")
+            home.join("library")
+                .join("skills")
+                .join("iakaframe-cadrage")
+                .join("SKILL.md")
         );
     }
 
@@ -712,10 +740,7 @@ mod tests {
     fn pool_file_reste_sous_library_du_pool() {
         let home = PathBuf::from("/home/user/work/iakaframe");
         let f = pool_file(&home, "personas", "odin").unwrap();
-        assert_eq!(
-            f,
-            home.join("library").join("personas").join("odin.md")
-        );
+        assert_eq!(f, home.join("library").join("personas").join("odin.md"));
     }
 
     #[test]

@@ -80,8 +80,8 @@ pub fn write_active_frame(project_dir: &Path, frame_id: &str) -> Result<(), Stri
         );
     }
 
-    let text = serde_json::to_string_pretty(&serde_json::Value::Object(obj))
-        .map_err(|e| e.to_string())?;
+    let text =
+        serde_json::to_string_pretty(&serde_json::Value::Object(obj)).map_err(|e| e.to_string())?;
     std::fs::write(&path, text + "\n").map_err(|e| e.to_string())
 }
 
