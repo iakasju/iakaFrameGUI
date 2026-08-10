@@ -31,10 +31,10 @@
 
 ## Reprise du travail (a completer par Cowork)
 
-- **Ce qui vient d'etre fait** : <!-- ... -->
-- **En cours / a reprendre** : <!-- ... -->
-- **Prochaine etape concrete** : <!-- premiere action a faire en reprenant -->
-- **Pieges connus** : <!-- ... -->
+- **Ce qui vient d'etre fait** : Lot **auto-update** livre de bout en bout : cadrage (jumeau de L34 du Cockpit), implementation, **2 gates Legolas PASS** (verdict **borne** au perimetre : delta fmt/clippy **mesure nul** face a `main`), merge `623eefd` sur `main`, publication reelle sur le canal Forgejo LAN (v0.1.5 puis v0.1.6) et **recette C5 PASSEE** — l'appli installee en 0.1.5 a detecte, telecharge, verifie la signature et redemarre en **0.1.6** (bundle reecrit le 10/08 a 19:46). La cle de la forge est **distincte** de celle du Cockpit : la bascule prouve qu'il n'y a aucune confiance croisee.
+- **En cours / a reprendre** : Manifeste **1/4 plateformes** (macOS arm64), meme cause que le jumeau : le CI GitHub ne peut pas signer sans les secrets. **Dette Rust anterieure toujours ouverte** : `cargo fmt --check` 49 hunks / 6 fichiers et 8 avertissements clippy, presents sur `main` AVANT ce lot, consignes au backlog portefeuille par arbitrage du decideur.
+- **Prochaine etape concrete** : Poser les deux secrets de signature dans `iakasju/iakaFrameGUI` (cle : `~/.tauri/iakaframegui.key`, mot de passe **vide**), puis `git push github v0.1.6` et relancer `publish-update`. Ensuite, ouvrir le lot d'hygiene Rust : tant que cette dette vit, `main` **ne peut pas servir de reference verte** — le prochain lot Rust devra a nouveau prouver son innocence sur un worktree isole.
+- **Pieges connus** : (1) **`--bundles app`** obligatoire au build local (l'echec DMG emporte l'artefact updater). (2) Renommer l'artefact **et son `.sig`** avec l'architecture avant `--from`. (3) `publish-update.mjs` refuse hors de `main` et pousse **`HEAD`**, pas `main` — choix delibere, valide par les deux gates : garde contournee, `HEAD` echoue **ferme** la ou une cible fixe publierait silencieusement le `main` local. (4) Controle au demarrage **differe de 3 s** et silencieux : attendre avant de crier au bug (une fausse alerte a deja ete levee ainsi).
 
 ## Journal (versions & pauses)
 
