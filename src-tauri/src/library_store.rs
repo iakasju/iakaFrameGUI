@@ -150,8 +150,9 @@ pub fn exists_in(home: &Path, collection: &str, id: &str) -> Result<bool, String
 ///     Skills : le nom du dossier fait foi). Le sous-dossier `<id>/` est créé au besoin par
 ///     `pool_write_in` (`create_dir_all` du parent) ; écrire `SKILL.md` ne touche AUCUN autre fichier
 ///     du dossier (sous-skills, assets) → non destructif.
-///     Mêmes gardes d'autorité dans les deux cas : `validate_pool_type` + `validate_id` (interdit
-///     `/`,`\`,`.`,`..` → pas de traversée dans l'id) + `pathguard::safe_path` (borne sous `home`).
+///
+/// Mêmes gardes d'autorité dans les deux cas : `validate_pool_type` + `validate_id` (interdit
+/// `/`,`\`,`.`,`..` → pas de traversée dans l'id) + `pathguard::safe_path` (borne sous `home`).
 fn pool_file(home: &Path, pool_type: &str, id: &str) -> Result<PathBuf, String> {
     validate_pool_type(pool_type)?;
     validate_id(id)?;
