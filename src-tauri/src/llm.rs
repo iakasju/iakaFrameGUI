@@ -8,8 +8,8 @@
 //!   - **hôte** : loopback (`localhost`/`127.0.0.1`/`::1`) OU l'endpoint d'authoring RÉGLÉ
 //!     (`authoringEndpoint`) — jamais une URL arbitraire (`host_allowed`, testé sans réseau) ;
 //!   - **temps** : timeout dur sur le client.
-//! Ce n'est PAS un runner d'exécution : on compose la CHARTE d'un élément (quels sous-éléments), on
-//! ne fait tourner aucun agent. La frontière authoring ≠ exécution reste entière.
+//!     Ce n'est PAS un runner d'exécution : on compose la CHARTE d'un élément (quels sous-éléments), on
+//!     ne fait tourner aucun agent. La frontière authoring ≠ exécution reste entière.
 
 /// Hôte Ollama par défaut (D3) — utilisé quand aucun `authoringEndpoint` n'est réglé.
 pub const DEFAULT_HOST: &str = "http://localhost:11434";

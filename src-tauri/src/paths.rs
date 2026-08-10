@@ -100,8 +100,8 @@ pub fn resolve_settings_file() -> PathBuf {
 
 /// Résout la **racine bibliothèque `IAKAFRAME_HOME`** (partagée CLI, §5). Priorité :
 /// 1) override persisté GUI (`settings.json`) ; 2) env `IAKAFRAME_HOME` ; 3) découverte auto
-/// `<chapeau>/iakaframe` **validée** par le double marqueur `library/` + `methods/` ; 4) `None`
-/// (bibliothèque introuvable → l'UI invite à la définir).
+///    `<chapeau>/iakaframe` **validée** par le double marqueur `library/` + `methods/` ; 4) `None`
+///    (bibliothèque introuvable → l'UI invite à la définir).
 pub fn resolve_iakaframe_home() -> Option<PathBuf> {
     let override_persisted = crate::settings::read_home_override(&resolve_settings_file());
     resolve_iakaframe_home_with(
