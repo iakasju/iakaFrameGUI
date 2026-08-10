@@ -1,0 +1,11 @@
+{
+  "version": "0.1.5",
+  "notes": "",
+  "pub_date": "2026-08-10T17:03:51.997Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUU1MzRWTThkUmVJZVZVdzNlUzN3ZUlFM3UxNktlLzQ0OVBTUlN1Uk9wcEhmcTk3Ky9WZUJPVlpnMzV0SWZkaUtHN3ZOa3R2Z3lGT3poZE90dllZN3dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MzgxNDE4CWZpbGU6aWFrYUZyYW1lR1VJLmFwcC50YXIuZ3oKOXpHemNMKzlkdkorc1Uwd3NlMmdMWWdTbHQ1a2M4NmdqMzU1OUw1cmVqWjlnV0lIamYrRUE5c3BBWUxYeHAvMWt0TEdhVFYrMlA5d1l1SWJKUC9TREE9PQo=",
+      "url": "http://192.168.2.11:3001/sjupin/iakaFrameGUI/releases/download/v0.1.5/iakaFrameGUI_aarch64.app.tar.gz"
+    }
+  }
+}
