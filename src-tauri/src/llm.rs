@@ -278,6 +278,8 @@ pub fn drive_sse<F: FnMut(StreamChunk)>(lines: &[&str], emit: &mut F) -> Result<
  * (hôte refusé / réseau / timeout / forme inattendue) est un `Err(String)` clair (jamais un panic).
  */
 #[tauri::command]
+// Arité imposée par le contrat IPC Tauri : la réduire changerait la signature côté front (D3).
+#[allow(clippy::too_many_arguments)]
 pub async fn llm_complete(
     provider: String,
     model: String,
@@ -443,6 +445,8 @@ pub fn drive_ndjson<F: FnMut(StreamChunk)>(lines: &[&str], emit: &mut F) -> Resu
  * quand le flux avait déjà commencé — le partiel n'est JAMAIS passé pour complet (AC-S2).
  */
 #[tauri::command]
+// Arité imposée par le contrat IPC Tauri : la réduire changerait la signature côté front (D3).
+#[allow(clippy::too_many_arguments)]
 pub async fn llm_complete_stream(
     provider: String,
     model: String,
