@@ -218,5 +218,15 @@
     "dirty": false,
     "files": 13194,
     "note": "Auto-update de l'application livre, gate PASS borne, publie sur le canal Forgejo LAN et bascule recettee (0.1.5 -> 0.1.6)"
+  },
+  {
+    "date": "2026-08-17 01:23",
+    "reason": "pause",
+    "version": "v0.1.7",
+    "branch": "main",
+    "commit": "8b17618 Merge branch 'feat/gui-vendor-charon' — re-vendorage Charon + gate de phase optionnel (gate Legolas PASS, 29/29)",
+    "dirty": false,
+    "files": 475,
+    "note": "Train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL merge dans main (gate Legolas PASS 29/29)"
   }
 ]
