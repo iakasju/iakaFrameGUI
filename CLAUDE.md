@@ -240,14 +240,19 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
   prescrit `npm version --no-git-tag-version` et **interdit** l'édition manuelle de `package.json`.
   **La découverte des champs `version` a été écartée à dessein** : elle signalerait
   `packages/core` (`0.1.0`) comme une dérive et trancherait par accident un arbitrage réservé.
-  Commits `8239958` (garde + tests) puis `881bd79` (lock, **2 insertions / 2 deletions**, aucune
-  ligne de dépendance touchée). Instruction : `specs/instructions/r1-porteurs-de-version-declares.md`.
+  Commits `8239958` (garde + tests), `881bd79` (lock, **2 insertions / 2 deletions**, aucune
+  ligne de dépendance touchée), `3a64822` (geste de bump gravé) puis `c8319d9` (l'instruction
+  versée au dépôt, commit `docs:` **distinct** pour ne pas altérer la preuve d'`AC-3`).
+  Instruction : `specs/instructions/r1-porteurs-de-version-declares.md`.
+  **Merge `363a4af`** (`--no-ff`, branche `fix/r1-porteurs-de-version-declares`), sur gate
+  🏹 Legolas **PASS** — verdict rendu par le gate indépendant, jamais par l'émetteur du lot.
   **Preuve mesurée** — `lint:all` `0` ; `test:all` `0`, `120 passed (120)` / `1163 passed (1163)`
   (**avant : 1151**, soit `+12` tests, **aucun supprimé**) ; `cargo test` `0`, `116 passed` ;
   `node scripts/publish-update.mjs v0.1.7 --check-only` → `0` **après** correction, `1` **avant**
   (message citant `package-lock.json` et `0.1.4`).
-  ⚠️ *Référence de merge à inscrire ici au merge* — le gate qualité indépendant n'est pas rendu par
-  l'émetteur du lot.
+  Réserve `R-2` du gate (instruction hors dépôt) levée par l'amendement 🔵 Gandalf du 2026-08-16 —
+  § Fichiers concernés porté à **6** fichiers, `AC-12` doté d'une seconde face — puis par `c8319d9`.
+  `AC-12` est **re-mesuré par 🏹 Legolas seul**.
 
 ### Dettes closes le 2026-07-25 (re-mesurées à la reprise — ne pas les rouvrir sans preuve)
 
