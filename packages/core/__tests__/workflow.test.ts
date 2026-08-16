@@ -29,16 +29,18 @@ describe("W-1 — Workflow modélisé + canonique conforme (§ 3)", () => {
 
   it("gates aux bons endroits : human au cadrage, auto en réalisation/staging, human en prod", () => {
     const byId = Object.fromEntries(wf.phases.map((p) => [p.id, p]));
-    expect(byId.cadrage.gate.kind).toBe("human");
-    expect(byId.realisation.gate.kind).toBe("auto");
-    expect(byId.staging.gate.kind).toBe("auto");
-    expect(byId.prod.gate.kind).toBe("human");
+    // `!` : ces 4 phases du canonique en dur PORTENT une gate — sous `gate?` le compilateur
+    // demande de le dire, ce qui est exactement le point du lot.
+    expect(byId.cadrage.gate!.kind).toBe("human");
+    expect(byId.realisation.gate!.kind).toBe("auto");
+    expect(byId.staging.gate!.kind).toBe("auto");
+    expect(byId.prod.gate!.kind).toBe("human");
   });
 
   it("le jalon cadrage porte from cadrage → to coordination", () => {
     const cadrage = wf.phases.find((p) => p.id === "cadrage")!;
-    expect(cadrage.gate.from).toBe("cadrage");
-    expect(cadrage.gate.to).toBe("coordination");
+    expect(cadrage.gate!.from).toBe("cadrage");
+    expect(cadrage.gate!.to).toBe("coordination");
   });
 
   it("methodId présent (agnosticisme AR-9)", () => {
@@ -204,5 +206,34 @@ describe("W-3 — l'adaptateur agents-md rend la section DEPUIS la donnée", () 
     // Sans méthode fournie → workflow canonique (repli), byte-identique.
     const md = generateCodexKit(team).files["AGENTS.md"];
     expect(md).toContain(renderWorkflowMarkdown(resolveWorkflow()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GATE-DE-PHASE-OPTIONNEL — `parsePhase` ne fabrique plus, `renderGateCell` rend `—`.
+// ---------------------------------------------------------------------------
+describe("parsePhase / rendu — une phase peut n'avoir AUCUN gate", () => {
+  it("un objet brut SANS `gate` produit une phase dont la clé `gate` est ABSENTE", () => {
+    const p = parsePhase({ id: "libre", order: 0, name: "Libre", roleKeys: ["dev"] })!;
+    expect(p).not.toBeNull();
+    expect(p.id).toBe("libre");
+    // `toEqual` ne distingue pas absent de `undefined` : seul `in` prouve l'omission (R-4).
+    expect("gate" in p).toBe(false);
+  });
+
+  it("un `gate` présent mais MALFORMÉ reste parsé défensivement (comportement inchangé)", () => {
+    const p = parsePhase({ id: "x", roleKeys: [], gate: "n'importe quoi" })!;
+    expect(p.gate).toEqual({ kind: "human", condition: "" });
+  });
+
+  it("le tableau markdown rend `—` dans la cellule Gate d'une phase sans gate", () => {
+    const wf: Workflow = {
+      id: "w", name: "W", methodId: "m",
+      phases: [{ id: "a", order: 0, name: "A", description: "x → y", roleKeys: ["dev"] }],
+    };
+    const row = renderWorkflowMarkdown(wf)
+      .split("\n")
+      .find((l) => l.includes("**A**"))!;
+    expect(row.trimEnd().endsWith("| — |")).toBe(true);
   });
 });

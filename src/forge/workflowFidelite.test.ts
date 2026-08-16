@@ -65,6 +65,11 @@ describe("fidélité Open→Save du workflow au frame (AC-2, doctrine GUI ← fr
     expect(result.current.artifact?.phases).toHaveLength(5);
     expect(result.current.artifact?.phases[3].offChain).toBe(true);
     expect(result.current.artifact?.phases[4].offChain).toBe(true);
+    // La 5e étape n'a AUCUN gate, et la clé est ABSENTE (pas posée à `undefined`) : c'est ce qui
+    // préserve le chemin verbatim, `sameWorkflow` comparant par `JSON.stringify` — un `null` ou
+    // une clé à `undefined` ferait diverger capture et artefact, et le Save byte-identique
+    // tomberait silencieusement au profit du canonique (risque R-5).
+    expect("gate" in result.current.artifact!.phases[4]).toBe(false);
 
     await act(async () => {
       await result.current.save();
@@ -108,33 +113,20 @@ describe("fidélité Open→Save du workflow au frame (AC-2, doctrine GUI ← fr
       "p1", "p2", "p3", "prod", "surveillance",
     ]);
 
-    // --- Ce que le Save écrit RÉELLEMENT dans les gates -------------------------------------
-    // Recompter les phases ne suffit pas : il faut regarder les gates écrits, sinon ce test
-    // passerait au vert sur un fichier corrompu sans que rien ne le voie.
-    const gateLines = saved
-      .split("\n")
-      .filter((l) => l.includes("afterPhase:"))
-      .map((l) => l.match(/afterPhase:\s*([^,}]+)/)![1].trim());
+    // --- AC-10 (P3) — ce que le Save écrit RÉELLEMENT dans les gates ---------------------------
+    // Ce test est le SEUL du dépôt qui regarde les octets produits par le chemin ÉDITÉ (`setName`
+    // ⇒ la capture verbatim ne s'applique plus, `serializeWorkflowMd` reprend la main). C'était
+    // donc exactement le chemin par lequel le gate inventé atteignait le disque, et ses assertions
+    // ne regardaient que la prose, le format et les ids : le point aveugle était au centre de la
+    // cible. Le recompter (4 → 5 ids) l'aurait rendu vert sur un fichier corrompu.
+    const gateLines = saved.match(/^\s*- \{ afterPhase:/gm) ?? [];
+    expect(gateLines).toHaveLength(4); // 4 gates pour 5 phases — fait canon `:11-19`
 
-    // Les 4 gates du canon sont réémis fidèlement, dans l'ordre — ça, c'est l'attendu.
-    expect(gateLines.slice(0, 4)).toEqual(["p1", "p2", "p3", "prod"]);
-    expect(saved).toContain(
-      'criteria: "feu vert prod tracé (squad prod, Charon ; jamais franchi seul)"',
-    );
+    // Négative nommée : la seule assertion qui parle la langue de l'octet écrit.
+    expect(saved).not.toMatch(/afterPhase:\s*surveillance/);
 
-    // 🛑 TÉMOIN D'UN DÉFAUT OUVERT — CE N'EST PAS UN ATTENDU SOUHAITÉ.
-    // Le Save ajoute un 5e gate `{ afterPhase: surveillance, kind: human, criteria: "" }` que le
-    // canon ne porte PAS et interdit explicitement d'inventer (« Si un parseur venait à exiger un
-    // gate par étape : REMONTER, ne pas en inventer un »). Cause : `Phase.gate` est obligatoire au
-    // cœur (`packages/core/src/workflow.ts:79`) et `workflowToMd` ré-émet un gate par phase.
-    // Effet produit : la forge ferait attendre un feu vert humain à une mission dont la nature est
-    // d'agir sans ordre. Voir CLAUDE.md § Backlog → `GATE-DE-PHASE-OPTIONNEL`.
-    // Ces deux assertions sont là pour RENDRE LE DÉFAUT VISIBLE et pour ROUGIR le jour où il sera
-    // corrigé — obligeant à revenir ici plutôt qu'à laisser passer la correction en silence.
-    expect(gateLines, "défaut GATE-DE-PHASE-OPTIONNEL corrigé ? mettre ce test à jour").toHaveLength(5);
-    expect(gateLines[4], "défaut GATE-DE-PHASE-OPTIONNEL corrigé ? mettre ce test à jour").toBe(
-      "surveillance",
-    );
+    // Et à la réouverture, la 5e phase n'a toujours pas de clé `gate`.
+    expect("gate" in reopened.phases[4]).toBe(false);
   });
 
   it("workflow neuf (aucune capture) → Save écrit un frame-format canonique + prose neuve", async () => {
