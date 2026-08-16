@@ -58,9 +58,18 @@ describe("fidélité Open→Save du workflow au frame (AC-2, doctrine GUI ← fr
       result.current.requestOpen("iakaframe-3phases");
     });
     await waitFor(() => expect(result.current.id).toBe("iakaframe-3phases"));
-    // AC-1 au niveau document : le workflow réel s'ouvre (4 phases, prod hors-chaîne).
-    expect(result.current.artifact?.phases).toHaveLength(4);
+    // AC-1 au niveau document : le workflow réel s'ouvre (5 phases, les 2 étapes prod
+    // hors-chaîne). 5 depuis la scission du squad prod (canon 0.39.0) : `library/workflows/
+    // iakaframe-3phases.md` déclare une 5e phase `surveillance` (`side: prod`), la veille étant
+    // devenue une étape à part entière et non plus une sortie de la bascule.
+    expect(result.current.artifact?.phases).toHaveLength(5);
     expect(result.current.artifact?.phases[3].offChain).toBe(true);
+    expect(result.current.artifact?.phases[4].offChain).toBe(true);
+    // La 5e étape n'a AUCUN gate, et la clé est ABSENTE (pas posée à `undefined`) : c'est ce qui
+    // préserve le chemin verbatim, `sameWorkflow` comparant par `JSON.stringify` — un `null` ou
+    // une clé à `undefined` ferait diverger capture et artefact, et le Save byte-identique
+    // tomberait silencieusement au profit du canonique (risque R-5).
+    expect("gate" in result.current.artifact!.phases[4]).toBe(false);
 
     await act(async () => {
       await result.current.save();
@@ -96,10 +105,28 @@ describe("fidélité Open→Save du workflow au frame (AC-2, doctrine GUI ← fr
     // Prose du corps préservée verbatim (AC-4).
     expect(saved).toContain("# Workflow iakaframe — 3 phases (cible staging) + squad prod");
     expect(saved).toContain("« Gimli solo »");
-    // Réouvrable + structurellement cohérent.
+    // Réouvrable + structurellement cohérent. 5 phases depuis la scission du squad prod
+    // (canon 0.39.0) : `surveillance` est une étape à part entière.
     const reopened = parseWorkflowMd(saved)!;
     expect(reopened.name).toBe("Workflow édité");
-    expect(reopened.phases.map((p) => p.id)).toEqual(["p1", "p2", "p3", "prod"]);
+    expect(reopened.phases.map((p) => p.id)).toEqual([
+      "p1", "p2", "p3", "prod", "surveillance",
+    ]);
+
+    // --- AC-10 (P3) — ce que le Save écrit RÉELLEMENT dans les gates ---------------------------
+    // Ce test est le SEUL du dépôt qui regarde les octets produits par le chemin ÉDITÉ (`setName`
+    // ⇒ la capture verbatim ne s'applique plus, `serializeWorkflowMd` reprend la main). C'était
+    // donc exactement le chemin par lequel le gate inventé atteignait le disque, et ses assertions
+    // ne regardaient que la prose, le format et les ids : le point aveugle était au centre de la
+    // cible. Le recompter (4 → 5 ids) l'aurait rendu vert sur un fichier corrompu.
+    const gateLines = saved.match(/^\s*- \{ afterPhase:/gm) ?? [];
+    expect(gateLines).toHaveLength(4); // 4 gates pour 5 phases — fait canon `:11-19`
+
+    // Négative nommée : la seule assertion qui parle la langue de l'octet écrit.
+    expect(saved).not.toMatch(/afterPhase:\s*surveillance/);
+
+    // Et à la réouverture, la 5e phase n'a toujours pas de clé `gate`.
+    expect("gate" in reopened.phases[4]).toBe(false);
   });
 
   it("workflow neuf (aucune capture) → Save écrit un frame-format canonique + prose neuve", async () => {

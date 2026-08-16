@@ -10,6 +10,7 @@ assignments:
   - { personaId: gandalf,  runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Edit, WebSearch, WebFetch, Skill] }
   - { personaId: gimli,    runner: claude-code, model: "sonnet", tools: [Read, Edit, Write, Bash, Grep, Glob, Skill] }
   - { personaId: legolas,  runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Bash, Skill] }
+  - { personaId: charon,   runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Write, Bash, Skill] }
   - { personaId: helm,     runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Write, Bash, Skill] }
   - { personaId: loki,     runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill] }
   - { personaId: nathalie, runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill] }
@@ -29,4 +30,6 @@ n'est **pas** un credential. `tools` (par persona) ≠ `connectors` (par team, M
 
 Runner : **claude-code** pour toutes les personas. Les modèles (opus pour
 portefeuille/coordination/cadrage, sonnet pour dev/qualité/prod/design/doc) sont un **défaut
-suggéré**, surchargeable au cockpit. Source d'inspiration des affectations : `kits/*/MODELES.md`.
+suggéré**, surchargeable au cockpit. Source des affectations : **`models/suggestions.json`**
+(source unique, par `roleKey`) — *et non plus `kits/*/MODELES.md`, dont les tables sont périmées
+depuis le 2026-08-03 et ne décident plus.*

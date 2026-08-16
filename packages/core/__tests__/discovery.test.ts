@@ -97,10 +97,12 @@ describe("AC-Q3-1 — clé par RÔLE, jamais par nom de persona", () => {
   });
 });
 
-describe("AC-Q3-2 — les 9 rôles canon sont couverts (frame inclus)", () => {
+// 10 rôles depuis la scission du squad prod (canon 0.39.0) : `surveillance` appendu en queue.
+describe("AC-Q3-2 — les 10 rôles canon sont couverts (frame + surveillance inclus)", () => {
   it("pour chaque clé de CANONICAL_ROLE_KEYS, la règle rend un id APPARTENANT à la liste découverte", () => {
-    expect(CANONICAL_ROLE_KEYS).toHaveLength(9);
+    expect(CANONICAL_ROLE_KEYS).toHaveLength(10);
     expect(CANONICAL_ROLE_KEYS).toContain("frame");
+    expect(CANONICAL_ROLE_KEYS).toContain("surveillance");
     for (const key of CANONICAL_ROLE_KEYS) {
       const proposed = suggestModelForRole(CAS_B, key);
       expect(proposed).not.toBe(""); // jamais vide sur liste non vide.
@@ -108,16 +110,16 @@ describe("AC-Q3-2 — les 9 rôles canon sont couverts (frame inclus)", () => {
     }
   });
 
-  it("le roster canon complet (9 personas) est intégralement pré-rempli, aucune liaison vide", () => {
+  it("le roster canon complet (10 personas) est intégralement pré-rempli, aucune liaison vide", () => {
     const team = buildTeamFromRoster("Ma team", "ma-team");
     const bound = prefilledBindingForNode(team, "ollama-localhost", CAS_B);
-    expect(bound.bindings).toHaveLength(9);
+    expect(bound.bindings).toHaveLength(10);
     for (const b of bound.bindings) {
       expect(CAS_B).toContain(b.model);
     }
   });
 
-  it("cas A (§ 6.3) — un seul modèle au nœud : les 9 rôles le reçoivent (dégradation saine)", () => {
+  it("cas A (§ 6.3) — un seul modèle au nœud : les 10 rôles le reçoivent (dégradation saine)", () => {
     for (const key of CANONICAL_ROLE_KEYS) {
       expect(suggestModelForRole(CAS_A, key)).toBe("llama3.1:8b");
     }

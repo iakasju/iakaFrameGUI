@@ -1085,8 +1085,12 @@ export function mdToWorkflow(md: WorkflowMd): Workflow {
       name: p.label,
       description,
       roleKeys: [...p.actorsRoleKeys],
-      gate: g ? { kind: g.kind, condition: g.criteria } : { kind: "human", condition: "" },
     };
+    // 🛑 LE LIEU DE NAISSANCE DE L'INVENTION, refermé. Faute de gate appariée par `afterPhase`,
+    // ce mapper en FABRIQUAIT un `{ kind: "human", condition: "" }` — parce que le type l'exigeait.
+    // Désormais : pas de gate au fichier ⇒ **clé OMISE**. On ne devine pas un feu vert que la
+    // méthode ne demande pas (canon : « REMONTER, ne pas en inventer un »).
+    if (g) phase.gate = { kind: g.kind, condition: g.criteria };
     if (p.side === "prod") phase.offChain = true;
     return phase;
   });
@@ -1124,11 +1128,13 @@ export function workflowToMd(wf: Workflow): WorkflowMd {
     if (p.offChain === true) phase.side = "prod";
     return phase;
   });
-  const gates: WorkflowMdGate[] = ordered.map((p) => ({
-    afterPhase: p.id,
-    kind: p.gate.kind,
-    criteria: p.gate.condition,
-  }));
+  // `flatMap` et non `map` : **une entrée par phase QUI EN PORTE UNE**, jamais une par phase.
+  // C'est ce qui empêchait la propagation de l'invention jusqu'aux octets écrits.
+  const gates: WorkflowMdGate[] = ordered.flatMap((p) =>
+    p.gate === undefined
+      ? []
+      : [{ afterPhase: p.id, kind: p.gate.kind, criteria: p.gate.condition }],
+  );
   const md: WorkflowMd = { id: wf.id, name: wf.name, phases, gates };
   if (wf.methodId && wf.methodId.length > 0 && wf.methodId !== WORKFLOW_DEFAULT_METHOD_ID) {
     md.methodId = wf.methodId;

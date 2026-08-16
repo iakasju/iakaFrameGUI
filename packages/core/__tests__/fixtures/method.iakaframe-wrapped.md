@@ -8,7 +8,8 @@ principleIds: [qualite, gestion-backlog, documentation, commits-versionnement, i
   merge-versionnement, canon-avant-citation, preuve-avant-declaration]
 ritualIds: [iakastart, init, update, snapshot, log-conversation, retrospective]
 guardrailIds: [identity, perimeter, delegation]
-roleKeys: [portefeuille, coordination, cadrage, dev, qualite, deploiement, design, documentation, frame]
+roleKeys: [portefeuille, coordination, cadrage, dev, qualite, deploiement, surveillance, design,
+  documentation, frame]
 scaffoldIds: [portefeuille, projet, recette-guidee]
 ---
 # Méthode iakaframe (assemblage de discipline)

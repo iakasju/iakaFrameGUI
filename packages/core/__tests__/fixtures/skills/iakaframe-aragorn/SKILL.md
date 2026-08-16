@@ -30,8 +30,8 @@ l'utilisateur directement** ; toi, tu es son interlocuteur par défaut.
 
 | Étape prod | Agent | Sortie | Gate |
 |---|---|---|---|
-| 🟣 Déploiement prod | 🌉 Helm | version en prod (alias) | **humain** (feu vert) |
-| 🟣 Surveillance | 🌉 Helm | santé OK / alerte / rollback | continu |
+| 🟣 Déploiement prod | ⛴️ Charon | version en prod (alias) + rollback prêt | **humain** (feu vert) |
+| 🟣 Veille de production | 🌉 Helm | état de santé / **alerte motivée** | **aucun** — il agit sans ordre |
 
 ## Procédure
 
@@ -54,7 +54,7 @@ l'utilisateur peut te demander **directement** de lancer un travail sur un agent
 
 Marche à suivre :
 1. **Vérifie le pré-requis de la phase** avant de lancer (ex. Gimli n'avance pas sans
-   instruction validée par Gandalf ; Helm ne déploie pas sans feu vert). Pré-requis absent
+   instruction validée par Gandalf ; Charon ne déploie pas sans feu vert). Pré-requis absent
    → tu le dis et tu proposes l'étape manquante, tu ne forces pas.
 2. **Émets l'ordre de mission** (ci-dessous) et **dispatche le subagent cible** : outil Agent
    en session Claude Code, ou n8n/Hermes en chaîne automatisée.

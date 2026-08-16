@@ -50,7 +50,13 @@ describe("methodMd — (dé)sérialisation frontmatter (§3.10)", () => {
 // golden canonique, elle, est mono-ligne — elle ne couvrait donc PAS ce cas.
 describe("methodMd — listes flow wrappées (fichier réel de la bibliothèque)", () => {
   it("relève la découpe en lignes des seules listes wrappées", () => {
-    expect(readListLayout(wrappedMethod)).toEqual({ principleIds: [5, 5, 5, 3] });
+    // `roleKeys` est DEVENUE wrappée au canon 0.39.0 : l'entrée `surveillance` a fait passer la
+    // liste à 10 ids, débordant sur une 2e ligne (`methods/iakaframe.md:11-12` porte 8 ids puis 2).
+    // Ce n'est pas un ajustement sur l'observé : c'est la découpe réelle du fichier canon.
+    expect(readListLayout(wrappedMethod)).toEqual({
+      principleIds: [5, 5, 5, 3],
+      roleKeys: [8, 2],
+    });
   });
 
   it("parse : les 18 ids sont lus malgré le wrapping (aucune perte sémantique)", () => {

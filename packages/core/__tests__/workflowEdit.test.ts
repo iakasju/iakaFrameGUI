@@ -14,6 +14,7 @@ import {
   movePhase,
   updatePhaseFields,
   updatePhaseGate,
+  removePhaseGate,
   renderWorkflowMarkdown,
   resolveWorkflow,
   buildTeamFromRoster,
@@ -67,7 +68,9 @@ describe("EW-9/EW-10 — add / remove / move : validité + order normalisé", ()
     const added = wf.phases[2];
     expect(added.roleKeys).toEqual([]);
     expect(new Set(wf.phases.map((p) => p.id)).size).toBe(3); // ids uniques
-    expect(added.gate.kind).toBe("human");
+    // Décision de non-action assumée : `addPhase` CONTINUE de poser une gate. Le défaut par
+    // présence est le sûr — une gate posée est visible et retirable, une gate absente est invisible.
+    expect(added.gate!.kind).toBe("human");
   });
 
   it("addPhase évite les collisions d'id (phase, phase-2, …)", () => {
@@ -130,7 +133,7 @@ describe("EW-12 — édition des champs + nettoyage de calage (Q-3)", () => {
   it("éditer la gate nettoie gate.display", () => {
     const seed = cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW);
     const wf = updatePhaseGate(seed, "cadrage", { kind: "auto", condition: "nouveau" });
-    const gate = wf.phases.find((p) => p.id === "cadrage")!.gate;
+    const gate = wf.phases.find((p) => p.id === "cadrage")!.gate!;
     expect(gate.display).toBeUndefined();
     expect(gate.kind).toBe("auto");
     expect(gate.condition).toBe("nouveau");
@@ -191,5 +194,55 @@ describe("EW-11 — zéro modèle/runner sur le workflow édité", () => {
     expect(json).not.toContain("model");
     expect(json).not.toContain("runner");
     expect(json).not.toContain("base_model_id");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GATE-DE-PHASE-OPTIONNEL — symétrie ajout/suppression (AC-12). Un modèle qui laisse ajouter
+// sans laisser retirer n'a fait que déplacer l'obligation.
+// ---------------------------------------------------------------------------
+describe("removePhaseGate / updatePhaseGate créatrice — ce qui se pose se retire", () => {
+  it("removePhaseGate retire la gate : la clé est SUPPRIMÉE, pas mise à undefined", () => {
+    const seed = cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW);
+    const wf = removePhaseGate(seed, "cadrage");
+    const cadrage = wf.phases.find((p) => p.id === "cadrage")!;
+    expect("gate" in cadrage).toBe(false); // seule mesure qui discrimine (R-4)
+    // Les autres phases sont intactes.
+    expect(wf.phases.find((p) => p.id === "prod")!.gate).toBeDefined();
+    // L'original n'est pas muté (fonction pure).
+    expect(seed.phases.find((p) => p.id === "cadrage")!.gate).toBeDefined();
+  });
+
+  it("retirer puis reposer une gate rend un workflow structurellement égal à l'original", () => {
+    const seed = cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW);
+    const gate = seed.phases.find((p) => p.id === "realisation")!.gate!;
+    const round = updatePhaseGate(removePhaseGate(seed, "realisation"), "realisation", {
+      kind: gate.kind,
+      condition: gate.condition,
+    });
+    expect(round.phases.find((p) => p.id === "realisation")!.gate).toEqual({
+      kind: gate.kind,
+      condition: gate.condition,
+    });
+  });
+
+  it("removePhaseGate sur un id inconnu ⇒ no-op (l'objet d'origine, à l'identité près)", () => {
+    const seed = cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW);
+    expect(removePhaseGate(seed, "id-qui-n-existe-pas")).toBe(seed);
+  });
+
+  it("removePhaseGate sur une phase DÉJÀ sans gate ⇒ no-op", () => {
+    const once = removePhaseGate(cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW), "staging");
+    expect(removePhaseGate(once, "staging")).toBe(once);
+  });
+
+  it("updatePhaseGate CRÉE la gate quand la phase n'en a pas (geste « poser un gate »)", () => {
+    const seed = removePhaseGate(cloneWorkflow(IAKAFRAME_CANONICAL_WORKFLOW), "prod");
+    expect("gate" in seed.phases.find((p) => p.id === "prod")!).toBe(false);
+    const wf = updatePhaseGate(seed, "prod", { kind: "auto", condition: "posée" });
+    expect(wf.phases.find((p) => p.id === "prod")!.gate).toEqual({
+      kind: "auto",
+      condition: "posée",
+    });
   });
 });

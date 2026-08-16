@@ -60,7 +60,8 @@ l'agent n'a pas de pastille fixe (elle varie selon la phase servie).
 | gandalf   | Cadrage (P1)             | 🔵       | Transforme un besoin en instruction fermée et vérifiable |
 | gimli     | Dev / DevOps (P2→P3)     | —        | Code, build, teste, commite, déploie jusqu'au staging (🔴 dev / 🟢 staging) |
 | legolas   | Qualité (P2/P3)          | —        | Revue, typecheck/lint/tests, garde les critères d'acceptation (🔴 P2 / 🟢 P3) |
-| helm      | Production               | 🟣       | Gate de prod, déploiement, surveillance, feu vert humain requis |
+| charon    | Production — bascule     | 🟣       | Gate de prod, bascule stage → prod par alias, accès/SSO, rollback. **Feu vert humain requis** |
+| helm      | Production — veille      | 🟣       | Health-checks, disponibilité, charge, **alerte**. **Aucun gate : il agit sans ordre** |
 | loki      | Design                   | 🟠       | Conception visuelle / UX, supports on-brand selon charte |
 | nathalie  | Doc utilisateur          | 🟠       | Documentation destinée à l'utilisateur final (guides, FAQ, tutos) |
 | feanor    | Constructeur de frame    | 🟠       | Assiste un tiers à forger une frame neuve — **activation explicite seulement** (hors dispatch auto) |
@@ -78,7 +79,8 @@ noms ci-dessous sont ceux de la frame default ; adapte-les à la team de la fram
 - **gandalf** → cadrer un besoin en instruction validable (P1).
 - **gimli** → implémenter une instruction validée + déployer en staging (P2→P3).
 - **legolas** → gate qualité (tests/lint/typage), verdict pass/fail.
-- **helm** → promotion en production (feu vert humain).
+- **charon** → promotion en production (feu vert humain), rollback.
+- **helm** → veille sur la production : santé, charge, **alerte** (sans ordre ; il ne bascule ni ne rollback).
 - **loki** → support visuel on-brand.
 - **nathalie** → guide / doc utilisateur final.
 - **feanor** → forger une frame neuve (conseil + génération + verdict de conformité) — **sur demande explicite seulement**.

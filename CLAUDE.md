@@ -145,6 +145,84 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **`CANON-VENDOR-TABLE-DERIVEE` — successeur nommé du lot GUI-VENDOR-CHARON (dépôt
+  `iakaframe`, canon-side).** Mandat : **dériver** les 7 ensembles de `fixtureTable()` depuis le
+  canon (`teams/iakaframe-8.md` → `personas` ; `methods/iakaframe.md` →
+  `roleKeys`/`principleIds`/`ritualIds`/`scaffoldIds`/`guardrailIds` ; union des `persona.skills` +
+  fermeture des `subskills` → skills) et **asserter l'égalité ensembliste avec les constantes
+  déclarées** (`IDS`, `ROLE_KEYS`, `SKILL_IDS`… `vendor.js:34-70`), sur le modèle du cliquet **R1**
+  (*clés lues ≡ clés déclarées*), **avec sa liste de hors-couverture déclarée et exportée**.
+  *Raison* : ces listes **prétendent** être « l'ENSEMBLE RÉFÉRENCÉ par la méthode canonique » mais
+  sont **transcrites, pas dérivées** — rien ne le vérifie. Cette fois la garde a rougi parce qu'un
+  humain a pensé à bumper 78 → 82 ; un futur lot canon qui ajoute une 11ᵉ persona **sans** toucher
+  `vendor.js` laissera la garde **verte et aveugle**. Effet visé : l'oubli rougit **au commit qui
+  l'introduit**, **sans dépôt frère**. Réf. `specs/instructions/gui-vendor-charon.md` § 2.3.
+  **Décision de non-action reconduite** : `npm run test:vendor` **reste hors de `test:all`**
+  (`scripts/test-vendor.mjs:5-8`) — ne pas rouvrir.
+
+- [x] 🛑 **`GATE-DE-PHASE-OPTIONNEL` — FERMÉ. Le GUI n'invente plus un feu vert que le canon
+  refuse.** Remonté par ⚒️ Gimli **en cours** du lot `GUI-VENDOR-CHARON` et **hors de son
+  périmètre**, confirmé indépendamment par 🏹 Legolas (hors harnais de test, bundle `esbuild`),
+  cadré par 🔵 Gandalf (`specs/instructions/gate-de-phase-optionnel.md`, 16 CA).
+  **Le défaut** : `Phase.gate` était **obligatoire** ; faute de gate appariée, `mdToWorkflow`
+  (`frontmatter.ts:1088`) en **fabriquait** une, `workflowToMd` la **propageait**, et
+  `serializeWorkflowMd` l'**écrivait au disque**. Ouvrir puis enregistrer le workflow canon
+  **ajoutait un feu vert humain à une mission dont la nature est d'agir sans ordre**.
+  **Livré** : `gate?: Gate` **présent-si-porté** (clé **omise**, jamais `undefined`) + les 4 sites
+  de `workflow.ts` + **`removePhaseGate`** (symétrie) ; le mapper cesse de fabriquer (`map` →
+  `flatMap`) ; **5 consommateurs d'UI**, dont `WorkflowPanel:77` qui **plantait** sur le canon
+  (`surveillance` est `offChain`) et le câblage **`showGate` ↔ donnée** de `WorkflowAtelier` —
+  l'interface affichait « ◇ Aucun gate » pendant que le fichier en écrivait un.
+  **L'Option D a été écartée** (ne pas émettre un gate `human` à critère vide) : un raccourci
+  d'une ligne qui aurait rendu le rouge vert **pour une mauvaise raison**, en confondant « pas de
+  gate » avec « gate dont le critère n'est pas rédigé ». `AC-6` la ferait échouer.
+  **Preuve mesurée** — `lint:all` `0` ; `test:all` `0`, `Test Files 120 passed (120)` /
+  `Tests 1183 passed (1183)` (**avant : 1166 verts + 2 rouges**, soit **+15 tests, aucun
+  supprimé**) ; `cargo test` `0`, `116 passed` ; `vendor-check --root <canon> --strict --json` ⇒
+  `ok:true, checked:82, drift:0` ; `gen-fixtures --check --canon <canon>` ⇒ *« les 3 derivees sont
+  a jour »*. **`AC-4` (preuve reine)** : `workflowMd.test.ts:130` est passé au vert **sans qu'une
+  seule de ses lignes soit touchée** — *un test qu'on rend vert sans le modifier est la meilleure
+  preuve qu'on a corrigé le programme et non l'attendu*. **`AC-8`** : **aucun** golden d'adaptateur
+  édité (`renderWorkflowMarkdown` exclut les phases `offChain`) — la sortie des kits est
+  byte-inchangée.
+  ⚠️ **Écart déclaré** : `src/forge/workflowProposition.test.ts` n'était dans **aucune** liste du
+  cadrage (ni les 11 sites, ni les 5 fichiers de test) et **son titre gravait l'invention**
+  (*« gate absente → human/condition vide »*). Re-cadré : le programme a changé, pas l'attendu.
+
+- [ ] **Réserve d'instrument — `AC-1`/`AC-4` de `gui-vendor-charon.md` ne pinnent pas le canon.**
+  Signalée par ⚒️ Gimli et 🏹 Legolas ; **l'amendement des critères appartient à 🔵 Gandalf**, pas
+  à l'exécution. `libraryRoot()` **ignore l'emplacement du script**, remonte depuis le **`cwd`** et
+  retombe sur l'arbre principal d'`iakaframe` — en `0.38.0` au moment du lot. Lancées **mot pour
+  mot**, ces commandes rendent `checked: 78, drift: 25` avec le message *« Anomalie du canon, pas
+  du miroir. »* : un diagnostic **faux et accusatoire**, qui met en cause le canon alors que le
+  miroir est juste. ⚠️ **Ce n'est ni `R-1` ni `R-3`** : c'est une **troisième variante** — mesurer
+  contre le mauvais checkout **en croyant l'avoir désigné par le chemin du script**. Remède
+  appliqué pendant le lot : `--canon` / `--root` **explicite** à chaque invocation. À graver dans
+  les critères pour que la commande soit juste **telle qu'écrite**.
+
+- [ ] **`WORKFLOW-CANONIQUE-EN-CODE-DERIVE`** (dépôt `iakaFrameGUI`) — successeur nommé, constaté
+  pendant `GATE-DE-PHASE-OPTIONNEL`, **hors de son périmètre par nature**.
+  `IAKAFRAME_CANONICAL_WORKFLOW` (`packages/core/src/workflow.ts:224-292`) est un littéral **en
+  dur** qui a **décroché du canon** : **4** phases là où le fichier canon en porte **5**, et sa
+  phase `prod` porte `roleKeys: ["coordination"]` là où le canon écrit
+  `actorsRoleKeys: [deploiement]` (Charon). Il sert de **dernier repli** de résolution pour les
+  kits (`workflow injecté → Méthode → canonique`, `claudeCode.ts:165`) : **un kit déployé sans
+  workflow embarque donc un workflow périmé.** Le corriger **ferait bouger des goldens
+  d'adaptateurs** — or ce littéral est *« calé pour reproduire à l'octet près le littéral
+  historique »* (`workflow.ts:14-15`). **Lot distinct, à cadrer.**
+
+- [ ] **`CANON-VENDOR-CHECK-RACINE-RENDUE`** (dépôt `iakaframe`, canon-side) — successeur nommé.
+  `vendor-check` **dit contre quel MIROIR il a mesuré** (`miroir : <guiRoot>`) mais **jamais contre
+  quel CANON** : la racine résolue par `libraryRoot()` n'apparaît **ni** dans le rapport humain
+  **ni** dans la charge JSON (`vendor.js:363-371`, aucune clé `root`). C'est **la cause racine** du
+  diagnostic faux du 2026-08-17 : l'outil mesure contre un arbre qu'il ne nomme pas, puis **accuse**
+  — *« Anomalie du canon, pas du miroir. »* (`vendor-check.js:151-153`) — alors que la faute est
+  **locale et de résolution**. Mandat en deux faces : (a) **rendre la racine** (`root` dans le JSON,
+  `canon : <chemin>` dans le rapport humain, comme le fait déjà `gen-fixtures.mjs:138`) ;
+  (b) **désarmer l'accusation** — une phrase qui impute une faute au canon ne doit être imprimée que
+  par un outil capable d'établir qu'il a lu le bon. *Une garde qui ne dit pas ce qu'elle a mesuré ne
+  peut pas dire qui a tort.* **Rend caduque la « Réserve d'instrument » ci-dessus une fois livré.**
+
 - [ ] **Sous-lot B « cardinalité » — non commencé.** Le **lot A** (modèle de frame agnostique :
   `kind` first-class, acteurs/conteneur unifiés) a été livré **par une autre session** le 2026-07-26
   (`a6d9803`). Le **sous-lot B** de ce même cadrage reste dû : `coordinator` **optionnel** + N=1 dans

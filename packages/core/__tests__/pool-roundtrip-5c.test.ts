@@ -76,10 +76,12 @@ describe("Lot 5c — round-trip byte-préservant sur les `.md` réels (AC3)", ()
   const guardrails = flatEntries(guardrailMds);
   const skills = skillEntries(skillMds);
 
-  it("inventaire : les 3 pools vendorés sont bien chargés (9 + 3 + 19)", () => {
-    expect(roles.length).toBe(9);
+  // 10 rôles et 20 skills depuis la scission du squad prod (canon 0.39.0) : le vendorage a
+  // apporté `roles/surveillance.md` et `skills/iakaframe-surveillance/SKILL.md`.
+  it("inventaire : les 3 pools vendorés sont bien chargés (10 + 3 + 20)", () => {
+    expect(roles.length).toBe(10);
     expect(guardrails.length).toBe(3);
-    expect(skills.length).toBe(19);
+    expect(skills.length).toBe(20);
   });
 
   for (const [id, md] of roles) {

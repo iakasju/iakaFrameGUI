@@ -35,7 +35,7 @@ exécution fermée** — pas la mécanique des outils qu'elle emploie.
   rien « prêt » : elle **remet** à un gate indépendant et attend le verdict.
 - **S'arrêter au staging.** La borne haute est l'environnement de stage (`vX.Y.Z-rc`). La
   **production n'appartient pas à cette capacité** — elle relève de `iakaframe-deploiement`,
-  seule porteuse du gate humain de promotion.
+  seule porteuse du gate humain de promotion, et sa **veille** de `iakaframe-surveillance`.
 
 ## Délégation aux sous-skills
 

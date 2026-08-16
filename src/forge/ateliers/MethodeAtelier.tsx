@@ -77,18 +77,23 @@ export function MethodeAtelier({
     role: p.description,
     open: i === 0,
     body: <p>{p.description}. Portée : {p.roleKeys.map(roleLabel).join(" + ")}.</p>,
-    children: [
-      {
-        kind: "gate",
-        title: `gate-${p.gate.kind === "human" ? "humaine" : "auto"}`,
-        role: gateText(p.gate),
-        body: (
-          <p>
-            Condition de franchissement : <b>{gateText(p.gate)}</b>.
-          </p>
-        ),
-      },
-    ],
+    // Nœud « GATE » enfant OMIS quand la phase n'en porte pas : le rail ne montre pas
+    // un franchissement là où la méthode n'en demande aucun.
+    children:
+      p.gate === undefined
+        ? []
+        : [
+            {
+              kind: "gate",
+              title: `gate-${p.gate.kind === "human" ? "humaine" : "auto"}`,
+              role: gateText(p.gate),
+              body: (
+                <p>
+                  Condition de franchissement : <b>{gateText(p.gate)}</b>.
+                </p>
+              ),
+            },
+          ],
   }));
 
   // Contexte du copilote : les ids déjà présents (pour le diff avant→après).
@@ -199,15 +204,17 @@ export function MethodeAtelier({
               </span>
             </div>
           ))}
-          {mainPhases.map((p) => (
-            <div className="sub" key={`gate-${p.id}`}>
-              <span className="tagg gate">GATE</span>
-              <span className="sn">
-                gate-{p.gate.kind === "human" ? "humaine" : "auto"}
-                <span className="sd">{gateText(p.gate)}</span>
-              </span>
-            </div>
-          ))}
+          {mainPhases
+            .filter((p) => p.gate !== undefined)
+            .map((p) => (
+              <div className="sub" key={`gate-${p.id}`}>
+                <span className="tagg gate">GATE</span>
+                <span className="sn">
+                  gate-{p.gate!.kind === "human" ? "humaine" : "auto"}
+                  <span className="sd">{gateText(p.gate!)}</span>
+                </span>
+              </div>
+            ))}
         </RailSection>
 
         <RailSection title="Principes" count={CATALOG_PRINCIPLES.length} defaultOpen>

@@ -43,15 +43,20 @@ describe("parseWorkflowProposition — name/kind/phases + validations + C-1", ()
       },
     ]);
   });
-  it("kind non canonique → écarté ; phase sans nom → ignorée ; gate absente → human/condition vide", () => {
+  it("kind non canonique → écarté ; phase sans nom → ignorée ; gate absente → AUCUNE gate", () => {
     const p = parseWorkflowProposition(
       JSON.stringify({ name: "W", kind: "galaxie", phases: [{ description: "orpheline" }, { name: "Seule" }] }),
     );
     expect(p?.name).toBe("W");
     expect(p).not.toHaveProperty("kind");
+    // Ce test gravait l'invention dans son propre TITRE (« gate absente → human/condition vide »).
+    // Même règle que le parseur du cœur : une phase proposée SANS gate n'en reçoit pas — on ne
+    // prête pas au modèle un feu vert qu'il n'a pas proposé. C'est le PROGRAMME qui a changé
+    // (`workflowProposition.ts`), pas l'attendu qu'on aurait ajusté sur l'observé.
     expect(p?.phases).toEqual([
-      { id: "seule", order: 0, name: "Seule", description: "", roleKeys: [], gate: { kind: "human", condition: "" } },
+      { id: "seule", order: 0, name: "Seule", description: "", roleKeys: [] },
     ]);
+    expect("gate" in p!.phases![0]).toBe(false); // seule mesure qui discrimine (R-4)
   });
   it("ids de phase uniques même en cas de noms identiques", () => {
     const p = parseWorkflowProposition(

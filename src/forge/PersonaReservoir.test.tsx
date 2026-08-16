@@ -13,12 +13,13 @@ import { FEANOR_NO_REPLY_PREFIX } from "./FeanorHead";
 const offline = () => Promise.resolve<Persona[]>([]);
 
 describe("PersonaReservoir — écran réservoir + fiche (Lot 3, A3)", () => {
-  it("rend une grille de 9 fiches à vignettes (repli gabarit hors-ligne)", () => {
+  // 10 fiches depuis la scission du squad prod (canon 0.39.0) : le gabarit compte 10 personas.
+  it("rend une grille de 10 fiches à vignettes (repli gabarit hors-ligne)", () => {
     render(<PersonaReservoir loadReservoir={offline} />);
     const grid = document.querySelector(".persona-reservoir .pgrid") as HTMLElement;
     expect(grid).not.toBeNull();
     const cards = grid.querySelectorAll(":scope > .pcard");
-    expect(cards.length).toBe(9);
+    expect(cards.length).toBe(10);
     // Chaque fiche porte une vignette (initiales) et un badge dérivés — GUI-only.
     for (const name of ["Odin", "Gimli", "Fëanor"]) {
       expect(screen.getByLabelText(`Ouvrir la fiche de ${name}`)).toBeTruthy();
@@ -48,9 +49,9 @@ describe("PersonaReservoir — écran réservoir + fiche (Lot 3, A3)", () => {
     fireEvent.click(screen.getByLabelText("Ouvrir la fiche de Gandalf"));
     expect(screen.getByText("✎ édition")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "library" }));
-    // De retour sur la grille : les 9 fiches sont là.
+    // De retour sur la grille : les 10 fiches sont là.
     const grid = document.querySelector(".persona-reservoir .pgrid") as HTMLElement;
-    expect(grid.querySelectorAll(":scope > .pcard").length).toBe(9);
+    expect(grid.querySelectorAll(":scope > .pcard").length).toBe(10);
   });
 
   it("éditer puis enregistrer met à jour la fiche dans le réservoir (état de session)", () => {
