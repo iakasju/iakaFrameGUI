@@ -145,6 +145,38 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **`CANON-VENDOR-TABLE-DERIVEE` — successeur nommé du lot GUI-VENDOR-CHARON (dépôt
+  `iakaframe`, canon-side).** Mandat : **dériver** les 7 ensembles de `fixtureTable()` depuis le
+  canon (`teams/iakaframe-8.md` → `personas` ; `methods/iakaframe.md` →
+  `roleKeys`/`principleIds`/`ritualIds`/`scaffoldIds`/`guardrailIds` ; union des `persona.skills` +
+  fermeture des `subskills` → skills) et **asserter l'égalité ensembliste avec les constantes
+  déclarées** (`IDS`, `ROLE_KEYS`, `SKILL_IDS`… `vendor.js:34-70`), sur le modèle du cliquet **R1**
+  (*clés lues ≡ clés déclarées*), **avec sa liste de hors-couverture déclarée et exportée**.
+  *Raison* : ces listes **prétendent** être « l'ENSEMBLE RÉFÉRENCÉ par la méthode canonique » mais
+  sont **transcrites, pas dérivées** — rien ne le vérifie. Cette fois la garde a rougi parce qu'un
+  humain a pensé à bumper 78 → 82 ; un futur lot canon qui ajoute une 11ᵉ persona **sans** toucher
+  `vendor.js` laissera la garde **verte et aveugle**. Effet visé : l'oubli rougit **au commit qui
+  l'introduit**, **sans dépôt frère**. Réf. `specs/instructions/gui-vendor-charon.md` § 2.3.
+  **Décision de non-action reconduite** : `npm run test:vendor` **reste hors de `test:all`**
+  (`scripts/test-vendor.mjs:5-8`) — ne pas rouvrir.
+
+- [ ] 🛑 **`GATE-DE-PHASE-OPTIONNEL` — remonté par ⚒️ Gimli en cours du lot GUI-VENDOR-CHARON,
+  HORS de son périmètre, NON corrigé.** Le cœur modélise `Phase.gate` comme **obligatoire**
+  (`packages/core/src/workflow.ts:79`) et `workflowToMd` **ré-émet un gate par phase**. Or le
+  workflow canon 0.39.0 déclare **5 phases pour 4 gates** : l'étape `surveillance` n'en a **aucun**,
+  et le canon écrit noir sur blanc dans le fichier lui-même — *« AUCUN gate pour l'étape
+  `surveillance`, et c'est une DÉCLARATION, pas un oubli. […] Si un parseur venait à exiger un gate
+  par étape : REMONTER, ne pas en inventer un. »* **Mesuré** : `parseWorkflowFrontmatterMd` lit bien
+  4 gates, mais `workflowToMd(mdToWorkflow(lean))` en rend **5**, le 5ᵉ étant
+  `{ afterPhase: "surveillance", kind: "human", criteria: "" }` — **inventé**. Conséquence produit :
+  ouvrir puis enregistrer le workflow canon dans la forge **ajouterait un feu vert humain à une
+  mission dont la nature est d'agir sans ordre**, c'est-à-dire que le GUI **déformerait le canon** —
+  violation directe de la doctrine **GUI ← frame**. **Conséquence mesurée** : `packages/core/__tests__/workflowMd.test.ts`
+  (3 tests) et `src/forge/workflowFidelite.test.ts` (2 tests) sont **rouges et laissés rouges à
+  dessein** : les rendre verts exigerait de **graver l'invention** dans l'attendu, précisément
+  l'anti-pattern R-4 du cadrage. **À cadrer avant tout code** (rendre `gate` optionnel touche le
+  modèle, l'éditeur de workflow P6b, les adaptateurs et le rendu markdown).
+
 - [ ] **Sous-lot B « cardinalité » — non commencé.** Le **lot A** (modèle de frame agnostique :
   `kind` first-class, acteurs/conteneur unifiés) a été livré **par une autre session** le 2026-07-26
   (`a6d9803`). Le **sous-lot B** de ce même cadrage reste dû : `coordinator` **optionnel** + N=1 dans
