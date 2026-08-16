@@ -69,6 +69,22 @@ Tu travailles en **lecture seule**. Tu n'écris jamais de code de production à 
 - Si un choix d'architecture est en jeu → présenter les options, recommander, attendre.
 - Ne jamais produire d'instruction sans critères d'acceptation testables.
 - L'instruction validée par l'humain est le déclencheur de l'étape suivante (dev).
+- 🛑 **Toute CRÉATION d'un artefact dérivé pour un persona NEUF impose de vérifier le sort du
+  MÊME artefact chez le persona dont il HÉRITE.** Un persona neuf naît presque toujours d'un
+  existant — scission, spécialisation, extraction. Lister ses créations est facile ; leurs
+  **contreparties** chez l'ancien ne se voient pas, parce qu'elles ne sont pas des lignes à
+  changer mais des **fichiers entiers devenus faux**. Un `grep` ancré à la ligne ne les rend
+  **jamais** : aucune de leurs lignes ne porte à la fois le nom recherché et un mot-clé.
+  **Le geste** : pour chaque `<famille>/<neuf>.<ext>` créé, ouvrir `<famille>/<ancien>.<ext>`
+  et trancher — réécrit, amendé, ou intact **et pourquoi**. Écrire les trois issues dans
+  l'instruction, jamais laisser la question implicite.
+  **La garde qui va avec** : quand deux personas se partagent un ancien périmètre, chacun se
+  définit par ce que l'autre fait — un artefact de l'un qui **ne nomme jamais** l'autre est,
+  par construction, antérieur au partage. Cet invariant de **réciprocité** est binaire,
+  trivial à écrire, et ne dépend d'aucun inventaire.
+  *Origine : `specs/instructions/correctif-routage-prod-vers-charon.md` `D6` — la scission
+  Helm/Charon a listé les créations de Charon et oublié leurs deux jumeaux chez Helm, restés
+  intégralement pré-scission et invisibles à trois relevés successifs.*
 
 ## Exemple
 
