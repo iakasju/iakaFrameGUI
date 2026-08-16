@@ -16,10 +16,14 @@ import {
   collectArtifactsFromDir,
   commitAndPushManifest,
   downloadBase,
+  lockVersions,
   MANIFEST_PATH,
   parseArgs,
   platformOfArtifact,
   PUBLISH_BRANCH,
+  readRepoVersions,
+  VERSION_CARRIERS,
+  VERSION_NON_CARRIERS,
   versionOfTag,
 } from "./publish-update.mjs";
 
@@ -138,22 +142,150 @@ describe("collectArtifactsFromDir — la signature est le critère d'appariement
   });
 });
 
+/** Les 5 porteurs de fichiers, tous alignés — base à laquelle chaque test ne dérange QU'UN champ. */
+const aligned = (v = "0.1.5") => ({
+  pkg: v,
+  lockRoot: v,
+  lockPackages: v,
+  conf: v,
+  cargo: v,
+});
+
 describe("assertVersionsAligned — la garde qui empêche l'updater de mentir (C7)", () => {
   it("passe quand les quatre valeurs coïncident", () => {
-    const r = assertVersionsAligned("v0.1.5", { pkg: "0.1.5", conf: "0.1.5", cargo: "0.1.5" });
+    const r = assertVersionsAligned("v0.1.5", aligned("0.1.5"));
     expect(r).toEqual({ ok: true, version: "0.1.5" });
   });
 
   it("échoue explicitement sur une dérive, en citant le fichier fautif", () => {
     expect(() =>
-      assertVersionsAligned("v0.1.5", { pkg: "0.1.5", conf: "0.1.4", cargo: "0.1.5" }),
+      assertVersionsAligned("v0.1.5", { ...aligned("0.1.5"), conf: "0.1.4" }),
     ).toThrow(/tauri\.conf\.json/);
   });
 
   it("échoue si une version est illisible plutôt que de la supposer bonne", () => {
     expect(() =>
-      assertVersionsAligned("v0.1.5", { pkg: "0.1.5", conf: "0.1.5", cargo: null }),
+      assertVersionsAligned("v0.1.5", { ...aligned("0.1.5"), cargo: null }),
     ).toThrow(/illisible/);
+  });
+
+  // --- le cinquième porteur, invisible à la garde jusqu'à ce lot -------------------------------
+  //
+  // Le défaut RÉEL du dépôt au 2026-08-16 : `package.json` à 0.1.7, les deux champs du lock restés
+  // à 0.1.4. Rien ne cassait — `npm ci` ne valide que la concordance des dépendances, jamais le
+  // champ `version` racine (npm/cli#1177) — et c'était une RÉCIDIVE (même incident le 2026-07-31).
+
+  it("attrape une dérive du LOCK SEUL, tous les autres porteurs étant alignés", () => {
+    expect(() =>
+      assertVersionsAligned("v0.1.7", { ...aligned("0.1.7"), lockRoot: "0.1.4" }),
+    ).toThrow(/package-lock\.json/);
+    expect(() =>
+      assertVersionsAligned("v0.1.7", { ...aligned("0.1.7"), lockRoot: "0.1.4" }),
+    ).toThrow(/0\.1\.4/);
+  });
+
+  it("traite `packages[\"\"]` comme un porteur DISTINCT de la racine du lock", () => {
+    // Les deux champs vivent dans le même fichier mais dérivent séparément : n'en lire qu'un
+    // laisserait l'autre mentir. L'erreur cite donc le champ, pas seulement le fichier.
+    expect(() =>
+      assertVersionsAligned("v0.1.7", { ...aligned("0.1.7"), lockPackages: "0.1.4" }),
+    ).toThrow(/packages\[""\]/);
+  });
+
+  it("refuse un lock illisible ou absent (null) plutôt que de le supposer aligné", () => {
+    expect(() =>
+      assertVersionsAligned("v0.1.7", { ...aligned("0.1.7"), lockRoot: null, lockPackages: null }),
+    ).toThrow(/illisible/);
+  });
+
+  it("dit QUOI FAIRE : la commande de sortie, pas seulement le constat", () => {
+    // Une garde qui refuse sans indiquer la sortie reporte le travail sur celui qui la rencontre —
+    // c'est déjà le contrat d'`assertNamedArchitectures`, qui dicte le renommage attendu.
+    expect(() =>
+      assertVersionsAligned("v0.1.7", { ...aligned("0.1.7"), lockRoot: "0.1.4" }),
+    ).toThrow(/npm version 0\.1\.7 --no-git-tag-version --allow-same-version/);
+  });
+
+  it("aligne le détail sur la plus longue clé — le libellé du lock déborde des 16 colonnes", () => {
+    let message = "";
+    try {
+      assertVersionsAligned("v0.1.7", { ...aligned("0.1.7"), lockRoot: "0.1.4" });
+    } catch (e) {
+      message = e.message;
+    }
+    const lines = message.split("\n").filter((l) => l.startsWith("  "));
+    expect(lines.length).toBe(Object.keys(VERSION_CARRIERS).length + 1); // + le tag
+    // Toutes les valeurs commencent à la MÊME colonne, y compris derrière la plus longue clé.
+    const columns = [...new Set(lines.map((l) => l.search(/\S+$/)))];
+    expect(columns).toHaveLength(1);
+    expect(columns[0]).toBeGreaterThan('  package-lock.json (packages[""])'.length);
+  });
+});
+
+describe("VERSION_CARRIERS / VERSION_NON_CARRIERS — l'énumération est DÉCLARÉE, pas muette", () => {
+  it("cliquet anti-omission : les clés LUES sont exactement les clés DÉCLARÉES", () => {
+    // C'est la seule réponse mécanique à « on a ajouté un porteur mais on a oublié de le brancher » :
+    // toucher au registre sans câbler `readRepoVersions` (ou l'inverse) rend ce test rouge.
+    expect(Object.keys(readRepoVersions()).sort()).toEqual(Object.keys(VERSION_CARRIERS).sort());
+  });
+
+  it("chaque porteur gardé porte son libellé de fichier ET sa raison d'être gardé", () => {
+    for (const [key, carrier] of Object.entries(VERSION_CARRIERS)) {
+      expect(carrier.file, `${key}.file`).toMatch(/\S/);
+      // Une « raison » vide ou télégraphique laisserait la liste muette : c'est le défaut corrigé.
+      expect(String(carrier.reason ?? "").trim().length, `${key}.reason`).toBeGreaterThan(20);
+    }
+  });
+
+  it("déclare ce qui est HORS couverture, avec la raison de l'être", () => {
+    // Une garde qui prétend tout voir et n'en voit qu'une partie est pire qu'une garde honnêtement
+    // énumérante. Les trois exclusions arbitrées sont donc écrites dans le code, pas devinées.
+    expect(Object.keys(VERSION_NON_CARRIERS)).toEqual(
+      expect.arrayContaining([
+        "packages/core/package.json",
+        "updater/latest.json",
+        "src-tauri/Cargo.lock",
+      ]),
+    );
+    for (const [path, reason] of Object.entries(VERSION_NON_CARRIERS)) {
+      expect(String(reason ?? "").trim().length, path).toBeGreaterThan(20);
+    }
+  });
+
+  it("aucun fichier n'est à la fois gardé et déclaré hors couverture", () => {
+    const guarded = Object.values(VERSION_CARRIERS).map((c) => c.file.replace(/ \(.*\)$/, ""));
+    for (const path of Object.keys(VERSION_NON_CARRIERS)) {
+      expect(guarded).not.toContain(path);
+    }
+  });
+});
+
+describe("lockVersions — les deux champs du package-lock, ou rien", () => {
+  it("lit la racine et packages[\"\"] séparément", () => {
+    expect(
+      lockVersions(JSON.stringify({ version: "0.1.7", packages: { "": { version: "0.1.4" } } })),
+    ).toEqual({ lockRoot: "0.1.7", lockPackages: "0.1.4" });
+  });
+
+  it("rend null des DEUX côtés sur un lock illisible — jamais une supposition", () => {
+    expect(lockVersions("{ pas du json")).toEqual({ lockRoot: null, lockPackages: null });
+    expect(lockVersions("{}")).toEqual({ lockRoot: null, lockPackages: null });
+  });
+});
+
+describe("sentinelle permanente — les 5 porteurs du DÉPÔT RÉEL coïncident", () => {
+  it("échoue si un porteur de fichier dérive, sans jamais regarder le tag", () => {
+    // Hors chemin de publication : cette mesure tourne dans `test:all`, à chaque run, y compris
+    // pendant un lot non tagué. Elle ne compare donc que les FICHIERS entre eux — un bump en cours
+    // (`npm version` + les 2 fichiers Tauri) les laisse alignés à tout instant.
+    const seen = readRepoVersions();
+    const byFile = Object.fromEntries(
+      Object.entries(VERSION_CARRIERS).map(([key, carrier]) => [carrier.file, seen[key]]),
+    );
+    const reference = seen.pkg;
+    expect(byFile).toEqual(
+      Object.fromEntries(Object.keys(byFile).map((file) => [file, reference])),
+    );
   });
 });
 

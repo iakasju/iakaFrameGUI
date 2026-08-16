@@ -70,42 +70,140 @@ export function cargoVersion(text) {
 }
 
 /**
- * Vérifie que `package.json`, `tauri.conf.json`, `Cargo.toml` et le tag portent LA MÊME version.
- * Une dérive ici et l'updater ment sur la version disponible : le client télécharge un binaire qui
- * s'annonce autrement que ce que le manifeste promet, et la boucle « une version toujours dispo »
- * s'installe. On échoue donc explicitement, en citant les quatre valeurs vues.
+ * LE REGISTRE DES PORTEURS DE VERSION — une énumération, DÉCLARÉE comme telle.
+ *
+ * Cette garde **énumère**, elle ne découvre pas. Ce n'est pas une facilité : le dépôt ne porte pas
+ * *une* version déclinée en N exemplaires, mais **plusieurs axes de versionnement indépendants**, et
+ * rien dans la forme d'un champ `version` ne les distingue. Une découverte signalerait
+ * `packages/core/package.json` (à `0.1.0`) comme une dérive et **forcerait par accident un
+ * arbitrage — le versionnement unique du monorepo — que le décideur a explicitement réservé**. Une
+ * garde qui s'arroge une décision de produit est un défaut plus grave que celui qu'elle corrige.
+ *
+ * Le défaut d'une liste en dur n'est pas d'être en dur, c'est d'être **muette**. Les trois silences
+ * sont donc fermés ici : chaque entrée porte **sa raison** (ci-dessous), ce qui est **hors
+ * couverture** est écrit noir sur blanc (`VERSION_NON_CARRIERS`), et un **cliquet** de test compare
+ * les clés LUES par `readRepoVersions` aux clés DÉCLARÉES ici — ajouter une entrée sans câbler sa
+ * lecture rend le test rouge.
+ *
+ * ⚠️ **Trou assumé, et déclaré plutôt que masqué** : un porteur de version qui apparaîtrait dans un
+ * **fichier neuf** restera invisible tant qu'il n'est pas ajouté à ce registre. C'est le prix de
+ * l'énumération ; il est le prix arbitré, pas un oubli.
+ *
+ * La clé sert au câblage (`readRepoVersions`), `file` est le libellé cité dans l'erreur.
+ */
+export const VERSION_CARRIERS = {
+  pkg: {
+    file: "package.json",
+    reason:
+      "manifeste npm de la racine — LA version produit, ecrite par `npm version` (jamais a la main)",
+  },
+  lockRoot: {
+    file: "package-lock.json (racine)",
+    reason:
+      "ecrit par `npm version` en meme temps que package.json — a derive deux fois quand le bump " +
+      "etait fait a la main (0.1.0 en 2026-07-31, 0.1.4 en 2026-08-16)",
+  },
+  lockPackages: {
+    file: 'package-lock.json (packages[""])',
+    reason:
+      "second champ du meme fichier, distinct du premier — recopie de la racine par npm, invisible " +
+      "a `npm ci` qui ne valide que la concordance des dependances (npm/cli#1177)",
+  },
+  conf: {
+    file: "src-tauri/tauri.conf.json",
+    reason: "version GRAVEE dans le binaire et annoncee au plugin updater — editee a la main",
+  },
+  cargo: {
+    file: "src-tauri/Cargo.toml",
+    reason: "version de la crate, GRAVEE dans le binaire — editee a la main",
+  },
+};
+
+/**
+ * CE QUE LA GARDE NE VOIT PAS, ET POURQUOI. *Une garde qui prétend tout voir et n'en voit qu'une
+ * partie est pire qu'une garde honnêtement énumérante* : l'aveu est donc dans le code, exporté et
+ * testé, pas relégué dans un commentaire qu'on ne lit plus.
+ */
+export const VERSION_NON_CARRIERS = {
+  "packages/core/package.json":
+    "bibliotheque distincte, volontairement a 0.1.0 — le versionnement unique du monorepo est un " +
+    "arbitrage RESERVE AU DECIDEUR (ouvert depuis 2026-07-31) ; l'aligner ici le trancherait par accident",
+  "updater/latest.json":
+    "sortie de la publication : il decrit ce qui est PUBLIE et retarde donc legitimement d'un bump " +
+    "— l'aligner ferait mentir la sortie du script sur son entree",
+  "src-tauri/Cargo.lock":
+    "auto-synchronise par cargo a chaque build : n'a jamais derive, le garder serait du bruit",
+  "node_modules/**/package.json":
+    "versions des dependances tierces — sans rapport avec la version du produit",
+};
+
+/**
+ * Vérifie que les cinq porteurs de fichiers déclarés par `VERSION_CARRIERS` **et** le tag portent LA
+ * MÊME version. Une dérive ici et l'updater ment sur la version disponible : le client télécharge un
+ * binaire qui s'annonce autrement que ce que le manifeste promet, et la boucle « une version
+ * toujours dispo » s'installe. On échoue donc explicitement, en citant **toutes** les valeurs vues.
  *
  * @returns {{ ok: true, version: string }}
- * @throws {Error} avec le détail des quatre valeurs en cas de dérive.
+ * @throws {Error} avec le détail de toutes les valeurs en cas de dérive.
  */
 export function assertVersionsAligned(tag, versions) {
   const wanted = versionOfTag(tag);
-  const seen = {
-    tag: wanted,
-    "package.json": versions.pkg,
-    "tauri.conf.json": versions.conf,
-    "Cargo.toml": versions.cargo,
-  };
+  const seen = { tag: wanted };
+  for (const [key, carrier] of Object.entries(VERSION_CARRIERS)) {
+    seen[carrier.file] = versions[key];
+  }
   const bad = Object.entries(seen).filter(([, v]) => v !== wanted);
   if (bad.length > 0) {
+    // Largeur calculée sur la plus longue clé : `package-lock.json (packages[""])` dépasse
+    // largement les 16 colonnes d'origine et écraserait la colonne des valeurs.
+    const width = Math.max(...Object.keys(seen).map((k) => k.length));
     const detail = Object.entries(seen)
-      .map(([k, v]) => `  ${k.padEnd(16)} ${v ?? "(illisible)"}`)
+      .map(([k, v]) => `  ${k.padEnd(width)} ${v ?? "(illisible)"}`)
       .join("\n");
     throw new Error(
-      `versions desalignees — le tag ${tag} ne correspond pas aux fichiers du depot :\n${detail}`,
+      `versions desalignees — le tag ${tag} ne correspond pas aux fichiers du depot :\n${detail}\n` +
+        `sortie : npm version ${wanted} --no-git-tag-version --allow-same-version ` +
+        "(ecrit package.json ET package-lock.json d'un seul geste), puis aligner a la main " +
+        "src-tauri/tauri.conf.json et src-tauri/Cargo.toml.",
     );
   }
   return { ok: true, version: wanted };
 }
 
-/** Lit les trois versions du dépôt (chemins réels). */
+/**
+ * Lit les deux champs `version` du `package-lock.json` — la racine et `packages[""]`. Un lock
+ * illisible rend `null` **des deux côtés** plutôt qu'une supposition : la garde dira « illisible »,
+ * ce qui est un refus, quand supposer serait un faux vert.
+ */
+export function lockVersions(text) {
+  try {
+    const lock = JSON.parse(text);
+    const root = lock?.version;
+    const pkgs = lock?.packages?.[""]?.version;
+    return {
+      lockRoot: typeof root === "string" ? root : null,
+      lockPackages: typeof pkgs === "string" ? pkgs : null,
+    };
+  } catch {
+    return { lockRoot: null, lockPackages: null };
+  }
+}
+
+/**
+ * Lit les cinq porteurs de fichiers du dépôt (chemins réels). Les clés rendues ici sont **exactement**
+ * celles de `VERSION_CARRIERS` — c'est le cliquet anti-omission, verrouillé par un test.
+ */
 export function readRepoVersions(root = ROOT) {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
   const conf = JSON.parse(
     readFileSync(join(root, "src-tauri", "tauri.conf.json"), "utf8"),
   ).version;
   const cargo = cargoVersion(readFileSync(join(root, "src-tauri", "Cargo.toml"), "utf8"));
-  return { pkg, conf, cargo };
+  const lockPath = join(root, "package-lock.json");
+  const { lockRoot, lockPackages } = existsSync(lockPath)
+    ? lockVersions(readFileSync(lockPath, "utf8"))
+    : { lockRoot: null, lockPackages: null };
+  return { pkg, lockRoot, lockPackages, conf, cargo };
 }
 
 // ---------------------------------------------------------------------------
@@ -457,7 +555,10 @@ async function main(argv) {
   // (1) Garde d'alignement — toujours, y compris en --check-only.
   const versions = readRepoVersions();
   assertVersionsAligned(args.tag, versions);
-  console.log(`versions alignees sur ${versionOfTag(args.tag)} (package/tauri.conf/Cargo/tag)`);
+  const carriers = Object.values(VERSION_CARRIERS)
+    .map((c) => c.file)
+    .join(", ");
+  console.log(`versions alignees sur ${versionOfTag(args.tag)} (${carriers}, tag)`);
   if (args.checkOnly) return 0;
 
   // (1bis) Garde de branche. Elle protège **le geste qui rend visible** — le commit et le push du
