@@ -22,6 +22,7 @@ import {
   roleLabel,
   updatePhaseFields,
   updatePhaseGate,
+  removePhaseGate,
   type GateKind,
   type Workflow,
   type WorkflowKind,
@@ -77,15 +78,21 @@ export function WorkflowAtelier({
     onWorkflowChange({ ...workflow, kind: next });
   };
 
-  // Affichage du gate d'une phase : masquable quand le `kind` le rend optionnel (état d'UI local ;
-  // aucune donnée « sans gate » n'est fabriquée — le contrat porte toujours une gate par phase).
-  const [showGate, setShowGate] = useState<boolean>(!gatesOptional);
-  useEffect(() => {
-    setShowGate(!gatesOptional);
-  }, [gatesOptional, selectedId]);
-
   const phases = [...workflow.phases].sort((a, b) => a.order - b.order);
   const selected = phases.find((p) => p.id === selectedId) ?? null;
+
+  // La case « Poser un gate » est DÉRIVÉE DE LA DONNÉE, plus un état d'UI local. Avant, elle
+  // affichait « ◇ Aucun gate » pendant que le contrat en portait un : l'interface mentait sur le
+  // fichier. Désormais la donnée fait foi, et la case AGIT dessus (pose / retire réellement).
+  const showGate = selected?.gate !== undefined;
+  const toggleGate = (next: boolean): void => {
+    if (!selected) return;
+    onWorkflowChange(
+      next
+        ? updatePhaseGate(workflow, selected.id, { kind: "human", condition: "" })
+        : removePhaseGate(workflow, selected.id),
+    );
+  };
   const canRemove = workflow.phases.length > 1;
 
   const onAdd = (): void => {
@@ -289,27 +296,29 @@ export function WorkflowAtelier({
 
                 <fieldset className="gate">
                   <legend>Gate de sortie{gatesOptional ? " — optionnel" : ""}</legend>
-                  {gatesOptional && (
-                    <label className="chk">
-                      <input
-                        type="checkbox"
-                        checked={showGate}
-                        aria-label="Définir un gate de sortie pour cette phase"
-                        onChange={(e) => setShowGate(e.target.checked)}
-                      />
-                      Poser un gate sur cette phase (kind: {kind} n'en impose aucun)
-                    </label>
-                  )}
-                  {!showGate ? (
+                  {/* La case est offerte QUEL QUE SOIT le `kind` : le canon lui-même est un
+                      `pipeline` dont une étape (`surveillance`) n'a aucun gate. La subordonner à
+                      `gatesOptional` rendrait ce cas inexprimable dans l'éditeur. */}
+                  <label className="chk">
+                    <input
+                      type="checkbox"
+                      checked={showGate}
+                      aria-label="Définir un gate de sortie pour cette phase"
+                      onChange={(e) => toggleGate(e.target.checked)}
+                    />
+                    Poser un gate sur cette phase
+                    {gatesOptional ? ` (kind: ${kind} n'en impose aucun)` : ""}
+                  </label>
+                  {!selected.gate ? (
                     <p className="gate-off" role="note">
-                      ◇ Aucun gate — étape libre (workflow <code>kind: {kind}</code>).
+                      ◇ Aucun gate — étape libre.
                     </p>
                   ) : (
                   <>
                   <label>
                     Type
                     <select
-                      value={selected.gate.kind}
+                      value={selected.gate!.kind}
                       onChange={(e) =>
                         onWorkflowChange(
                           updatePhaseGate(workflow, selected.id, {
@@ -326,7 +335,7 @@ export function WorkflowAtelier({
                     Condition
                     <input
                       type="text"
-                      value={selected.gate.condition}
+                      value={selected.gate!.condition}
                       onChange={(e) =>
                         onWorkflowChange(
                           updatePhaseGate(workflow, selected.id, {
@@ -339,7 +348,7 @@ export function WorkflowAtelier({
                   <label>
                     Jalon — rôle émetteur (from)
                     <select
-                      value={selected.gate.from ?? ""}
+                      value={selected.gate!.from ?? ""}
                       onChange={(e) =>
                         onWorkflowChange(
                           updatePhaseGate(workflow, selected.id, { from: e.target.value }),
@@ -357,7 +366,7 @@ export function WorkflowAtelier({
                   <label>
                     Jalon — rôle récepteur (to)
                     <select
-                      value={selected.gate.to ?? ""}
+                      value={selected.gate!.to ?? ""}
                       onChange={(e) =>
                         onWorkflowChange(
                           updatePhaseGate(workflow, selected.id, { to: e.target.value }),

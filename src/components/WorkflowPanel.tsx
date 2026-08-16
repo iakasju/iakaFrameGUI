@@ -61,7 +61,11 @@ export function WorkflowPanel() {
               <td>{roleText(p)}</td>
               <td>{p.description}</td>
               <td>
-                <span className={`gate gate-${p.gate.kind}`}>{gateText(p.gate)}</span>
+                {p.gate === undefined ? (
+                  <span className="gate gate-none">◇ aucun gate</span>
+                ) : (
+                  <span className={`gate gate-${p.gate.kind}`}>{gateText(p.gate)}</span>
+                )}
               </td>
             </tr>
           ))}
@@ -74,7 +78,13 @@ export function WorkflowPanel() {
           {offChain.map((p) => (
             <p key={p.id} className="sub">
               <strong>{p.name}</strong> — {roleText(p)} · {p.description} ·{" "}
-              <span className={`gate gate-${p.gate.kind}`}>{gateText(p.gate)}</span>
+              {/* Hors chaîne : c'est ICI que le canon plantait — l'étape `surveillance`
+                  (side: prod ⇒ offChain) n'a AUCUN gate. */}
+              {p.gate === undefined ? (
+                <span className="gate gate-none">◇ aucun gate</span>
+              ) : (
+                <span className={`gate gate-${p.gate.kind}`}>{gateText(p.gate)}</span>
+              )}
             </p>
           ))}
         </div>

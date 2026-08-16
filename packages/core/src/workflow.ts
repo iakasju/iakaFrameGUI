@@ -63,7 +63,17 @@ export interface Gate {
   display?: string;
 }
 
-/** Une **phase** du workflow (une étape ordonnée, portée par ≥ 1 rôle, close par une gate). */
+/**
+ * Une **phase** du workflow (une étape ordonnée, portée par ≥ 1 rôle, **éventuellement** close
+ * par une gate).
+ *
+ * ⚠️ **`gate` est OPTIONNEL, et c'est structurant** : une étape peut n'avoir **aucun** gate. Le
+ * canon en fournit le cas d'espèce — `library/workflows/iakaframe-3phases.md` déclare **5 étapes
+ * pour 4 gates**, l'étape `surveillance` n'en portant aucun, et le fichier canon écrit lui-même
+ * que cette absence *« est une DÉCLARATION, pas un oubli »* et que si *« un parseur venait à
+ * exiger un gate par étape : REMONTER, ne pas en inventer un »*. Un gate y ferait attendre un feu
+ * vert humain à une mission dont la nature est d'agir **sans ordre**.
+ */
 export interface Phase {
   /** Slug stable (ex. "cadrage"). */
   id: string;
@@ -75,8 +85,12 @@ export interface Phase {
   description: string;
   /** Rôles porteurs (clés canoniques ; ≥ 1). */
   roleKeys: string[];
-  /** Gate de sortie de la phase. */
-  gate: Gate;
+  /**
+   * Gate de sortie de la phase — **présent-si-porté** : la clé est **OMISE** quand la phase n'a
+   * pas de gate, jamais posée à `undefined`. Même convention que `Workflow.kind`,
+   * `WorkflowMd.methodId`, `Gate.from`/`to`/`display`, `Phase.badge`/`roleDisplay`.
+   */
+  gate?: Gate;
   /** Hors chaîne principale (ex. squad prod déclenché sur feu vert) — exclu du tableau. */
   offChain?: boolean;
   /** **Calage de rendu** (optionnel) : marqueur visuel préfixé au nom (ex. emoji). */
@@ -168,8 +182,10 @@ export function parsePhase(raw: unknown): Phase | null {
     name,
     description,
     roleKeys: toStringArray(r.roleKeys),
-    gate: parseGate(r.gate),
   };
+  // **Présent-si-porté** : sans `gate` à l'entrée, la clé est OMISE — on n'en fabrique pas.
+  // `gate` présent mais malformé ⇒ `parseGate` reste défensif (comportement inchangé).
+  if (r.gate != null) phase.gate = parseGate(r.gate);
   if (r.offChain === true) phase.offChain = true;
   const badge = optString(r.badge);
   if (badge) phase.badge = badge;
@@ -314,8 +330,12 @@ function renderRoleCell(phase: Phase): string {
   return phase.roleKeys.map(roleLabel).join(" + ");
 }
 
-/** Cellule « Gate » : override de calage, sinon rendu générique `**humain|auto** (condition)`. */
-function renderGateCell(gate: Gate): string {
+/**
+ * Cellule « Gate » : override de calage, sinon rendu générique `**humain|auto** (condition)`.
+ * Phase **sans gate** ⇒ `—` (le tableau garde sa colonne, il n'invente pas de feu vert).
+ */
+function renderGateCell(gate: Gate | undefined): string {
+  if (gate === undefined) return "—";
   if (gate.display !== undefined) return gate.display;
   const kindLabel = gate.kind === "human" ? "humain" : "auto";
   return gate.condition.length > 0
@@ -385,8 +405,9 @@ export function clonePhase(p: Phase): Phase {
     name: p.name,
     description: p.description,
     roleKeys: [...p.roleKeys],
-    gate: cloneGate(p.gate),
   };
+  // Clone conditionnel : clé OMISE si la phase n'en porte pas (jamais `gate: undefined`).
+  if (p.gate !== undefined) phase.gate = cloneGate(p.gate);
   if (p.offChain !== undefined) phase.offChain = p.offChain;
   if (p.badge !== undefined) phase.badge = p.badge;
   if (p.roleDisplay !== undefined) phase.roleDisplay = p.roleDisplay;
@@ -506,6 +527,9 @@ export function updatePhaseFields(
  * **`updatePhaseGate(wf, id, patch)`** — édite la gate d'une phase (`kind`, `condition`,
  * `from`/`to`). **Nettoie l'override de calage** `gate.display` (Q-3) dès qu'un champ rendu change,
  * pour que l'édition soit visible au rendu/diagramme. Renvoie une copie ; id inconnu → no-op.
+ *
+ * **Phase sans gate : la gate est CRÉÉE** (repli `{ kind: "human", condition: "" }` avant patch) —
+ * c'est le geste « poser un gate ». Son symétrique est `removePhaseGate`.
  */
 export function updatePhaseGate(
   wf: Workflow,
@@ -517,7 +541,9 @@ export function updatePhaseGate(
     if (p.id !== id) return p;
     touched = true;
     const next = clonePhase(p);
-    const gate = next.gate;
+    // Poser un gate sur une phase qui n'en a pas : on le CRÉE, on ne refuse pas l'édition.
+    const gate: Gate = next.gate ?? { kind: "human", condition: "" };
+    next.gate = gate;
     if (patch.kind !== undefined) gate.kind = patch.kind;
     if (patch.condition !== undefined) gate.condition = patch.condition;
     if (patch.from !== undefined) {
@@ -529,6 +555,24 @@ export function updatePhaseGate(
       else gate.to = patch.to;
     }
     delete gate.display; // Q-3 : override de gate nettoyé à toute édition de la gate.
+    return next;
+  });
+  return touched ? { ...wf, phases } : wf;
+}
+
+/**
+ * **`removePhaseGate(wf, id)`** — **retire** la gate d'une phase : la clé `gate` est **supprimée**,
+ * pas mise à `undefined`. Symétrique exact d'`updatePhaseGate` (qui pose et crée) — un modèle qui
+ * laisse ajouter sans laisser retirer n'a fait que déplacer l'obligation. Renvoie une copie ;
+ * id inconnu ⇒ **no-op** (l'objet d'origine, à l'identité près).
+ */
+export function removePhaseGate(wf: Workflow, id: string): Workflow {
+  let touched = false;
+  const phases = wf.phases.map((p) => {
+    if (p.id !== id || p.gate === undefined) return p;
+    touched = true;
+    const next = clonePhase(p);
+    delete next.gate;
     return next;
   });
   return touched ? { ...wf, phases } : wf;

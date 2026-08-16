@@ -48,8 +48,10 @@ export function FlowDiagram({ workflow }: { workflow: Workflow }) {
         </defs>
         {nodes.map(({ phase, y }, i) => {
           const gate = phase.gate;
-          const gateColor = gate.kind === "human" ? "#bd2f27" : "#2b5f9e";
-          const gateFill = gate.kind === "human" ? "#fbeceb" : "#eaf1f9";
+          // Phase sans gate : pas de losange. La flèche relie directement les deux phases —
+          // on ne dessine pas un feu vert que la méthode ne pose pas.
+          const gateColor = gate?.kind === "human" ? "#bd2f27" : "#2b5f9e";
+          const gateFill = gate?.kind === "human" ? "#fbeceb" : "#eaf1f9";
           const gy = y + 34;
           const isLast = i === nodes.length - 1;
           return (
@@ -76,55 +78,73 @@ export function FlowDiagram({ workflow }: { workflow: Workflow }) {
               >
                 {(phase.badge ? `${phase.badge} ` : "") + phase.name}
               </text>
-              {/* Flèche phase → gate */}
-              <line
-                x1={125}
-                y1={y + 26}
-                x2={125}
-                y2={gy - 2}
-                stroke="#9a9aa4"
-                strokeWidth={1.5}
-                markerEnd="url(#ar)"
-              />
-              {/* Gate (losange) */}
-              <path
-                d={`M125,${gy} L158,${gy + 16} L125,${gy + 32} L92,${gy + 16} Z`}
-                fill={gateFill}
-                stroke={gateColor}
-                strokeWidth={1.5}
-              />
-              <text
-                x={125}
-                y={gy + 14}
-                fontFamily="var(--mono)"
-                fontSize={7}
-                fontWeight={700}
-                fill={gateColor}
-                textAnchor="middle"
-              >
-                GATE
-              </text>
-              <text
-                x={125}
-                y={gy + 23}
-                fontFamily="var(--mono)"
-                fontSize={6}
-                fill={gateColor}
-                textAnchor="middle"
-              >
-                {gate.kind === "human" ? "humaine" : "auto"}
-              </text>
-              {/* Flèche gate → phase suivante */}
-              {!isLast && (
+              {/* Phase SANS gate : aucun losange — la flèche relie directement les deux
+                  phases. On ne dessine pas un feu vert que la méthode ne pose pas. */}
+              {gate === undefined ? (
+                !isLast && (
+                  <line
+                    x1={125}
+                    y1={y + 26}
+                    x2={125}
+                    y2={y + rowH - 2}
+                    stroke="#9a9aa4"
+                    strokeWidth={1.5}
+                    markerEnd="url(#ar)"
+                  />
+                )
+              ) : (
+                <>
+                {/* Flèche phase → gate */}
                 <line
                   x1={125}
-                  y1={gy + 32}
+                  y1={y + 26}
                   x2={125}
-                  y2={y + rowH - 2}
+                  y2={gy - 2}
                   stroke="#9a9aa4"
                   strokeWidth={1.5}
                   markerEnd="url(#ar)"
                 />
+                {/* Gate (losange) */}
+                <path
+                  d={`M125,${gy} L158,${gy + 16} L125,${gy + 32} L92,${gy + 16} Z`}
+                  fill={gateFill}
+                  stroke={gateColor}
+                  strokeWidth={1.5}
+                />
+                <text
+                  x={125}
+                  y={gy + 14}
+                  fontFamily="var(--mono)"
+                  fontSize={7}
+                  fontWeight={700}
+                  fill={gateColor}
+                  textAnchor="middle"
+                >
+                  GATE
+                </text>
+                <text
+                  x={125}
+                  y={gy + 23}
+                  fontFamily="var(--mono)"
+                  fontSize={6}
+                  fill={gateColor}
+                  textAnchor="middle"
+                >
+                  {gate.kind === "human" ? "humaine" : "auto"}
+                </text>
+                {/* Flèche gate → phase suivante */}
+                {!isLast && (
+                  <line
+                    x1={125}
+                    y1={gy + 32}
+                    x2={125}
+                    y2={y + rowH - 2}
+                    stroke="#9a9aa4"
+                    strokeWidth={1.5}
+                    markerEnd="url(#ar)"
+                  />
+                )}
+                </>
               )}
             </g>
           );

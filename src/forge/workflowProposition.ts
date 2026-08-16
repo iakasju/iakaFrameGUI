@@ -112,14 +112,17 @@ export function parseWorkflowProposition(raw: string): Partial<Workflow> | null 
         n += 1;
       }
       takenIds.push(id);
-      phases.push({
+      const phase: Phase = {
         id,
         order: phases.length,
         name: pName,
         description: str(p.description) ?? "",
         roleKeys: filterRoleKeys(p.roleKeys),
-        gate: parseProposedGate(p.gate),
-      });
+      };
+      // Même règle que le parseur du cœur : une phase proposée SANS gate n'en reçoit pas.
+      // Le LLM n'a pas à se voir prêter un feu vert qu'il n'a pas proposé.
+      if (p.gate != null) phase.gate = parseProposedGate(p.gate);
+      phases.push(phase);
     });
     if (phases.length > 0) out.phases = phases;
   }
