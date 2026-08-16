@@ -330,6 +330,7 @@ dont **4 fichiers créés** (`personas/charon.md`, `agents-golden/charon.md`, `r
 | R-6 | **Débordement de périmètre** vers `ForgeShell.test.tsx:25` (les 9 **onglets**) | Nommé en exclusion § 3.2 ; sa valeur reste **9** |
 | R-7 | **Le canon bouge entre cadrage et exécution** ⇒ la liste du § 1.2 ne colle plus | § 1.3 : la liste est un témoin, la remédiation vivante fait foi ; `AC-2` transforme l'écart en signal, pas en échec |
 | R-8 | **10ᵉ rôle sans vignette** (le `roleIndex` est clé de casting visuel) | Hors gate automatisé : à porter en **recette visuelle humaine** (backlog), pas à deviner ici |
+| R-9 | **Mesurer contre le mauvais checkout en croyant l'avoir désigné par le chemin du script** (troisième variante, distincte de R-1 et R-3 — constatée par 🏹 Legolas le 2026-08-17) : `libraryRoot()` (`~/work/iakaframe/cli/src/lib/library.js:47-60`) **ignore l'emplacement du script**, remonte depuis le `cwd`, ne trouve pas le double marqueur `library/`+`methods/`, puis retombe sur l'ancre de chapeau `~/work/iakaframe` — **l'arbre principal, en `0.38.0`**. Symétriquement, `resolveCanon()` (`packages/core/scripts/gen-fixtures.mjs:61-76`) retombe sur `<GUI>/../iakaframe`, **le même mauvais arbre**. Effet mesuré : `checked: 78, drift: 25` et 4 `source-introuvable` portant la note **« Anomalie du canon, pas du miroir. »** — un diagnostic **faux et accusatoire**, qui impute au canon une faute de **résolution de racine** | **Amendement du 2026-08-17** (§ 7) : `--root <canon>` sur `vendor-check` et `--canon <canon>` sur `gen-fixtures.mjs` sont **obligatoires**, jamais implicites. Preuve de la racine honorée : **`checked: 82`** (l'arbre `0.38.0` ne peut pas l'atteindre — il lui manque 4 sources) **et** la ligne `canon : <chemin>` imprimée par `gen-fixtures.mjs:138`, **citée** au rapport |
 
 ---
 
@@ -338,12 +339,21 @@ dont **4 fichiers créés** (`personas/charon.md`, `agents-golden/charon.md`, `r
 > Exécution : `<canon>` = un checkout d'`iakaframe` à `main` (`bbf5c7b` ou descendant) ;
 > `<GUI>` = racine d'`iakaFrameGUI`.
 
+> ✏️ **Amendement 🔵 Gandalf du 2026-08-17 — `AC-1` et `AC-4` ne pinnaient pas le canon.**
+> Les deux commandes, **lancées mot pour mot**, laissaient la résolution de racine décider seule —
+> et elle décide **mal** : `libraryRoot()` et `resolveCanon()` retombent l'un et l'autre sur
+> `~/work/iakaframe`, l'arbre principal en `0.38.0` (cf. **R-9**). Un critère dont la cible est
+> choisie par un repli n'est reproductible **que par accident**. Les deux critères ci-dessous sont
+> donc amendés pour **imposer la désignation explicite** du canon et **exiger la citation de la
+> racine effectivement mesurée**. Aucune autre partie du lot n'est touchée : c'est une correction
+> **d'instrument**, pas de périmètre.
+
 | # | Critère | Vérification |
 |---|---|---|
-| **AC-1 — CENTRAL** | La garde est **verte, sur l'inventaire complet** | `node <canon>/cli/src/index.js vendor-check --gui <GUI> --strict --json` ⇒ `ok:true`, `status:"clean"`, `drift:0`, **`checked:82`**, `derived:4`, `remediation:[]`, **exit 0** |
+| **AC-1 — CENTRAL** *(amendé 2026-08-17)* | La garde est **verte, sur l'inventaire complet**, **mesurée contre le canon DÉSIGNÉ** | `node <canon>/cli/src/index.js vendor-check --root <canon> --gui <GUI> --strict --json` ⇒ `ok:true`, `status:"clean"`, `drift:0`, **`checked:82`**, `derived:4`, `remediation:[]`, **exit 0**. **`--root <canon>` est OBLIGATOIRE** : sans lui, `libraryRoot()` retombe sur `~/work/iakaframe` (**`0.38.0`**) et rend `checked:78, drift:25` avec 4 `source-introuvable` accusant le canon (**R-9**). Le rapport **cite** en outre, en propre, `git -C <canon> rev-parse --short HEAD` et la `version` de `<canon>/cli/package.json` — la racine se **prouve**, elle ne s'**entend** pas |
 | **AC-2** | La mesure d'entrée est **rendue**, et l'écart au cadrage **déclaré** | La sortie `vendor-check` **d'avant** l'étape 2 est citée (`drift`, liste des fixtures). Si ≠ 24 / ≠ § 1.2 : l'écart est **nommé fixture par fixture** dans le rapport de lot. Un écart déclaré **n'est pas un échec** ; un écart **tu** en est un |
 | **AC-3** | Les 4 fixtures neuves existent et sont **byte-identiques** à leur source | `diff <canon>/library/personas/charon.md <GUI>/…/fixtures/personas/charon.md` ⇒ vide ; idem `agents-golden/charon.md`, `roles/surveillance.md`, `skills/iakaframe-surveillance/SKILL.md` |
-| **AC-4** | Les dérivées sont **régénérées**, pas copiées | `node packages/core/scripts/gen-fixtures.mjs --check` ⇒ « les 3 dérivées sont à jour », exit 0. **ET** le corps de `team.iakaframe-8.md` contient toujours `# La compagnie iakaframe (casting des 8)` (preuve de non-écrasement) |
+| **AC-4** *(amendé 2026-08-17)* | Les dérivées sont **régénérées**, pas copiées — **contre le canon DÉSIGNÉ** | `node packages/core/scripts/gen-fixtures.mjs --check --canon <canon>` ⇒ « les 3 dérivées sont a jour », exit 0, **et la ligne `canon : <chemin>` (imprimée par `gen-fixtures.mjs:138`) est CITÉE et pointe sur `<canon>`**. **`--canon <canon>` est OBLIGATOIRE** : sans lui, `resolveCanon()` (`gen-fixtures.mjs:61-76`) essaie `IAKAFRAME_HOME` puis `<GUI>/../iakaframe` — l'arbre **`0.38.0`** — et rendrait un « à jour » **contre le mauvais canon** (**R-9**). **ET** le corps de `team.iakaframe-8.md` contient toujours `# La compagnie iakaframe (casting des 8)` (preuve de non-écrasement) |
 | **AC-5** | Le catalogue résout, **sans régression enregistrée** | `method.test.ts` : `refs` vaut **11** et `byField("roleKeys")` vaut **`[]`**. Un `12`/`["surveillance"]` ⇒ **FAIL** (Option C écartée) |
 | **AC-6** | Aucune renumérotation | `CANONICAL_ROLES` : `design`/`documentation`/`frame` conservent `roleIndex` **6/7/8** ; `surveillance` vaut **9** et est **en dernière position**. `roster.test.ts` (`p.roleIndex === i`) vert |
 | **AC-7** | Parité de contrat **10/10** | `parite-generateurs.test.ts` : rendu GUI == golden byte-à-byte **pour les 10 personas, charon compris** ; garde `sha256` verte ; `Object.keys(expectedTools).sort()` == `IDS` (**10**) |
