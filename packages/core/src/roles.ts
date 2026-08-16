@@ -1,19 +1,27 @@
 /**
- * roles.ts — LISTE CANONIQUE FERMÉE des 9 rôles iakaframe (cœur partagé 🟦).
+ * roles.ts — LISTE CANONIQUE FERMÉE des 10 rôles iakaframe (cœur partagé 🟦).
  *
  * Repris de `IakaCockpit/src/theme/roles.ts:22-30` (source unique mûre). Le **rôle**
  * est la FONCTION d'un intervenant (portefeuille, coordination, …), DISTINCT du **nom**
- * (persona, cf. `persona.ts`). L'ordre = `roleIndex` (0→8), invariant qui pioche le
+ * (persona, cf. `persona.ts`). L'ordre = `roleIndex` (0→9), invariant qui pioche le
  * casting visuel. La liste est **fermée pour iakaframe** mais **paramétrable par méthode**
  * (agnosticisme AR-9) : une autre méthode déclarerait ses propres rôles ; au MVP seule la
  * liste iakaframe est peuplée.
  *
- * NB (VOLET B2) : les 9 clés sont alignées sur le canon `methods/iakaframe.md`
+ * NB (VOLET B2) : les clés sont alignées sur le canon `methods/iakaframe.md`
  * (`[portefeuille, coordination, cadrage, dev, qualite, deploiement, design, documentation,
- * frame]`). `deploiement` (persona helm) est en 6ᵉ position (index 5) conformément au casting
+ * frame, surveillance]`). `deploiement` est en 6ᵉ position (index 5) conformément au casting
  * canon. `frame` (persona feanor, Constructeur de frame) est le 9ᵉ rôle, en queue (index 8) :
  * ajouté SANS renumérotation (aucun roleIndex existant ne change — D-C). Base d'index cœur = 0,
  * base bibliothèque = 1 (mapping GUI = library − 1) : NE PAS unifier ici (D-C).
+ *
+ * NB (SCISSION DU SQUAD PROD, canon 0.39.0) : `surveillance` est le 10ᵉ rôle, appendu en queue
+ * (index 9). Fait canon qui l'impose : `library/roles/surveillance.md` porte `roleIndex: 10`
+ * (base bibliothèque 1 ⇒ 9 côté cœur) tandis que `design`/`documentation`/`frame` gardent
+ * `7`/`8`/`9` — **le canon n'a PAS renuméroté**, c'est un ajout en queue, et l'alignement du
+ * miroir doit l'être aussi (D-C, invariant `roster.test.ts` `p.roleIndex === i`). Le squad prod
+ * est désormais scindé : `deploiement` = la traversée stage → prod SUR ORDRE (persona Charon),
+ * `surveillance` = la veille SANS ORDRE (persona Helm).
  *
  * En documentation, un intervenant se désigne par son **rôle** (libellé ci-dessous),
  * JAMAIS par un nom de code (le `name` d'une persona est une donnée éditable).
@@ -42,7 +50,7 @@ export interface Role {
   scope?: string;
 }
 
-/** Les 9 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→8). */
+/** Les 10 rôles canoniques iakaframe, dans l'ordre des `roleIndex` (0→9). */
 export const CANONICAL_ROLES: readonly Role[] = [
   { key: "portefeuille", label: "Portefeuille", roleIndex: 0 },
   { key: "coordination", label: "Coordination", roleIndex: 1 },
@@ -53,9 +61,12 @@ export const CANONICAL_ROLES: readonly Role[] = [
   { key: "design", label: "Design", roleIndex: 6 },
   { key: "documentation", label: "Documentation", roleIndex: 7 },
   { key: "frame", label: "Constructeur de frame", roleIndex: 8 },
+  // APPEND en queue (jamais d'insertion) : `label` repris VERBATIM de
+  // `library/roles/surveillance.md` (`label: Veille de production`, `roleIndex: 10`).
+  { key: "surveillance", label: "Veille de production", roleIndex: 9 },
 ] as const;
 
-/** Clés des 9 rôles canoniques (ordre `roleIndex`). */
+/** Clés des 10 rôles canoniques (ordre `roleIndex`). */
 export const CANONICAL_ROLE_KEYS: readonly string[] = CANONICAL_ROLES.map(
   (r) => r.key,
 );
