@@ -45,15 +45,17 @@ describe("G-1 — adaptateur pur (aucune I/O)", () => {
   });
 });
 
-describe("G-2 — génération depuis la team gabarit (9 personas)", () => {
+describe("G-2 — génération depuis la team gabarit (10 personas)", () => {
   const tree = generateClaudeCodeKit(gabaritTeam());
   const paths = Object.keys(tree.files);
 
-  it("produit un .claude/agents/<id>.md par persona (9)", () => {
+  // 10 depuis la scission du squad prod (canon 0.39.0) : le gabarit porte `surveillance`/Helm
+  // en plus de `deploiement`/Charon.
+  it("produit un .claude/agents/<id>.md par persona (10)", () => {
     const agents = paths.filter(
       (p) => p.startsWith(".claude/agents/") && p.endsWith(".md"),
     );
-    expect(agents).toHaveLength(9);
+    expect(agents).toHaveLength(10);
   });
 
   it("produit les SKILL.md des skills référencées", () => {

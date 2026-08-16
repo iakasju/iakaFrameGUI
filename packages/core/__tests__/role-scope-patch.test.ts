@@ -42,8 +42,9 @@ function roundTrip(md: string): string {
 describe("Lot B — role.scope round-trip byte-préservant (AC3)", () => {
   const roles = entries(roleMds);
 
-  it("inventaire : les 9 rôles vendorés sont chargés", () => {
-    expect(roles.length).toBe(9);
+  // 10 depuis la scission du squad prod (canon 0.39.0) : `library/roles/surveillance.md` vendoré.
+  it("inventaire : les 10 rôles vendorés sont chargés", () => {
+    expect(roles.length).toBe(10);
   });
 
   for (const [id, md] of roles) {

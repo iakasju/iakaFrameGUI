@@ -4,7 +4,7 @@
  *
  * Le CLI (`renderAgentContract`, `generate-agents.js`) est la RÉFÉRENCE. Ce test prouve que le
  * rendu GUI (`renderAgentContract` du cœur, alimenté par un **loader de fixture canon**) produit,
- * pour les 8 personas, le **même contrat byte-à-byte** que le golden figé — golden **vendoré
+ * pour les 10 personas, le **même contrat byte-à-byte** que le golden figé — golden **vendoré
  * byte-à-byte** depuis le CLI (`cp cli/test/fixtures/agents-golden/*.md → ici`).
  *
  * Effet cliquet BILATÉRAL : toute dérive de format casse ce test ET le test CLI
@@ -22,6 +22,8 @@ import type { Binding } from "../src/index";
 
 // --- fixtures partagées (byte-copies du dépôt iakaframe) -----------------------------------------
 import aragornMd from "./fixtures/personas/aragorn.md?raw";
+// Scission du squad prod (canon 0.39.0) : `charon.md` est la 10e persona canon.
+import charonMd from "./fixtures/personas/charon.md?raw";
 import feanorMd from "./fixtures/personas/feanor.md?raw";
 import gandalfMd from "./fixtures/personas/gandalf.md?raw";
 import gimliMd from "./fixtures/personas/gimli.md?raw";
@@ -33,6 +35,7 @@ import odinMd from "./fixtures/personas/odin.md?raw";
 import bindingMd from "./fixtures/binding/iakaframe-claude-default.md?raw";
 
 import gAragorn from "./fixtures/agents-golden/aragorn.md?raw";
+import gCharon from "./fixtures/agents-golden/charon.md?raw";
 import gFeanor from "./fixtures/agents-golden/feanor.md?raw";
 import gGandalf from "./fixtures/agents-golden/gandalf.md?raw";
 import gGimli from "./fixtures/agents-golden/gimli.md?raw";
@@ -44,6 +47,7 @@ import gOdin from "./fixtures/agents-golden/odin.md?raw";
 
 const PERSONAS: Record<string, string> = {
   aragorn: aragornMd,
+  charon: charonMd,
   feanor: feanorMd,
   gandalf: gandalfMd,
   gimli: gimliMd,
@@ -56,6 +60,7 @@ const PERSONAS: Record<string, string> = {
 
 const GOLDENS: Record<string, string> = {
   aragorn: gAragorn,
+  charon: gCharon,
   feanor: gFeanor,
   gandalf: gGandalf,
   gimli: gGimli,
@@ -159,7 +164,7 @@ async function sha256(text: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-describe("parité CLI ↔ GUI — golden de contrat d'agent (9 personas)", () => {
+describe("parité CLI ↔ GUI — golden de contrat d'agent (10 personas)", () => {
   const binding = loadBinding();
 
   it("rendu GUI == golden CLI byte-à-byte (name=id, tools câblés, guardrails, sans model)", () => {
@@ -186,10 +191,10 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (9 personas)", () =>
     }
   });
 
-  // Attendu 8/8 TIRÉ du binding vendoré lui-même (source unique). Parse DIRECT du frontmatter,
+  // Attendu 10/10 TIRÉ du binding vendoré lui-même (source unique). Parse DIRECT du frontmatter,
   // distinct de `loadBinding` : `expected[id]` et `toolsForPersona(binding, id)` empruntent deux
   // chemins depuis la même source → la couverture prouve que `toolsForPersona` surface fidèlement
-  // les tools des 8 assignments, sans réécrire l'attendu à la main.
+  // les tools des 10 assignments, sans réécrire l'attendu à la main.
   const expectedTools: Record<string, string[]> = (() => {
     const { data } = parseFrontmatter(bindingMd);
     const rows = Array.isArray(data.assignments) ? data.assignments : [];
@@ -201,15 +206,16 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (9 personas)", () =>
     return byId;
   })();
 
-  it("tools câblés depuis le binding vendoré — couverture 9/9 (attendu tiré du binding)", () => {
-    // C-AC1 : les 9 ids, valeurs égales aux `tools` du binding vendoré correspondant.
+  it("tools câblés depuis le binding vendoré — couverture 10/10 (attendu tiré du binding)", () => {
+    // C-AC1 : les 10 ids, valeurs égales aux `tools` du binding vendoré correspondant. 10 depuis
+    // la scission : `bindings/iakaframe-claude-default.md` vendoré porte un assignment `charon`.
     expect(Object.keys(expectedTools).sort()).toEqual(IDS);
     for (const id of IDS) {
       expect(toolsForPersona(binding, id), `${id}: tools != binding`).toEqual(expectedTools[id]);
     }
     // C-AC2 : ancre littérale anti-tautologie (attrape une altération de `loadBinding` qu'un test
     // 100 % dérivé du binding ne verrait pas) + forme scalaire-virgule du contrat. `Skill` en fin
-    // de liste des 9 assignments (R8 § 5.3, Fait 3).
+    // de liste des 10 assignments (R8 § 5.3, Fait 3).
     expect(toolsForPersona(binding, "gimli")).toEqual([
       "Read", "Edit", "Write", "Bash", "Grep", "Glob", "Skill",
     ]);

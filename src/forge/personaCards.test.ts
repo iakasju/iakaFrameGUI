@@ -65,21 +65,23 @@ function frameOf(personaMds: string[], teamIds: string[]): FrameRaw {
 }
 
 describe("personaReservoir — projection pure des fiches à vignettes (Lot 3, A3)", () => {
-  it("projette les 9 personas vendorées du roster canonique (le casting du réservoir)", () => {
+  it("projette les 10 personas vendorées du roster canonique (le casting du réservoir)", () => {
     const cards = buildPersonaReservoir(CANONICAL_ROSTER);
-    expect(cards).toHaveLength(9);
+    expect(cards).toHaveLength(10);
     const names = cards.map((c) => c.name);
-    // Les 9 attendus par l'instruction (ordre roleIndex).
+    // Les 10 attendus (ordre roleIndex). Scission du squad prod (canon 0.39.0) :
+    // `deploiement` est tenu par Charon (charon.md), Helm passe au 10e rôle `surveillance`.
     expect(names).toEqual([
       "Odin",
       "Aragorn",
       "Gandalf",
       "Gimli",
       "Legolas",
-      "Helm",
+      "Charon",
       "Loki",
       "Nathalie",
       "Fëanor",
+      "Helm",
     ]);
   });
 
