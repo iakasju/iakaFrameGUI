@@ -171,11 +171,32 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   `{ afterPhase: "surveillance", kind: "human", criteria: "" }` — **inventé**. Conséquence produit :
   ouvrir puis enregistrer le workflow canon dans la forge **ajouterait un feu vert humain à une
   mission dont la nature est d'agir sans ordre**, c'est-à-dire que le GUI **déformerait le canon** —
-  violation directe de la doctrine **GUI ← frame**. **Conséquence mesurée** : `packages/core/__tests__/workflowMd.test.ts`
-  (3 tests) et `src/forge/workflowFidelite.test.ts` (2 tests) sont **rouges et laissés rouges à
-  dessein** : les rendre verts exigerait de **graver l'invention** dans l'attendu, précisément
-  l'anti-pattern R-4 du cadrage. **À cadrer avant tout code** (rendre `gate` optionnel touche le
-  modèle, l'éditeur de workflow P6b, les adaptateurs et le rendu markdown).
+  violation directe de la doctrine **GUI ← frame**. **Conséquence mesurée, après reprise du gate
+  🏹 Legolas** : **2 tests** restent rouges et sont **laissés rouges à dessein** — les deux de
+  `packages/core/__tests__/workflowMd.test.ts` qui assertent sur le **modèle riche** (« le workflow
+  réel du frame s'ouvre » : `phases.map(p => p.gate.kind)` ; « mapper riche ↔ lean réciproques » :
+  `workflowToMd(mdToWorkflow(lean))`). Les rendre verts exigerait de **graver l'invention** dans
+  l'attendu, précisément l'anti-pattern R-4 du cadrage.
+  ⚠️ **Rectification d'une version antérieure de cette entrée**, qui annonçait **5** tests dans ce
+  cas : c'était **faux pour 3 d'entre eux**. Les 3 autres rouges ne passaient **pas** par le mapper
+  riche et relevaient du travail V3 non fait — ils ont été alignés depuis (littéraux canon
+  obsolètes côté **lean**, où la mesure donne bien **4 gates sans invention** ; et un compte de
+  phases). Le troisième, `src/forge/workflowFidelite.test.ts` AC-4, a été **élargi et non
+  recompté** : il **capture** désormais le gate inventé comme **témoin étiqueté** de ce défaut et
+  **rougira à sa correction**, forçant à revenir ici.
+  **À cadrer avant tout code** (rendre `gate` optionnel touche le modèle, l'éditeur de workflow
+  P6b, les adaptateurs et le rendu markdown).
+
+- [ ] **Réserve d'instrument — `AC-1`/`AC-4` de `gui-vendor-charon.md` ne pinnent pas le canon.**
+  Signalée par ⚒️ Gimli et 🏹 Legolas ; **l'amendement des critères appartient à 🔵 Gandalf**, pas
+  à l'exécution. `libraryRoot()` **ignore l'emplacement du script**, remonte depuis le **`cwd`** et
+  retombe sur l'arbre principal d'`iakaframe` — en `0.38.0` au moment du lot. Lancées **mot pour
+  mot**, ces commandes rendent `checked: 78, drift: 25` avec le message *« Anomalie du canon, pas
+  du miroir. »* : un diagnostic **faux et accusatoire**, qui met en cause le canon alors que le
+  miroir est juste. ⚠️ **Ce n'est ni `R-1` ni `R-3`** : c'est une **troisième variante** — mesurer
+  contre le mauvais checkout **en croyant l'avoir désigné par le chemin du script**. Remède
+  appliqué pendant le lot : `--canon` / `--root` **explicite** à chaque invocation. À graver dans
+  les critères pour que la commande soit juste **telle qu'écrite**.
 
 - [ ] **Sous-lot B « cardinalité » — non commencé.** Le **lot A** (modèle de frame agnostique :
   `kind` first-class, acteurs/conteneur unifiés) a été livré **par une autre session** le 2026-07-26
