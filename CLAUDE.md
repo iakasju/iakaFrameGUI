@@ -226,6 +226,29 @@ Instructions : `frame-open-save-fidelite.md`, `frame-workflow-format-reconciliat
   `2c85702`) — 5 verbes `list`/`show`/`assemble`/`add`/`switch(use)`, pool matérialisé. *Réserve
   mineure : CLI `existsSync` vs GUI `is_dir()` sur le marqueur de racine (cas de bord).*
 
+### Dette R1 — porteurs de version déclarés (2026-08-16)
+
+- [x] **R1 — le `package-lock.json` ne dérive plus, et la garde ne ment plus sur son périmètre.**
+  Le lock portait `0.1.4` (deux champs : racine et `packages[""]`) face à un produit publié en
+  `0.1.7` — **récidive** du même incident du 2026-07-31 (`specs/etat-des-lieux.md:46`). La garde
+  `assertVersionsAligned` ne comparait que 4 porteurs ; ce cinquième lui a toujours été invisible.
+  **Livré** : `VERSION_CARRIERS` (5 porteurs, **une raison par entrée**) + `VERSION_NON_CARRIERS`
+  (hors-couverture **déclaré et exporté** : `packages/core` = arbitrage réservé au décideur,
+  `updater/latest.json` = sortie de la publication, `Cargo.lock` = auto-synchronisé) + **cliquet**
+  de test (clés lues ≡ clés déclarées) + **sentinelle** permanente dans `test:all` + message
+  d'erreur **actionnable** (il dicte `npm version`). La source est tarie : `auto-update.md` § 6-0
+  prescrit `npm version --no-git-tag-version` et **interdit** l'édition manuelle de `package.json`.
+  **La découverte des champs `version` a été écartée à dessein** : elle signalerait
+  `packages/core` (`0.1.0`) comme une dérive et trancherait par accident un arbitrage réservé.
+  Commits `8239958` (garde + tests) puis `881bd79` (lock, **2 insertions / 2 deletions**, aucune
+  ligne de dépendance touchée). Instruction : `specs/instructions/r1-porteurs-de-version-declares.md`.
+  **Preuve mesurée** — `lint:all` `0` ; `test:all` `0`, `120 passed (120)` / `1163 passed (1163)`
+  (**avant : 1151**, soit `+12` tests, **aucun supprimé**) ; `cargo test` `0`, `116 passed` ;
+  `node scripts/publish-update.mjs v0.1.7 --check-only` → `0` **après** correction, `1` **avant**
+  (message citant `package-lock.json` et `0.1.4`).
+  ⚠️ *Référence de merge à inscrire ici au merge* — le gate qualité indépendant n'est pas rendu par
+  l'émetteur du lot.
+
 ### Dettes closes le 2026-07-25 (re-mesurées à la reprise — ne pas les rouvrir sans preuve)
 
 - ~~Perte du corps markdown au Save~~ — **close** par le lot Open→Save : `useForgeDocument.ts`

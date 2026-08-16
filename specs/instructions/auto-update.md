@@ -212,6 +212,44 @@ d'où vient la mise à jour fait partie du contrat).
 
 ### Étape 6 — Chaîne de publication
 
+**6-0 — Le geste de bump : `npm version`, jamais la main sur `package.json`.**
+
+Le dépôt porte **cinq** porteurs de version dans des fichiers, plus le tag. Deux d'entre eux —
+`package.json` et `package-lock.json` (qui en porte **deux** champs : la racine et `packages[""]`) —
+s'écrivent **d'un seul geste** :
+
+```bash
+npm version <X.Y.Z> --no-git-tag-version --allow-same-version   # ecrit package.json ET le lock
+```
+
+**Éditer `package.json` à la main est interdit** : c'est exactement ce qui a fait dériver le lock
+**deux fois** (à `0.1.0` le 2026-07-31, à `0.1.4` jusqu'au 2026-08-16, alors que le produit était
+publié en `0.1.7`). Rien ne cassait — `npm ci` ne valide que la concordance des dépendances, jamais
+le champ `version` racine ([npm/cli#1177](https://github.com/npm/cli/issues/1177)) — mais le dépôt
+mentait sur ce qu'il était. `--no-git-tag-version` est indispensable : le tag se pose **après** la
+vérification, pas pendant le bump.
+
+Restent **deux fichiers à éditer à la main**, faute d'outil qui les écrive :
+`src-tauri/tauri.conf.json` et `src-tauri/Cargo.toml` (tous deux gravés dans le binaire).
+`src-tauri/Cargo.lock` se resynchronise seul au premier build cargo.
+
+**Le contrôle se passe AVANT de taguer** :
+
+```bash
+node scripts/publish-update.mjs vX.Y.Z --check-only   # exit 0 = les 5 porteurs + le tag coincident
+```
+
+`--check-only` **ne mesure que l'alignement** : il est volontairement sans garde de branche, donc
+utilisable depuis une branche de feature. En cas de dérive, le message **dit la commande de sortie**.
+Une sentinelle permanente de `npm run test:all` compare en plus les 5 porteurs **entre eux** à chaque
+run, sans jamais regarder le tag — un lot en cours n'est pas encore tagué.
+
+Ce que la garde **ne** couvre **pas**, et l'assume (`VERSION_NON_CARRIERS`, exporté et testé) :
+`packages/core/package.json` (bibliothèque distincte à `0.1.0`, **arbitrage réservé au décideur**),
+`updater/latest.json` (sortie de la publication : il retarde légitimement d'un bump),
+`src-tauri/Cargo.lock`, et tout porteur qui apparaîtrait dans un **fichier neuf** sans être ajouté au
+registre.
+
 **6a — CI GitHub.** Dans `.github/workflows/release.yml`, sur l'étape `tauri-apps/tauri-action@v0`,
 ajouter au bloc `env` :
 
@@ -233,9 +271,11 @@ node scripts/publish-update.mjs v0.1.5
 
 Il enchaîne, en s'arrêtant net à la première anomalie :
 
-1. **Garde d'alignement** : `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` et
-   le tag passé en argument portent **la même version**, sinon échec explicite (une dérive ici et
-   l'updater ment sur la version disponible).
+1. **Garde d'alignement** : les **cinq** porteurs déclarés par `VERSION_CARRIERS` — `package.json`,
+   les **deux** champs de `package-lock.json` (racine et `packages[""]`), `src-tauri/tauri.conf.json`,
+   `src-tauri/Cargo.toml` — et le tag passé en argument portent **la même version**, sinon échec
+   explicite (une dérive ici et l'updater ment sur la version disponible). Chaque entrée du registre
+   porte **sa raison** d'être gardée ; ce qui est hors couverture est déclaré (cf. 6-0).
 2. Récupération des artefacts de la release GitHub du tag (jeton GitHub lu dans l'environnement,
    **jamais** en dur) — ou, en repli, d'un répertoire local passé en `--from <dir>` pour ne pas
    dépendre de GitHub le jour où on n'en veut plus.
