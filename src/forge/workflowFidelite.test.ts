@@ -58,9 +58,13 @@ describe("fidélité Open→Save du workflow au frame (AC-2, doctrine GUI ← fr
       result.current.requestOpen("iakaframe-3phases");
     });
     await waitFor(() => expect(result.current.id).toBe("iakaframe-3phases"));
-    // AC-1 au niveau document : le workflow réel s'ouvre (4 phases, prod hors-chaîne).
-    expect(result.current.artifact?.phases).toHaveLength(4);
+    // AC-1 au niveau document : le workflow réel s'ouvre (5 phases, les 2 étapes prod
+    // hors-chaîne). 5 depuis la scission du squad prod (canon 0.39.0) : `library/workflows/
+    // iakaframe-3phases.md` déclare une 5e phase `surveillance` (`side: prod`), la veille étant
+    // devenue une étape à part entière et non plus une sortie de la bascule.
+    expect(result.current.artifact?.phases).toHaveLength(5);
     expect(result.current.artifact?.phases[3].offChain).toBe(true);
+    expect(result.current.artifact?.phases[4].offChain).toBe(true);
 
     await act(async () => {
       await result.current.save();
@@ -96,10 +100,41 @@ describe("fidélité Open→Save du workflow au frame (AC-2, doctrine GUI ← fr
     // Prose du corps préservée verbatim (AC-4).
     expect(saved).toContain("# Workflow iakaframe — 3 phases (cible staging) + squad prod");
     expect(saved).toContain("« Gimli solo »");
-    // Réouvrable + structurellement cohérent.
+    // Réouvrable + structurellement cohérent. 5 phases depuis la scission du squad prod
+    // (canon 0.39.0) : `surveillance` est une étape à part entière.
     const reopened = parseWorkflowMd(saved)!;
     expect(reopened.name).toBe("Workflow édité");
-    expect(reopened.phases.map((p) => p.id)).toEqual(["p1", "p2", "p3", "prod"]);
+    expect(reopened.phases.map((p) => p.id)).toEqual([
+      "p1", "p2", "p3", "prod", "surveillance",
+    ]);
+
+    // --- Ce que le Save écrit RÉELLEMENT dans les gates -------------------------------------
+    // Recompter les phases ne suffit pas : il faut regarder les gates écrits, sinon ce test
+    // passerait au vert sur un fichier corrompu sans que rien ne le voie.
+    const gateLines = saved
+      .split("\n")
+      .filter((l) => l.includes("afterPhase:"))
+      .map((l) => l.match(/afterPhase:\s*([^,}]+)/)![1].trim());
+
+    // Les 4 gates du canon sont réémis fidèlement, dans l'ordre — ça, c'est l'attendu.
+    expect(gateLines.slice(0, 4)).toEqual(["p1", "p2", "p3", "prod"]);
+    expect(saved).toContain(
+      'criteria: "feu vert prod tracé (squad prod, Charon ; jamais franchi seul)"',
+    );
+
+    // 🛑 TÉMOIN D'UN DÉFAUT OUVERT — CE N'EST PAS UN ATTENDU SOUHAITÉ.
+    // Le Save ajoute un 5e gate `{ afterPhase: surveillance, kind: human, criteria: "" }` que le
+    // canon ne porte PAS et interdit explicitement d'inventer (« Si un parseur venait à exiger un
+    // gate par étape : REMONTER, ne pas en inventer un »). Cause : `Phase.gate` est obligatoire au
+    // cœur (`packages/core/src/workflow.ts:79`) et `workflowToMd` ré-émet un gate par phase.
+    // Effet produit : la forge ferait attendre un feu vert humain à une mission dont la nature est
+    // d'agir sans ordre. Voir CLAUDE.md § Backlog → `GATE-DE-PHASE-OPTIONNEL`.
+    // Ces deux assertions sont là pour RENDRE LE DÉFAUT VISIBLE et pour ROUGIR le jour où il sera
+    // corrigé — obligeant à revenir ici plutôt qu'à laisser passer la correction en silence.
+    expect(gateLines, "défaut GATE-DE-PHASE-OPTIONNEL corrigé ? mettre ce test à jour").toHaveLength(5);
+    expect(gateLines[4], "défaut GATE-DE-PHASE-OPTIONNEL corrigé ? mettre ce test à jour").toBe(
+      "surveillance",
+    );
   });
 
   it("workflow neuf (aucune capture) → Save écrit un frame-format canonique + prose neuve", async () => {

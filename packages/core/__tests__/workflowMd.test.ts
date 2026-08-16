@@ -54,13 +54,31 @@ describe("AC-1 — parseWorkflowMd lit le format frame autoritaire (frontmatter 
     expect(md).not.toBeNull();
     expect(md!.methodId).toBeUndefined(); // le frame ne porte pas methodId
     expect(md!.kind).toBe("pipeline"); // `kind` first-class capté du frontmatter (§ 3.1 / A-2)
+    // Le lean est FIDÈLE au canon : 5 phases pour 4 gates. L'étape `surveillance` n'a AUCUN gate,
+    // et le canon déclare cette absence en toutes lettres dans le fichier lui-même (« c'est une
+    // DÉCLARATION, pas un oubli »). Le lean ne l'invente pas — c'est le mapper riche qui le fait
+    // (défaut GATE-DE-PHASE-OPTIONNEL, backlog). Cette asymétrie est donc ASSERTÉE, pas subie.
+    expect(md!.phases).toHaveLength(5);
+    expect(md!.gates).toHaveLength(4);
     expect(md!.phases[3]).toEqual({
       id: "prod",
       label: "Déploiement prod",
       side: "prod",
       actorsRoleKeys: ["deploiement"], // champ d'acteurs unifié (canon A-2)
       input: "rc recettée + feu vert humain",
-      output: "prod (alias de version) + surveillance/rollback",
+      // Littéral repris VERBATIM du canon 0.39.0 : la scission a retiré « surveillance/ » de
+      // l'`output` de l'étape `prod` — la veille n'est plus une sortie de la bascule, c'est une
+      // étape à part entière (`surveillance`, ci-dessous).
+      output: "prod (alias de version) + rollback prêt",
+    });
+    // La 5e phase, absente avant la scission (fait canon `library/workflows/iakaframe-3phases.md`).
+    expect(md!.phases[4]).toEqual({
+      id: "surveillance",
+      label: "Veille de production",
+      side: "prod",
+      actorsRoleKeys: ["surveillance"],
+      input: "une production en service",
+      output: "état de santé + alerte motivée",
     });
     expect(md!.gates).toEqual([
       { afterPhase: "p1", kind: "human", criteria: "l'utilisateur valide l'instruction" },
@@ -73,9 +91,15 @@ describe("AC-1 — parseWorkflowMd lit le format frame autoritaire (frontmatter 
       {
         afterPhase: "prod",
         kind: "human",
-        criteria: "feu vert prod tracé (squad Helm ; jamais franchi seul)",
+        // Littéral repris VERBATIM du canon 0.39.0 : la scission nomme le porteur du feu vert
+        // (Charon tient la bascule sur ordre) là où le canon disait « squad Helm ».
+        criteria: "feu vert prod tracé (squad prod, Charon ; jamais franchi seul)",
       },
     ]);
+    // AUCUN 5e gate côté lean : la fidélité au canon se prouve par l'ABSENCE, pas seulement par
+    // le compte. Si un `afterPhase: surveillance` apparaissait ici, le lean aurait commencé à
+    // inventer lui aussi — ce que le canon interdit explicitement.
+    expect(md!.gates.map((g) => g.afterPhase)).not.toContain("surveillance");
   });
 });
 
