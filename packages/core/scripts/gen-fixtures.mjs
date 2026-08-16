@@ -145,7 +145,7 @@ function main() {
   }
   process.stdout.write(`gen-fixtures : ${changed} fixture(s) reecrite(s) sur 3.\n`);
   process.stdout.write(
-    'Rappel : le kit (kit.iakaframe-claude.md) ne passe PAS par ce script, et les 17 copies\n'
+    'Rappel : le kit (kit.iakaframe-claude.md) ne passe PAS par ce script, et les 82 copies\n'
     + 'se re-vendorent par cp. Etat complet : iakaframe vendor-check\n',
   );
 }
