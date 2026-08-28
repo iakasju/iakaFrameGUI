@@ -2,7 +2,7 @@
 // Purement locaux : aucun réseau, aucun jeton, aucune release réelle — on ne teste ici que la
 // partie du script qui DÉCIDE, pas celle qui téléverse.
 import { describe, it, expect, beforeAll } from "vitest";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -20,6 +20,10 @@ import {
   MANIFEST_PATH,
   parseArgs,
   platformOfArtifact,
+  artifactRank,
+  versionPluginUpdater,
+  PLATFORMS,
+  VERSION_PLUGIN_UPDATER_VERIFIEE,
   PUBLISH_BRANCH,
   readRepoVersions,
   VERSION_CARRIERS,
@@ -27,7 +31,7 @@ import {
   versionOfTag,
 } from "./publish-update.mjs";
 
-/** Un jeu d'artefacts factices couvrant les 4 cibles du workflow de release. */
+/** Un jeu d'artefacts factices couvrant les 4 cibles historiques du workflow de release. */
 const FOUR = [
   { name: "iakaFrameGUI_aarch64.app.tar.gz", signature: "SIG-MAC-ARM" },
   { name: "iakaFrameGUI_x64.app.tar.gz", signature: "SIG-MAC-X64" },
@@ -35,17 +39,127 @@ const FOUR = [
   { name: "iakaFrameGUI_0.1.5_x64-setup.exe", signature: "SIG-WIN" },
 ];
 
+const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const PRODUIT = "iakaFrameGUI";
+const VERSION = "0.1.5";
+
+/**
+ * LA TABLE DE CONFORMITÉ (AR-6 = O2) — `fixtures/updater-cles.json`, BYTE-IDENTIQUE dans les deux
+ * dépôts. Les deux générateurs sont distincts ; c'est cette table, consommée par le test unitaire
+ * de chacun, qui les empêche de diverger en silence.
+ */
+const TABLE = JSON.parse(readFileSync(resolve(RACINE, "fixtures/updater-cles.json"), "utf8"));
+const nomReel = (g) => g.replaceAll("{PRODUIT}", PRODUIT).replaceAll("{VERSION}", VERSION);
+/** Le jeu COMPLET d'artefacts de la table, chacun signé. */
+const TOUS = TABLE.artefacts.map((a) => ({ name: nomReel(a.nom), signature: `SIG-${a.nom}` }));
+
+describe("CA-1/CA-2 — les clés d'installeur, dérivées de la table de conformité", () => {
+  it("CA-1 — émet la clé d'installeur de CHAQUE artefact et CONSERVE la générique", () => {
+    const { manifest, missing } = buildManifest({ tag: "v0.1.5", artifacts: TOUS });
+    // Le test NOMME l'ensemble attendu ; il ne compte pas les clés.
+    expect(Object.keys(manifest.platforms)).toEqual(TABLE.clesAttenduesOrdonnees);
+    expect(Object.keys(manifest.platforms)).toEqual(PLATFORMS);
+    expect(missing).toEqual([]);
+    for (const a of TABLE.artefacts) {
+      if (!a.installeur) continue;
+      expect(manifest.platforms[a.installeur].url.endsWith(nomReel(a.nom))).toBe(true);
+    }
+  });
+
+  it("CA-2 — `windows-x86_64` désigne le NSIS et `linux-x86_64` l'AppImage (VALEUR, pas présence)", () => {
+    const { manifest } = buildManifest({ tag: "v0.1.5", artifacts: TOUS });
+    expect(manifest.platforms["windows-x86_64"].url.endsWith(`${PRODUIT}_${VERSION}_x64-setup.exe`)).toBe(true);
+    expect(manifest.platforms["linux-x86_64"].url.endsWith(`${PRODUIT}_${VERSION}_amd64.AppImage`)).toBe(true);
+    // La clé générique porte EXACTEMENT la même chose que la clé d'installeur de son porteur :
+    // aucun client déjà installé ne change de comportement du seul fait de ce lot.
+    expect(manifest.platforms["windows-x86_64"]).toEqual(manifest.platforms["windows-x86_64-nsis"]);
+    expect(manifest.platforms["linux-x86_64"]).toEqual(manifest.platforms["linux-x86_64-appimage"]);
+  });
+
+  it("CA-2 — un `.deb` seul ne prend JAMAIS la clé générique Linux", () => {
+    const { manifest } = buildManifest({
+      tag: "v0.1.5",
+      artifacts: [
+        { name: `${PRODUIT}_${VERSION}_amd64.deb`, signature: "SIG-DEB" },
+        { name: `${PRODUIT}-${VERSION}-1.x86_64.rpm`, signature: "SIG-RPM" },
+      ],
+    });
+    expect(Object.keys(manifest.platforms)).toEqual(["linux-x86_64-deb", "linux-x86_64-rpm"]);
+    expect(manifest.platforms["linux-x86_64"]).toBeUndefined();
+  });
+
+  it("CA-3 — un artefact sans signature ne produit AUCUNE clé, et il est signalé", () => {
+    const sansSig = TOUS.map((e) =>
+      e.name.endsWith(".msi") || e.name.endsWith("-setup.exe") ? { ...e, signature: "  " } : e,
+    );
+    const { manifest, unsigned } = buildManifest({ tag: "v0.1.5", artifacts: sansSig });
+    expect(manifest.platforms["windows-x86_64"]).toBeUndefined();
+    expect(manifest.platforms["windows-x86_64-nsis"]).toBeUndefined();
+    expect(manifest.platforms["windows-x86_64-msi"]).toBeUndefined();
+    expect(unsigned.sort()).toEqual(
+      [`${PRODUIT}_${VERSION}_x64-setup.exe`, `${PRODUIT}_${VERSION}_x64_en-US.msi`].sort(),
+    );
+  });
+
+  it("AR-3 — AUCUNE clé `darwin-*-app` n'est émise", () => {
+    const { manifest } = buildManifest({ tag: "v0.1.5", artifacts: TOUS });
+    for (const cle of Object.keys(manifest.platforms)) expect(cle.endsWith("-app")).toBe(false);
+    expect(PLATFORMS.some((p) => p.endsWith("-app"))).toBe(false);
+  });
+
+  it("la générique reste NSIS quel que soit l'ordre, et le MSI garde SA clé", () => {
+    const nsis = { name: `${PRODUIT}_${VERSION}_x64-setup.exe`, signature: "SIG-NSIS" };
+    const msi = { name: `${PRODUIT}_${VERSION}_x64_en-US.msi`, signature: "SIG-MSI" };
+    for (const artifacts of [[nsis, msi], [msi, nsis]]) {
+      const { manifest } = buildManifest({ tag: "v0.1.5", artifacts });
+      expect(manifest.platforms["windows-x86_64"].signature).toBe("SIG-NSIS");
+      expect(manifest.platforms["windows-x86_64-nsis"].signature).toBe("SIG-NSIS");
+      expect(manifest.platforms["windows-x86_64-msi"].signature).toBe("SIG-MSI");
+    }
+  });
+});
+
+describe("CA-15 — cliquet sur la version du plugin updater", () => {
+  // La convention `{os}-{arch}-{installer}` n'est PAS documentée : elle n'existe que dans la
+  // SOURCE de la version verrouillée. `Cargo.toml` déclarant `tauri-plugin-updater = "2"`, un
+  // `cargo update` peut la faire changer sans un mot.
+  const lock = readFileSync(resolve(RACINE, "src-tauri/Cargo.lock"), "utf8");
+
+  it("la version VERROUILLÉE est celle contre laquelle la convention a été vérifiée", () => {
+    expect(
+      versionPluginUpdater(lock),
+      "tauri-plugin-updater a change de version : RE-VERIFIER `get_urls` EN AMONT " +
+        "(essaie-t-il toujours {os}-{arch}-{installer} puis {os}-{arch} ? Installer::name() " +
+        "rend-il toujours appimage/deb/rpm/app/msi/nsis ?) AVANT de lever cette garde, puis " +
+        "mettre a jour VERSION_PLUGIN_UPDATER_VERIFIEE et fixtures/updater-cles.json.",
+    ).toBe(VERSION_PLUGIN_UPDATER_VERIFIEE);
+    expect(TABLE.conventionVerifieeContre.version).toBe(VERSION_PLUGIN_UPDATER_VERIFIEE);
+  });
+
+  it("CONTREFACTUEL — une fixture qui monte la version fait tomber la garde", () => {
+    // Sur une FIXTURE, jamais sur `Cargo.lock`.
+    const fixture = lock.replace(/(name = "tauri-plugin-updater"\nversion = ")[^"]+/, "$12.11.0");
+    expect(fixture).not.toBe(lock);
+    expect(versionPluginUpdater(fixture)).toBe("2.11.0");
+    expect(versionPluginUpdater(fixture)).not.toBe(VERSION_PLUGIN_UPDATER_VERIFIEE);
+  });
+});
+
 describe("buildManifest — le manifeste latest.json", () => {
   it("porte les 4 plateformes, la version SANS le v, et des URL absolues", () => {
     const { manifest, missing } = buildManifest({ tag: "v0.1.5", artifacts: FOUR });
 
     expect(manifest.version).toBe("0.1.5");
-    expect(missing).toEqual([]);
+    // Ces quatre artefacts couvrent 6 des 9 cles : les 4 generiques + les 2 cles d'installeur
+    // de leurs porteurs (appimage, nsis). Les 3 manquantes sont deb, rpm, msi — absents du jeu.
+    expect(missing).toEqual(["linux-x86_64-deb", "linux-x86_64-rpm", "windows-x86_64-msi"]);
     expect(Object.keys(manifest.platforms).sort()).toEqual([
       "darwin-aarch64",
       "darwin-x86_64",
       "linux-x86_64",
+      "linux-x86_64-appimage",
       "windows-x86_64",
+      "windows-x86_64-nsis",
     ]);
     for (const p of Object.values(manifest.platforms)) {
       expect(p.url.startsWith(`${downloadBase()}/v0.1.5/`)).toBe(true);
@@ -61,9 +175,11 @@ describe("buildManifest — le manifeste latest.json", () => {
       artifacts: FOUR.filter((a) => !a.name.endsWith("-setup.exe")),
     });
 
-    expect(missing).toEqual(["windows-x86_64"]);
+    expect(missing).toContain("windows-x86_64");
+    expect(missing).toContain("windows-x86_64-nsis");
     expect(manifest.platforms["windows-x86_64"]).toBeUndefined();
-    expect(Object.keys(manifest.platforms)).toHaveLength(3);
+    expect(manifest.platforms["windows-x86_64-nsis"]).toBeUndefined();
+    expect(Object.keys(manifest.platforms)).toHaveLength(4);
   });
 
   it("ignore un artefact sans signature (le client le refuserait de toute façon)", () => {
@@ -72,7 +188,7 @@ describe("buildManifest — le manifeste latest.json", () => {
       artifacts: [{ name: "iakaFrameGUI_aarch64.app.tar.gz", signature: "  " }],
     });
     expect(manifest.platforms).toEqual({});
-    expect(missing).toHaveLength(4);
+    expect(missing).toEqual(PLATFORMS);
   });
 
   it("échappe le nom de fichier dans l'URL", () => {
@@ -84,18 +200,58 @@ describe("buildManifest — le manifeste latest.json", () => {
   });
 });
 
-describe("platformOfArtifact — ce qui est une cible de mise à jour, et ce qui n'en est pas", () => {
-  it("classe les 4 cibles", () => {
-    expect(platformOfArtifact("app_aarch64.app.tar.gz")).toBe("darwin-aarch64");
-    expect(platformOfArtifact("app_x64.app.tar.gz")).toBe("darwin-x86_64");
-    expect(platformOfArtifact("app_0.1.5_amd64.AppImage")).toBe("linux-x86_64");
-    expect(platformOfArtifact("app_0.1.5_x64-setup.exe")).toBe("windows-x86_64");
+describe("platformOfArtifact — le COUPLE générique/installeur", () => {
+  it("chaque nom de la table est classé exactement comme la table le dit", () => {
+    for (const a of TABLE.artefacts) {
+      const c = platformOfArtifact(nomReel(a.nom));
+      if (a.generique === null) {
+        expect(c, `${a.nom} devrait etre hors perimetre`).toBeNull();
+        continue;
+      }
+      expect(c, `${a.nom} devrait etre classe`).not.toBeNull();
+      expect(c.generique, `${a.nom} : generique`).toBe(a.generique);
+      expect(c.installeur, `${a.nom} : installeur`).toBe(a.installeur);
+      expect(artifactRank(nomReel(a.nom)) > 0, `${a.nom} : porte le generique ?`).toBe(
+        a.porteLeGenerique,
+      );
+    }
   });
 
-  it("écarte .deb / .rpm / .dmg — hors périmètre de l'updater (cf. hors-lot)", () => {
-    expect(platformOfArtifact("app_0.1.5_amd64.deb")).toBeNull();
-    expect(platformOfArtifact("app-0.1.5-1.x86_64.rpm")).toBeNull();
+  it("classe les 4 cibles historiques, et le `.msi` que ce generateur IGNORAIT", () => {
+    expect(platformOfArtifact("app_aarch64.app.tar.gz")).toEqual({
+      generique: "darwin-aarch64",
+      installeur: null,
+    });
+    expect(platformOfArtifact("app_x64.app.tar.gz")).toEqual({
+      generique: "darwin-x86_64",
+      installeur: null,
+    });
+    expect(platformOfArtifact("app_0.1.5_amd64.AppImage")).toEqual({
+      generique: "linux-x86_64",
+      installeur: "linux-x86_64-appimage",
+    });
+    expect(platformOfArtifact("app_0.1.5_x64-setup.exe")).toEqual({
+      generique: "windows-x86_64",
+      installeur: "windows-x86_64-nsis",
+    });
+    // DIVERGENCE REPAREE : aucune branche `.msi` n'existait ici.
+    expect(platformOfArtifact("app_0.1.5_x64_en-US.msi")).toEqual({
+      generique: "windows-x86_64",
+      installeur: "windows-x86_64-msi",
+    });
+  });
+
+  it("`.deb` et `.rpm` obtiennent leur cle d'INSTALLEUR ; le `.dmg` reste hors perimetre", () => {
+    expect(platformOfArtifact("app_0.1.5_amd64.deb")).toEqual({
+      generique: "linux-x86_64",
+      installeur: "linux-x86_64-deb",
+    });
+    expect(platformOfArtifact("app-0.1.5-1.x86_64.rpm")).toEqual({
+      generique: "linux-x86_64",
+      installeur: "linux-x86_64-rpm",
+    });
     expect(platformOfArtifact("app_0.1.5_aarch64.dmg")).toBeNull();
+    expect(platformOfArtifact("app_aarch64.app.tar.gz.sig")).toBeNull();
   });
 });
 
@@ -395,13 +551,20 @@ describe("--check-only ne mesure QUE l'alignement (C7)", () => {
     // — typiquement la garde de branche, qui refuse tout sauf `main` — le critère deviendrait
     // inutilisable là où on s'en sert vraiment : depuis une branche de feature, avant de taguer.
     // Ce test tourne donc là où il est : dans le dépôt, sur la branche de travail du moment.
+    // Le compte rendu de progression sort sur STDERR (la sortie standard porte le DOCUMENT en
+    // `--dry-run`, et un document mele de journal ne se compare pas a l'octet — CA-14). On lit
+    // donc stderr, et on verifie que stdout reste MUET : `--check-only` n'ecrit aucun document.
     const version = repoVersion();
-    const out = execFileSync(process.execPath, [SCRIPT, `v${version}`, "--check-only"], {
+    const vu = { stdout: "", stderr: "" };
+    const res = spawnSync(process.execPath, [SCRIPT, `v${version}`, "--check-only"], {
       cwd: ROOT,
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
     });
-    expect(out).toContain(`versions alignees sur ${version}`);
+    vu.stdout = res.stdout;
+    vu.stderr = res.stderr;
+    expect(res.status, `--check-only a echoue : ${vu.stderr}`).toBe(0);
+    expect(vu.stderr).toContain(`versions alignees sur ${version}`);
+    expect(vu.stdout).toBe("");
   });
 
   it("échoue pour DÉSALIGNEMENT, et jamais pour une histoire de branche", () => {

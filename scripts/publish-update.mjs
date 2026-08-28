@@ -237,23 +237,110 @@ export function readRepoVersions(root = ROOT) {
 // 2. Classement des artefacts par plateforme
 // ---------------------------------------------------------------------------
 
-/** Les 4 cibles du workflow de release, dans l'ordre où on veut les voir. */
-export const PLATFORMS = ["darwin-aarch64", "darwin-x86_64", "linux-x86_64", "windows-x86_64"];
+/**
+ * LA VERSION DU PLUGIN CONTRE LAQUELLE LA CONVENTION DE CLÉS A ÉTÉ VÉRIFIÉE.
+ *
+ * Les clés `{os}-{arch}-{installer}` ne sont PAS documentées par Tauri : la doc officielle ne
+ * décrit que `OS-ARCH`. Elles n'existent que dans la SOURCE de la version verrouillée
+ * (`get_urls`, `updater.rs:568-598`). Or `Cargo.toml` déclare `tauri-plugin-updater = "2"` : un
+ * `cargo update` peut monter la version sans rien dire, et emporter la convention avec.
+ */
+export const VERSION_PLUGIN_UPDATER_VERIFIEE = "2.10.1";
+
+/** Les plateformes GÉNÉRIQUES `{os}-{arch}` — le REPLI du plugin, et le comportement historique. */
+export const PLATEFORMES_GENERIQUES = [
+  "darwin-aarch64",
+  "darwin-x86_64",
+  "linux-x86_64",
+  "windows-x86_64",
+];
 
 /**
- * Devine la plateforme updater d'un artefact d'après son nom. `null` = ce fichier n'est pas une
- * cible de mise à jour (ex. `.deb`, `.rpm`, `.dmg` — voir le hors-lot de l'instruction).
+ * Les installeurs émis PAR plateforme générique, dans l'ordre d'écriture.
+ *
+ * Valeurs prises de `Installer::name()` (`updater.rs:59-68`) : `appimage`, `deb`, `rpm`, `app`,
+ * `msi`, `nsis`. `app` est délibérément ABSENT (AR-3) : `bundle_type()` rend `Some(App)` par
+ * défaut sur macOS, donc le plugin demande toujours `darwin-*-app` en premier ; elle est absente
+ * aujourd'hui et le repli générique fonctionne, mesuré.
+ */
+export const INSTALLEURS_PAR_PLATEFORME = {
+  "darwin-aarch64": [],
+  "darwin-x86_64": [],
+  "linux-x86_64": ["appimage", "deb", "rpm"],
+  "windows-x86_64": ["msi", "nsis"],
+};
+
+/** Les cibles du workflow de release, DÉRIVÉES, dans l'ordre où on veut les voir. */
+export const PLATFORMS = PLATEFORMES_GENERIQUES.flatMap((g) => [
+  g,
+  ...INSTALLEURS_PAR_PLATEFORME[g].map((i) => `${g}-${i}`),
+]);
+
+/**
+ * Lit la version VERROUILLÉE de `tauri-plugin-updater` dans un `Cargo.lock`. Fonction pure : la
+ * garde peut l'exercer sur une FIXTURE sans jamais toucher au `Cargo.lock` réel.
+ */
+export function versionPluginUpdater(cargoLock) {
+  const blocs = String(cargoLock).split(/\n\[\[package\]\]\n/);
+  for (const bloc of blocs) {
+    if (!/^name = "tauri-plugin-updater"$/m.test(bloc)) continue;
+    const m = /^version = "([^"]+)"$/m.exec(bloc);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+/**
+ * Classe un artefact de release, ou `null` s'il n'est pas une cible de mise à jour.
+ *
+ * Rend le COUPLE `{ generique, installeur }`. Le plugin cherche d'abord `{os}-{arch}-{installer}`
+ * PUIS `{os}-{arch}` (`get_urls`) ; n'émettre que la seconde faisait qu'un client installé par MSI
+ * recevait l'exe NSIS et s'installait À CÔTÉ de son enregistrement MSI, et qu'un client `.deb` ou
+ * `.rpm` recevait une AppImage et échouait en `InvalidUpdaterFormat` à chaque tentative.
+ *
+ * ⚠️ DIVERGENCE RÉPARÉE : ce générateur IGNORAIT totalement le `.msi` (aucune branche), là où
+ * celui du Cockpit le classait. Il ne pouvait donc pas émettre `windows-x86_64-msi`.
  */
 export function platformOfArtifact(name) {
   const n = name.toLowerCase();
+  if (n.endsWith(".sig")) return null;
   if (n.endsWith(".app.tar.gz")) {
-    if (n.includes("aarch64") || n.includes("arm64")) return "darwin-aarch64";
-    if (n.includes("x64") || n.includes("x86_64")) return "darwin-x86_64";
+    // Pas de clé `darwin-*-app` (AR-3) : `installeur` reste `null`, le générique suffit.
+    if (n.includes("aarch64") || n.includes("arm64")) {
+      return { generique: "darwin-aarch64", installeur: null };
+    }
+    if (n.includes("x64") || n.includes("x86_64")) {
+      return { generique: "darwin-x86_64", installeur: null };
+    }
     return null;
   }
-  if (n.endsWith(".appimage")) return "linux-x86_64";
-  if (n.endsWith("-setup.exe")) return "windows-x86_64";
+  if (n.endsWith(".appimage")) {
+    return { generique: "linux-x86_64", installeur: "linux-x86_64-appimage" };
+  }
+  if (n.endsWith(".deb")) return { generique: "linux-x86_64", installeur: "linux-x86_64-deb" };
+  if (n.endsWith(".rpm")) return { generique: "linux-x86_64", installeur: "linux-x86_64-rpm" };
+  if (n.endsWith("-setup.exe")) {
+    return { generique: "windows-x86_64", installeur: "windows-x86_64-nsis" };
+  }
+  if (n.endsWith(".msi")) return { generique: "windows-x86_64", installeur: "windows-x86_64-msi" };
   return null;
+}
+
+/**
+ * Rang de préférence pour la clé GÉNÉRIQUE de la plateforme.
+ *
+ * Un rang > 0 signifie « cet artefact a le droit de PORTER la clé générique ». C'est ce qui fige
+ * le statu quo : Windows générique = NSIS, Linux générique = AppImage, macOS = son unique bundle.
+ * Le `.msi`, le `.deb` et le `.rpm` rendent 0 : ils obtiennent leur clé d'INSTALLEUR, jamais la
+ * générique — sans quoi une release privée d'AppImage servirait un `.deb` à tous les clients
+ * Linux, qui le refuseraient.
+ */
+export function artifactRank(name) {
+  const n = String(name).toLowerCase();
+  if (n.endsWith("-setup.exe")) return 1;
+  if (n.endsWith(".appimage")) return 1;
+  if (n.endsWith(".app.tar.gz")) return 1;
+  return 0;
 }
 
 /**
@@ -302,21 +389,53 @@ export function buildManifest(input) {
   const { tag, notes = "", pubDate, artifacts, base } = input;
   const version = versionOfTag(tag);
   const urlBase = `${base ?? downloadBase()}/${tag}`;
-  const platforms = {};
+  const retenus = {};
   const used = {};
+  const unsigned = [];
+
+  const poser = (cle, candidat) => {
+    const tenant = retenus[cle];
+    if (tenant === undefined) {
+      retenus[cle] = candidat;
+      used[cle] = candidat.name;
+      return;
+    }
+    // À rang égal, le premier arrivé reste (stabilité, indépendante de l'ordre — arbitraire —
+    // dans lequel l'API renvoie les assets).
+    if (candidat.rank > tenant.rank) {
+      retenus[cle] = candidat;
+      used[cle] = candidat.name;
+    }
+  };
+
   for (const art of artifacts) {
-    const plat = platformOfArtifact(art.name);
-    if (plat === null) continue;
+    const classe = platformOfArtifact(art.name);
+    if (classe === null) continue;
     const sig = (art.signature ?? "").trim();
-    if (sig.length === 0) continue;
-    // Premier arrivé, premier servi : deux artefacts pour une même plateforme est anormal, on
-    // garde le premier et on le dit plutôt que d'en écraser un silencieusement.
-    if (platforms[plat] !== undefined) continue;
-    platforms[plat] = {
+    if (sig.length === 0) {
+      // Sans `.sig`, AUCUNE clé — ni générique, ni d'installeur. Le client refuserait la charge :
+      // l'annoncer déplacerait l'échec du téléchargement vers l'installation.
+      unsigned.push(art.name);
+      continue;
+    }
+    const candidat = {
       signature: sig,
       url: `${urlBase}/${encodeURIComponent(art.name)}`,
+      rank: artifactRank(art.name),
+      name: art.name,
     };
-    used[plat] = art.name;
+    // La clé d'INSTALLEUR — ce que le plugin cherche EN PREMIER.
+    if (classe.installeur) poser(classe.installeur, candidat);
+    // La clé GÉNÉRIQUE — le repli, réservé au porteur historique de la plateforme.
+    if (candidat.rank > 0) poser(classe.generique, candidat);
+  }
+
+  // Ordre d'écriture STABLE : un diff git du manifeste doit rester lisible.
+  const platforms = {};
+  for (const p of PLATFORMS) {
+    if (retenus[p] !== undefined) {
+      platforms[p] = { signature: retenus[p].signature, url: retenus[p].url };
+    }
   }
   const missing = PLATFORMS.filter((p) => platforms[p] === undefined);
   const manifest = {
@@ -325,7 +444,7 @@ export function buildManifest(input) {
     pub_date: pubDate ?? new Date().toISOString(),
     platforms,
   };
-  return { manifest, missing, used };
+  return { manifest, missing, used, unsigned };
 }
 
 /**
@@ -411,7 +530,7 @@ async function fetchGithubArtifacts(tag) {
   }
   const rel = await relRes.json();
   const dir = mkdtempSync(join(tmpdir(), "iakaframegui-update-"));
-  console.log(`  telechargement des artefacts GitHub dans ${dir}`);
+  console.error(`  telechargement des artefacts GitHub dans ${dir}`);
   for (const asset of rel.assets ?? []) {
     const res = await fetch(asset.url, {
       headers: { ...headers, Accept: "application/octet-stream" },
@@ -556,10 +675,22 @@ export function currentBranch(root = ROOT) {
 // ---------------------------------------------------------------------------
 
 export function parseArgs(argv) {
-  const args = { tag: null, from: null, notes: "", checkOnly: false, dryRun: false, push: true };
+  const args = {
+    tag: null,
+    from: null,
+    notes: "",
+    checkOnly: false,
+    dryRun: false,
+    push: true,
+    // `pubDate` PILOTABLE (defaut : maintenant). Sans elle, `pub_date` changeait a chaque
+    // execution, ce qui rendait INATTEIGNABLE le chemin « republier a l'identique = aucun
+    // commit » : le manifeste differait toujours, ne serait-ce que par sa date.
+    pubDate: null,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "--from") args.from = argv[++i];
+    else if (a === "--pub-date") args.pubDate = argv[++i] ?? null;
     else if (a === "--notes") args.notes = argv[++i] ?? "";
     else if (a === "--check-only") args.checkOnly = true;
     else if (a === "--dry-run") args.dryRun = true;
@@ -574,7 +705,8 @@ async function main(argv) {
   if (args.tag === null) {
     console.error(
       "usage : node scripts/publish-update.mjs vX.Y.Z " +
-        "[--from <dir>] [--check-only] [--dry-run] [--no-push] [--notes <texte>]",
+        "[--from <dir>] [--check-only] [--dry-run] [--no-push] [--notes <texte>] " +
+        "[--pub-date <ISO>]",
     );
     return 2;
   }
@@ -585,7 +717,7 @@ async function main(argv) {
   const carriers = Object.values(VERSION_CARRIERS)
     .map((c) => c.file)
     .join(", ");
-  console.log(`versions alignees sur ${versionOfTag(args.tag)} (${carriers}, tag)`);
+  console.error(`versions alignees sur ${versionOfTag(args.tag)} (${carriers}, tag)`);
   if (args.checkOnly) return 0;
 
   // (1bis) Garde de branche. Elle protège **le geste qui rend visible** — le commit et le push du
@@ -601,7 +733,7 @@ async function main(argv) {
   if (args.push && !args.dryRun) {
     const branch = currentBranch();
     assertPublishBranch(branch);
-    console.log(`branche de publication : ${branch}`);
+    console.error(`branche de publication : ${branch}`);
   }
 
   // (2) Artefacts : locaux (--from) ou release GitHub du tag.
@@ -617,13 +749,18 @@ async function main(argv) {
   assertNamedArchitectures(readdirSync(dir));
 
   // (3) Release Forgejo + téléversement des binaires ET de leurs `.sig`.
-  const { manifest, missing, used } = buildManifest({
+  if (args.pubDate !== null && Number.isNaN(Date.parse(args.pubDate))) {
+    throw new Error(`--pub-date : « ${args.pubDate} » n'est pas une date ISO 8601 lisible`);
+  }
+  const { manifest, missing, used, unsigned } = buildManifest({
     tag: args.tag,
     notes: args.notes,
     artifacts,
+    pubDate: args.pubDate ?? undefined,
   });
-  for (const [plat, name] of Object.entries(used)) console.log(`  ${plat.padEnd(15)} ${name}`);
-  for (const plat of missing) console.warn(`  ${plat.padEnd(15)} MANQUANT — plateforme omise`);
+  for (const [plat, name] of Object.entries(used)) console.error(`  ${plat.padEnd(24)} ${name}`);
+  for (const plat of missing) console.error(`  ${plat.padEnd(24)} MANQUANT — cle omise`);
+  for (const n of unsigned) console.error(`  ${n} NON SIGNE — aucune cle emise pour cet artefact`);
   if (Object.keys(manifest.platforms).length === 0) {
     throw new Error("aucune plateforme publiable — manifeste non ecrit");
   }
@@ -635,7 +772,7 @@ async function main(argv) {
       if (platformOfArtifact(art.name) === null) continue;
       await forgejoUpload(rel.id, art.path, art.name, token);
       await forgejoUpload(rel.id, art.sigPath, `${art.name}.sig`, token);
-      console.log(`  televerse ${art.name} (+ .sig)`);
+      console.error(`  televerse ${art.name} (+ .sig)`);
     }
   }
 
@@ -646,11 +783,13 @@ async function main(argv) {
   const outFile = join(outDir, "latest.json");
   const body = `${JSON.stringify(manifest, null, 2)}\n`;
   if (args.dryRun) {
-    console.log(body);
+    // La sortie standard porte le DOCUMENT et rien d'autre — les messages de progression sont
+    // partis sur stderr. C'est la forme sous laquelle deux executions se comparent a l'octet.
+    process.stdout.write(body);
     return 0;
   }
   writeFileSync(outFile, body);
-  console.log(`manifeste ecrit : ${outFile}`);
+  console.error(`manifeste ecrit : ${outFile}`);
 
   // (5) Commit + push. Jamais de --force : le feed vit dans l'historique de `main`.
   //     Le commit est LIMITÉ AU CHEMIN du manifeste (`-- updater/latest.json`) : sans ça, il
@@ -663,7 +802,7 @@ async function main(argv) {
   //     `commitAndPushManifest`, où il est testable sans réseau ni release réelle.
   if (args.push) {
     const { committed } = commitAndPushManifest(args.tag);
-    console.log(
+    console.error(
       committed
         ? "manifeste pousse — la mise a jour est desormais visible des clients"
         : "rien a pousser — la mise a jour etait deja visible des clients",
