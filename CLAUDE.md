@@ -51,6 +51,40 @@ npm run test:coverage  # vitest run --coverage
 Côté Rust, dans `src-tauri/` : `cargo test`. **Volontairement hors de `test:all`** :
 en dépendre rendrait la mesure faillible sur toute machine sans toolchain Rust.
 
+### Chaîne de publication de la mise à jour (scripts Node, hors `package.json`)
+
+Ces deux-là ne sont **pas** des scripts npm : ce sont des gestes de publication, invoqués
+nommément. L'invariant ci-dessus vaut quand même — ils existent tous les deux.
+
+```bash
+node scripts/publish-update.mjs vX.Y.Z                 # release GitHub → Forgejo + latest.json
+node scripts/publish-update.mjs vX.Y.Z --check-only    # garde d'alignement des versions seule
+node scripts/publish-update.mjs vX.Y.Z --dry-run       # le manifeste sur stdout, RIEN d'écrit
+node scripts/publish-update.mjs vX.Y.Z --pub-date 2026-01-01T00:00:00Z   # date figée (L40)
+```
+
+`--pub-date` (défaut : maintenant) rend la publication **reproductible** : deux exécutions sur
+le même tag avec la même date produisent un `updater/latest.json` **identique à l'octet**. Les
+messages de progression sortent sur **stderr** — stdout ne porte que le manifeste.
+
+```bash
+node scripts/mesurer-artefacts.mjs                     # mesure et ÉCRIT updater/mesures.json
+node scripts/mesurer-artefacts.mjs --dry-run           # mesure et affiche, sans écrire
+```
+
+`updater/mesures.json` n'est **jamais** écrit à la main. Il est produit par ce script, qui
+télécharge chaque clé de plateforme **en anonyme** (aucun jeton), calcule `octets` + `sha256`,
+vérifie la signature minisign du manifeste contre l'**octet servi** (signature globale + keyid),
+et rejoue chaque signature sur un octet altéré (**témoin négatif**, qui doit rendre `invalide`).
+Son champ `mesurePar` cite cette commande, et elle se relance : deux exécutions consécutives ne
+diffèrent que par `mesureLe`. **La provenance déclarée par ce fichier était FAUSSE avant L40** —
+elle nommait `iakaframe endpoints`, qui fait un `HEAD` et ne calcule ni `sha256` ni signature.
+
+Le manifeste porte **neuf clés** depuis L40 : les quatre génériques `{os}-{arch}` (inchangées,
+donc aucun client existant ne change de comportement) et cinq clés d'installeur
+`{os}-{arch}-{installer}` — que `tauri-plugin-updater` cherche **en premier**. La table de
+conformité `fixtures/updater-cles.json` est **byte-identique** avec celle d'`IakaCockpit`.
+
 ---
 
 ## Rendre un verdict de gate
@@ -144,6 +178,31 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 > `Test Files 56 passed (56) / Tests 518 passed (518)`. **`cargo test` non mesuré** à la reprise.
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
+
+- [ ] **Clés d'installeur du manifeste updater — le manifeste dit enfin quel paquet il sert**
+  → `specs/instructions/cles-installeur-manifeste-updater.md` (dupliquée **verbatim** dans
+  `IakaCockpit/specs/instructions/`, byte-identique — une divergence est un défaut, CA-16).
+  *(**implémenté côté ⚒️ Gimli — REMIS AU GATE 🏹 Legolas, non auto-validé** (2026-08-29),
+  branche `feat/L40-cles-installeur-manifeste`. Le dépôt Cockpit numérote ce lot **L40** ;
+  celui-ci ne numérote pas.)*
+  **Livré** : (A) le générateur émet les **9 clés** — 4 génériques `{os}-{arch}` **inchangées**
+  + 5 clés d'installeur `{os}-{arch}-{installer}`, que `tauri-plugin-updater` cherche **en
+  premier** ; **divergence réparée** : ce générateur **ignorait totalement le `.msi`** (aucune
+  branche), il ne pouvait donc pas émettre `windows-x86_64-msi`. (B) `I4` extraite en fonction
+  **pure** `scripts/lib/verifier-mesures.mjs`, indexée par **plateforme** (l'index par URL
+  s'effondrait au moment même où on s'en sert, plusieurs clés partageant la même URL par
+  construction) — les **deux exploits écrits ROUGES d'abord** et figés dans l'historique.
+  (J) instrument de mesure **versionné** `scripts/mesurer-artefacts.mjs` ; la provenance
+  déclarée par `updater/mesures.json` était **fausse** (elle nommait `iakaframe endpoints`, qui
+  fait un `HEAD` et ne calcule ni sha256 ni signature) — rectifiée. (G) `uploadUpdaterJson:
+  false` (AR-5). (I) `--pub-date` pilotable. Convergence : **6 fichiers byte-identiques** avec
+  le Cockpit, dont la garde `forge-host-parity.test.mjs`, qui gagne `HORS_COUVERTURE` + `I4bis`.
+  **Fait mesuré contredisant un risque du cadrage** : `.deb` et `.rpm` sont **signés** sur les
+  deux releases — R2/AR-2 sans objet, aucun `HORS_COUVERTURE` à ouvrir.
+  **NON FAIT, et c'est le cœur du reste** : l'**étape 5.1** (bump + publication d'une version
+  neuve) — les actes de publication (push, tag, release, workflow) sont **refusés aux agents**
+  et appartiennent au décideur. Le lot se clôt en **« mesuré, non recetté »** ; les deux
+  recettes réelles (Windows MSI, Linux `.deb`) restent le **gate humain**.
 
 - [ ] **`CANON-VENDOR-TABLE-DERIVEE` — successeur nommé du lot GUI-VENDOR-CHARON (dépôt
   `iakaframe`, canon-side).** Mandat : **dériver** les 7 ensembles de `fixtureTable()` depuis le
