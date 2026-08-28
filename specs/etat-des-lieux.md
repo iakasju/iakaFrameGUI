@@ -1,6 +1,6 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-08-28 21:55 (motif: pause).
+> Genere par iakaframe (CLI) le 2026-08-29 01:55 (motif: manual).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
@@ -9,63 +9,105 @@
 |---|---|
 | Version | v0.1.7 |
 | Branche | main |
-| Dernier commit | d15e2a4 fix(canal): le manifeste annonce des URL PUBLIQUES et MESUREES, plus des URL de LAN |
+| Dernier commit | e8f14d9 docs(claude): le geste de mesure devient une commande documentee, + le lot au backlog |
 | Arbre | propre |
-| Fichiers (suivis + non ignores) | 477 |
-| Note | Fin du lot 0 (trois canaux synchrones) + L1 (publication des artefacts) — auto-update reellement telechargeable |
+| Fichiers (suivis + non ignores) | 482 |
+| Note | Lot L40 cles d installeur livre et fusionne : 9 cles par app, 9/9 telechargeables. Gate PASS 16/18 CA. |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
+| `e8f14d9` | 2026-08-29 | docs(claude): le geste de mesure devient une commande documentee, + le lot au backlog |
+| `1953491` | 2026-08-29 | chore(updater): manifeste a 9 cles, et mesure regeneree par l instrument versionne |
+| `e00d289` | 2026-08-29 | test(garde): les deux gardes convergent, et I4 devient un appelant mince |
+| `6881fec` | 2026-08-29 | ci(release): le CI cesse de poser un SECOND manifeste concurrent sur la release |
+| `599b617` | 2026-08-29 | fix(garde): I4 indexe par PLATEFORME, refuse les doublons, exige l URL de la plateforme |
+| `846268d` | 2026-08-29 | test(garde): les deux exploits de I4, ECRITS ROUGES D'ABORD |
+| `43cfb7b` | 2026-08-29 | feat(mesure): instrument de mesure versionne des artefacts annonces |
+| `48f183d` | 2026-08-29 | docs(instruction): les 8 arbitrages tranches — instruction validee par le decideur |
+| `c2442c4` | 2026-08-28 | chore(iakaframe): checkpoint de pause — etat des lieux + recit de reprise (lot 0 + L1) |
 | `d15e2a4` | 2026-08-28 | fix(canal): le manifeste annonce des URL PUBLIQUES et MESUREES, plus des URL de LAN |
-| `d0a1c3c` | 2026-08-28 | docs(canal): rectifie f49aa1b — le manifeste n etait PAS trouve, et la cause n etait pas le repointage |
-| `3d2461c` | 2026-08-28 | fix(canal): le GUI n avait AUCUNE garde de parite d hote de forge |
-| `0f4e873` | 2026-08-28 | chore(journal): entrees de pause du checkpoint de reprise |
-| `a3988bb` | 2026-08-28 | docs(etat-des-lieux): recit de reprise — lot 0 remis au gate, rien pousse (reseau coupe) |
-| `f49aa1b` | 2026-08-28 | fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox |
-| `e70a284` | 2026-08-17 | docs(etat-des-lieux): checkpoint post-merge du train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL |
-| `8b17618` | 2026-08-17 | Merge branch 'feat/gui-vendor-charon' — re-vendorage Charon + gate de phase optionnel (gate Legolas PASS, 29/29) |
-| `674a531` | 2026-08-17 | docs(backlog): ferme GATE-DE-PHASE-OPTIONNEL avec sa preuve, ouvre 2 successeurs |
-| `33c5b5c` | 2026-08-17 | test(workflow): les preuves de fidelite — P1 sans y toucher, P2, P3, P4 |
 
 ## Reprise du travail (a completer par Cowork)
 
-- **Ce qui vient d'etre fait** : l'auto-update de cette app etait **entierement casse** et personne
-  ne le savait — le manifeste servi par `main` annoncait des artefacts sur l'**iakabox morte** (`192.168.2.11`), qui ne repond plus. Mesure au reveil :
-  ****0/4** telechargeable**. L'app **voyait** une mise a jour et **ne pouvait la telecharger sur
-  aucune plateforme**. Repare, mesure, fusionne dans `main` et pousse sur le NAS et sur GitHub.
-- **Architecture retenue** : `FORGEJO_BASE` (ou l'on **LIT** le manifeste : NAS ->
-  `raw.githubusercontent.com` -> iakabox en dernier secours) est desormais **distinct** de
-  `ARTEFACT_BASE` (ou l'on **TELECHARGE** : les releases GitHub, hote **public**). Un updater Tauri
-  ne sait pas s'authentifier : toute URL de LAN ou de depot prive est un **404 garanti** pour
-  l'utilisateur final. Les trois depots iaka sont passes **publics** le 2026-08-28 pour cette raison.
-- **Garde de parite reecrite** (`scripts/__tests__/forge-host-parity.test.mjs`), invariant
-  **remplace** et non affaibli : **I1** un seul hote designe · **I2** cet hote est **PUBLIC**,
-  propriete testee (ni RFC1918, ni loopback, ni `.local`), jamais une liste en dur · **I3** l'hote
-  mort `192.168.2.11` absent partout · **I4** **aucune plateforme annoncee sans mesure**, la preuve
-  etant `updater/mesures.json`, **fichier versionne** · **I5** au moins 2 hotes de lecture distincts.
-- **Etat final MESURE en anonyme sur ce que `main` sert** : **`TELECHARGEABLE : 4/4 — le manifeste tient sa promesse.`**.
-- **Les 4 artefacts v0.1.7 etaient deja publics et signes sur les releases GitHub** — ils etaient la
-  depuis le debut, **et personne ne les atteignait** : le manifeste ne les designait pas. Aucun build
-  n'a ete necessaire, seul le manifeste etait faux. Signatures verifiees sur **l'octet retelecharge**,
-  contre-verifiees par une seconde implementation (`pyca/cryptography`) : accord 8/8.
-- **Prochaine etape** : lot successeur des residus de garde nommes au gate — **R1** cliquet passif
-  sans borne de fraicheur, **R4** `estPrive` manque le nom d'hote nu et casse sur l'IPv6 litteral,
-  **R5** signature globale minisign non controlee, **R6** `I4bis` *vacuous* quand le registre est vide.
+- **Ce qui vient d'etre fait** : le lot **L40 « cles d'installeur du manifeste updater »** est livre,
+  gate **PASS** (16/18 CA verts), fusionne dans `main` et pousse sur les deux canaux. Le manifeste
+  emet desormais **9 cles** au lieu de 4 : les 4 generiques **inchangees** + `linux-x86_64-{appimage,
+  deb,rpm}` + `windows-x86_64-{msi,nsis}`. Mesure anonyme sur ce que `main` sert : **9/9
+  telechargeables**.
+- **Le defaut repare, en une phrase** : le manifeste ne mentait pas sur *ou* telecharger, il mentait
+  sur *quoi* il sert. `tauri-plugin-updater` cherche `{os}-{arch}-{installer}` **puis**
+  `{os}-{arch}` ; n'emettre que le generique faisait qu'un client Windows installe **par MSI**
+  recevait l'exe NSIS et s'installait **a cote** de son enregistrement, et qu'un client Linux installe
+  **par .deb/.rpm** telechargeait 92 Mo pour echouer en `InvalidUpdaterFormat` **a chaque tentative**.
+- **Deux prerequis, decouverts au cadrage et traites en premier** :
+  1. **La garde qui protege tout le reste etait trouee.** `I4` indexait les mesures **par URL** sans
+     verifier la plateforme. Or emettre les cles d'installeur fait que **plusieurs plateformes
+     partagent la meme URL par construction** (`linux-x86_64` et `-appimage` = le meme octet) :
+     l'index s'effondrait **exactement au moment de s'en servir**. Repare : index **par plateforme**,
+     refus des doublons de plateforme, et assertion que la mesure porte bien l'URL de cette plateforme.
+  2. **Il n'existait aucun instrument de mesure versionne**, alors que `I4` asserte
+     `signature: "valide"`. Le script d'origine vivait dans `scratchpad/` — **le repertoire n'existe
+     meme plus**, la provenance etait irrecuperable. Cote GUI, la provenance declaree etait **fausse**
+     (`iakaframe endpoints` fait un `HEAD`, ne calcule ni sha256 ni signature). Livre :
+     `scripts/mesurer-artefacts.mjs` (telechargement anonyme, sha256, minisign Ed25519/blake2b-512,
+     signature globale, keyid, temoin negatif, zero dependance), **byte-identique dans les deux depots**.
+- **Regle de derivation** : le jeu de cles est **derive de ce qui est SIGNE**, jamais d'une liste
+  souhaitee. Prouve sur 5 fixtures adverses, les deux generateurs d'accord : AppImage sans `.sig` ->
+  `linux-x86_64` **disparait** · aucune signature -> **aucune cle** · un `.deb` seul ne prend
+  **jamais** la generique Linux.
+- **Non-regression des clients deja installes, verifiee cle par cle** : les 4 cles preexistantes
+  gardent **url ET signature identiques**, generique Windows = **NSIS**, generique Linux = **AppImage**.
+  Un client dont `bundle_type()` rend `None` retombe sur la generique : **meme octet qu'avant le lot**.
+- **Ce qui reste ouvert, et qui appartient au decideur** :
+  1. **Un bump + tag + run CI** sur chaque app. C'est la **seule** facon de clore **CA-12** (mesure
+     **ROUGE** aujourd'hui : l'asset `latest.json` concurrent est **toujours** sur les deux releases,
+     `uploadUpdaterJson: false` n'agit qu'au prochain build) et la premiere moitie de **CA-13**.
+  2. **Les deux recettes reelles** (gate humain, ecrit dans l'instruction) : un client Windows **MSI**
+     qui **remplace** son enregistrement au lieu de doubler ; un client Linux **`.deb`** qui
+     **installe** au lieu d'echouer. **Personne ne les a jamais observees** — tout le benefice repose
+     sur `bundle_type()`, lu dans la source, **jamais vu tourner**. Le lot se declare donc
+     **« mesure, non recette »**, jamais « corrige ».
+- **Prochaine etape concrete** : le successeur **« gardes tiedes »** — **C** cliquet passif sans borne
+  de fraicheur · **D** `estPrive` manque le nom d'hote nu et **casse sur l'IPv6 litteral** (`[::1]` ->
+  `split(":")[0]` rend `"["`, donc une boucle locale est declaree **publique** : I2 conclut l'inverse
+  de la verite) · **E** `I4bis` **vacuous** sur registre vide, mesure ouvert au gate. Puis le
+  successeur **« installer depuis rien »** (les 3 README annoncent une version scellee perimee, et
+  GitHub designe **v0.1.6** comme `latest` du GUI alors que **v0.1.7** existe — il classe par date de
+  publication).
+- **Specifique a ce depot** : la branche `.msi` **n'existait pas** dans `publish-update.mjs` — elle est
+  ajoutee par ce lot. La garde recupere `HORS_COUVERTURE` et `I4bis`, qu'elle n'avait pas (CA-17), et
+  les 6 fichiers partages avec IakaCockpit sont **byte-identiques** (CA-16, `diff` vide). Le secret
+  `TAURI_SIGNING_PRIVATE_KEY` est pose ici depuis le 2026-08-13.
+- **Sept defauts non bloquants nommes au gate** : **D-1** un commit non atomique, plus large que
+  l'auto-denonciation de l'executant · **D-2** `mesurer-artefacts.mjs` mele journal et document sur
+  stdout — le defaut meme corrige dans `publish-update.mjs` · **D-3** deux `console.log` residuels ·
+  **D-4** les workflows epinglent **`tauri-action@v0`, tag flottant** : la preuve du comportement de
+  `uploadUpdaterJson` porte sur la branche `dev`, elle peut deriver en silence · **D-5** le `test:all`
+  du GUI **ne couvre pas le Rust** alors que le CA le laisse croire · **D-6** le dry-run rend
+  `notes: ""` : le chemin « republication a l'identique » reste **non prouve de bout en bout** ·
+  **D-7** defaut E confirme ouvert.
 - **Pieges connus** :
-  1. Le depot a son secret `TAURI_SIGNING_PRIVATE_KEY` sur GitHub depuis le 2026-08-13 — contrairement
-     a IakaCockpit, qui n'en a **aucun**.
-  2. **Verifier une signature sans minisign** (absent du Mac) : format `"ED"` = Ed25519 sur
+  1. **CA-8 protege le cas LEGITIME** — deux **cles distinctes** partageant la **meme URL** doit rester
+     **vert**, alors que **CA-7** (une **plateforme** en doublon) doit rougir. Le gate a montre que
+     CA-8 etait vert avant comme apres, donc qu'il ne prouvait rien ; il a invente la mutation
+     manquante (dedupliquer par URL) et **CA-8 seul l'a tuee**. Ne jamais confondre les deux.
+  2. **Les actes de publication sont refuses aux agents** par le classifieur de permissions
+     (`gh workflow disable/run`, push de tag, `gh release create`, `gh secret set` selon le contexte).
+     Le decideur les tape lui-meme avec le prefixe `!`.
+  3. **Une garde s'ecrit ROUGE D'ABORD**, et l'etat rouge se **fige dans l'historique** pour etre
+     rejouable au gate. C'est ce qui a permis de prouver, et pas seulement d'affirmer, que les deux
+     exploits d'`I4` etaient verts a tort.
+  4. **Verifier une signature sans minisign** (absent du Mac) : format `"ED"` = Ed25519 sur
      **blake2b-512 prehashe**. Verifier la signature **du manifeste** (celle que l'updater utilise),
      sur **l'octet retelecharge**, et **valider l'instrument sur un temoin negatif** avant de conclure.
-  3. **Un `200` ne suffit pas** : un depot prive rend 200 + une page de connexion. Seul un manifeste
-     **au contrat** (`version` + `platforms`) compte comme servant.
 
 ## Journal (versions & pauses)
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-08-29 01:55 | manual | v0.1.7 | main | Lot L40 cles d installeur livre et fusionne : 9 cles par app, 9/9 telechargeables. Gate PASS 16/18 CA. |
 | 2026-08-28 21:55 | pause | v0.1.7 | main | Fin du lot 0 (trois canaux synchrones) + L1 (publication des artefacts) — auto-update reellement telechargeable |
 | 2026-08-28 14:32 | pause | v0.1.7 | feat/L0-trois-canaux-synchrones | Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche). |
 | 2026-08-17 01:23 | pause | v0.1.7 | main | Train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL merge dans main (gate Legolas PASS 29/29) |

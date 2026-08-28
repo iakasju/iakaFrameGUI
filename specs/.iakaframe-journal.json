@@ -248,5 +248,15 @@
     "dirty": false,
     "files": 477,
     "note": "Fin du lot 0 (trois canaux synchrones) + L1 (publication des artefacts) — auto-update reellement telechargeable"
+  },
+  {
+    "date": "2026-08-29 01:55",
+    "reason": "manual",
+    "version": "v0.1.7",
+    "branch": "main",
+    "commit": "e8f14d9 docs(claude): le geste de mesure devient une commande documentee, + le lot au backlog",
+    "dirty": false,
+    "files": 482,
+    "note": "Lot L40 cles d installeur livre et fusionne : 9 cles par app, 9/9 telechargeables. Gate PASS 16/18 CA."
   }
 ]
