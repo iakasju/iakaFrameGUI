@@ -1,0 +1,49 @@
+{
+  "objet": "mesure des artefacts annonces par updater/latest.json — aucune URL n'est annoncee sans avoir ete ouverte",
+  "version": "0.1.7",
+  "mesureLe": "2026-08-28T16:18:12.752Z",
+  "mesurePar": "iakaframe endpoints --manifeste updater/latest.json --json (@naonedge/iakaframe 0.39.0), en ANONYME",
+  "signatureVerifieePar": "minisign Ed25519 sur blake2b-512, contre la cle publique declaree dans src-tauri/tauri.conf.json (plugins.updater.pubkey) — l'artefact TELECHARGE, pas celui du poste de build",
+  "artefacts": [
+    {
+      "plateforme": "linux-x86_64",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.AppImage",
+      "hote": "github.com",
+      "status": 200,
+      "octets": 83773944,
+      "motif": "ok",
+      "sha256": "9a4a54fd0f915bcc9d5969420f041827e5d958a8436b8db45a6503f399efd397",
+      "signature": "valide"
+    },
+    {
+      "plateforme": "windows-x86_64",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64-setup.exe",
+      "hote": "github.com",
+      "status": 200,
+      "octets": 4134124,
+      "motif": "ok",
+      "sha256": "8fead176e26c3cb27d5343de0a4895c65c6a013191bfa1ffeadb3819ac59ce12",
+      "signature": "valide"
+    },
+    {
+      "plateforme": "darwin-aarch64",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_aarch64.app.tar.gz",
+      "hote": "github.com",
+      "status": 200,
+      "octets": 6349106,
+      "motif": "ok",
+      "sha256": "917b1120080047db16be0addd7d09e1b11994fd43863828f45fb57f86f5ac7f3",
+      "signature": "valide"
+    },
+    {
+      "plateforme": "darwin-x86_64",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_x64.app.tar.gz",
+      "hote": "github.com",
+      "status": 200,
+      "octets": 6483288,
+      "motif": "ok",
+      "sha256": "b4e73ae36c57c69cb79a79855845bd22f5df888259c8b9c4f13a65a267bf73c8",
+      "signature": "valide"
+    }
+  ]
+}

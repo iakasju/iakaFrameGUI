@@ -44,6 +44,23 @@ export const REPO_NAME = "iakaFrameGUI";
 export const FORGEJO_BASE = "http://192.168.1.139:3001";
 
 /**
+ * LA BASE DE TELECHARGEMENT ANNONCEE PAR LE MANIFESTE — les releases GitHub.
+ *
+ * Ce n'est pas la meme chose que `FORGEJO_BASE`, et c'est le point qui manquait. Le manifeste est
+ * un fichier UNIQUE, lu depuis N canaux : ses URL sont ABSOLUES, donc les MEMES pour tout le
+ * monde, quel que soit l'endpoint qui l'a servi. Les faire pointer une adresse de LAN, c'est
+ * promettre un telechargement a des lecteurs qui ne sont pas sur ce LAN — et c'est exactement
+ * l'etat mesure le 2026-08-28 : manifeste servi sur deux canaux, cinq URL d'artefacts a 404/000,
+ * mise a jour VUE et telechargeable NULLE PART.
+ *
+ * L'hote de LECTURE (les `endpoints`) peut donc rester la forge du LAN — elle est la plus proche
+ * — tandis que l'hote de TELECHARGEMENT doit etre PUBLIC. Decision du decideur, 2026-08-28 :
+ * « les manifestes pointent sur GitHub ». Ce que la forge du LAN continue de recevoir (release +
+ * binaires) est un MIROIR, pas la cible annoncee.
+ */
+export const ARTEFACT_BASE = "https://github.com/iakasju/iakaFrameGUI/releases/download";
+
+/**
  * LA branche que l'endpoint updater lit (`raw/branch/main/updater/latest.json`). Publier depuis une
  * autre branche est sans effet côté clients : c'est un échec, pas une variante — d'où la garde.
  */
@@ -52,9 +69,15 @@ export const PUBLISH_BRANCH = "main";
 /** Racine du dépôt (le script vit dans `scripts/`). */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Base des URL de téléchargement d'une release Forgejo — les URL du manifeste sont ABSOLUES. */
-export function downloadBase(base = FORGEJO_BASE, owner = REPO_OWNER, repo = REPO_NAME) {
-  return `${base}/${owner}/${repo}/releases/download`;
+/**
+ * Base des URL de téléchargement écrites dans le manifeste — ABSOLUES, et PUBLIQUES.
+ *
+ * Signature conservée (`base`, `owner`, `repo`) pour les appels existants qui veulent viser une
+ * forge : passer `FORGEJO_BASE` reconstruit l'URL Forgejo du miroir. Sans argument, on rend la
+ * base publique — c'est ce que le manifeste doit annoncer.
+ */
+export function downloadBase(base = null, owner = REPO_OWNER, repo = REPO_NAME) {
+  return base === null ? ARTEFACT_BASE : `${base}/${owner}/${repo}/releases/download`;
 }
 
 // ---------------------------------------------------------------------------
