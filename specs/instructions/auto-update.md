@@ -404,12 +404,54 @@ les déclarer faits.
 
 ---
 
+## Rectification du 2026-08-28 — un endpoint ne se déclare qu'après mesure
+
+> Ajoutée à la suite d'un gate qualité. Le commit `f49aa1b` (« repointe l'updater du GUI »)
+> affirmait que l'app « trouvera désormais le manifeste sur le NAS ». **La phrase était fausse au
+> moment où elle a été écrite** : aucun endpoint n'avait été interrogé, et les trois rendaient
+> alors `404 / 404 / 000`.
+
+**La cause réelle n'était pas le repointage** — elle n'avait même pas été cherchée : les dépôts
+`iakaframe`, `iakacockpit` et `iakaFrameGUI` étaient **privés**, sur le NAS comme sur le miroir
+GitHub. Une forge privée ne rend pas un manifeste à un client anonyme, et l'updater ne sait pas
+s'authentifier. Le canal n'était pas mal adressé : il était **fermé**.
+
+**Décision du décideur, exécutée le 2026-08-28** : les trois dépôts passent en **public** (NAS
+`private=false`, miroirs GitHub `visibility=public`).
+
+**Mesure en direct, en anonyme, le 2026-08-28T14:38Z** — refaite par `iakaframe endpoints` à
+14:49Z, même résultat :
+
+| Rang | Endpoint | Code | Verdict |
+|---|---|---|---|
+| 1 | NAS `192.168.1.139:3001` | **200** | manifeste v0.1.7 servi (150 ms) |
+| 2 | GitHub `raw.githubusercontent.com` | **200** | manifeste v0.1.7 servi (287 ms) |
+| 3 | iakabox `192.168.2.11:3001` | **000** | aucune réponse — machine éteinte, elle ne reviendra pas |
+
+**Deux canaux servent réellement** : la bascule CA-11 a désormais sur quoi s'appuyer, et c'est
+mesuré, pas déclaré. Bascule exercée en forçant l'iakabox en tête : le canal suivant sert le
+manifeste v0.1.7.
+
+**Reste ouvert, dit et non résolu** : le NAS ne porte **aucune release** pour ce dépôt (API
+anonyme `/releases` → `[]`). Les 4 URL de téléchargement du manifeste y répondent donc **404** tant
+que `scripts/publish-update.mjs` n'a pas republié la v0.1.7. Les artefacts signés existent,
+publics, sur les releases GitHub (mesuré 200). **Le manifeste est lisible ; le téléchargement qu'il
+annonce ne l'est pas encore.**
+
+**Règle qui en découle, opposable à tout commit futur** : un endpoint ne se déclare qu'**après
+mesure en direct**, et l'énoncé porte la date de la mesure. `iakaframe endpoints --app .` rend
+cette mesure en une commande — un `200` n'y suffit d'ailleurs pas : un dépôt privé répond
+volontiers `200` + une page de connexion, et seul un manifeste au contrat compte comme servi.
+
+---
+
 ## Annexe — constantes de ce projet
 
 | Constante | Valeur |
 |---|---|
 | Dépôt Forgejo | `sjupin/iakaFrameGUI` (public, branche `main`) |
-| Endpoint | `http://192.168.2.11:3001/sjupin/iakaFrameGUI/raw/branch/main/updater/latest.json` |
+| Endpoints (liste **ordonnée**) | 1. NAS `http://192.168.1.139:3001/sjupin/iakaFrameGUI/raw/branch/main/updater/latest.json` · 2. GitHub `https://raw.githubusercontent.com/iakasju/iakaFrameGUI/main/updater/latest.json` · 3. iakabox `http://192.168.2.11:3001/…` (dernier secours, machine éteinte) |
+| Hôte de publication | `http://192.168.1.139:3001` — `FORGEJO_BASE` de `scripts/publish-update.mjs`, gardé par `scripts/__tests__/forge-host-parity.test.mjs` |
 | Identifiant bundle | `com.iakateam.iakaframegui` |
 | Nom de produit | `iakaFrameGUI` |
 | Version au cadrage | `0.1.4` |
