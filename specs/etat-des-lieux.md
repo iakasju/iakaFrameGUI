@@ -1,6 +1,6 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-08-28 14:32 (motif: pause).
+> Genere par iakaframe (CLI) le 2026-08-28 21:55 (motif: pause).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
@@ -8,65 +8,65 @@
 | Champ | Valeur |
 |---|---|
 | Version | v0.1.7 |
-| Branche | feat/L0-trois-canaux-synchrones |
-| Dernier commit | f49aa1b fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox |
-| Arbre | MODIFICATIONS NON COMMITEES |
-| Fichiers (suivis + non ignores) | 475 |
-| Note | Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche). |
+| Branche | main |
+| Dernier commit | d15e2a4 fix(canal): le manifeste annonce des URL PUBLIQUES et MESUREES, plus des URL de LAN |
+| Arbre | propre |
+| Fichiers (suivis + non ignores) | 477 |
+| Note | Fin du lot 0 (trois canaux synchrones) + L1 (publication des artefacts) — auto-update reellement telechargeable |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
+| `d15e2a4` | 2026-08-28 | fix(canal): le manifeste annonce des URL PUBLIQUES et MESUREES, plus des URL de LAN |
+| `d0a1c3c` | 2026-08-28 | docs(canal): rectifie f49aa1b — le manifeste n etait PAS trouve, et la cause n etait pas le repointage |
+| `3d2461c` | 2026-08-28 | fix(canal): le GUI n avait AUCUNE garde de parite d hote de forge |
+| `0f4e873` | 2026-08-28 | chore(journal): entrees de pause du checkpoint de reprise |
+| `a3988bb` | 2026-08-28 | docs(etat-des-lieux): recit de reprise — lot 0 remis au gate, rien pousse (reseau coupe) |
 | `f49aa1b` | 2026-08-28 | fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox |
 | `e70a284` | 2026-08-17 | docs(etat-des-lieux): checkpoint post-merge du train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL |
 | `8b17618` | 2026-08-17 | Merge branch 'feat/gui-vendor-charon' — re-vendorage Charon + gate de phase optionnel (gate Legolas PASS, 29/29) |
 | `674a531` | 2026-08-17 | docs(backlog): ferme GATE-DE-PHASE-OPTIONNEL avec sa preuve, ouvre 2 successeurs |
 | `33c5b5c` | 2026-08-17 | test(workflow): les preuves de fidelite — P1 sans y toucher, P2, P3, P4 |
-| `2c1fbd0` | 2026-08-17 | feat(core): Phase.gate devient optionnel — le GUI cesse d'inventer un feu vert |
-| `82062ea` | 2026-08-17 | docs(specs): verse l'instruction gate-de-phase-optionnel et l'amendement AC-1/AC-4 (AC-15) |
-| `e79816b` | 2026-08-17 | docs(backlog): rectifie GATE-DE-PHASE-OPTIONNEL (2 tests, pas 5) et ouvre la reserve d'instrument |
-| `f696571` | 2026-08-17 | test(workflow): aligne les 3 rouges NON bloques par le defaut de modele |
-| `d523b06` | 2026-08-17 | docs(backlog): ouvre le successeur CANON-VENDOR-TABLE-DERIVEE et remonte GATE-DE-PHASE-OPTIONNEL |
 
 ## Reprise du travail (a completer par Cowork)
 
-> **Le recit complet vit dans `~/work/iakaframe/specs/etat-des-lieux.md`** : lot **portefeuille**
-> traversant trois depots. Ce qui suit ne concerne que CE depot.
-
-- **Ce qui vient d'etre fait ici** : **un seul commit**, `f49aa1b`
-  (`fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox`), sur la
-  branche **`feat/L0-trois-canaux-synchrones`**, **non poussee**. Part **0.b** du lot 0 « trois
-  canaux synchrones » (decision du decideur du 2026-08-28 : iakabox, NAS et GitHub synchrones,
-  chacun le secours des autres).
-- **Le fait qui a declenche ce commit** : ce depot **n'avait JAMAIS ete repointe**. Quand la forge
-  a migre de l'iakabox `192.168.2.11` vers le NAS `192.168.1.139` le 2026-08-19, le CLI et le
-  Cockpit ont ete repointes — **pas le GUI**. Son `src-tauri/tauri.conf.json:43` designait encore,
-  seul, une machine **eteinte**. Passe a **trois URL ordonnees** (`NAS -> GitHub -> iakabox`).
-  **Aucune ligne Rust ni front touchee** : le diff est **2 lignes** dans un seul fichier JSON.
-- **Mesure faite** : front **1183 / 1183** vert (120 fichiers, `npx vitest run`). **Rust non
-  execute**, aucun chiffre `cargo` rapporte — aucune ligne Rust modifiee.
-- **Ce depot etait le seul des trois a jour sur GitHub** en debut de session (`e70a284` partout),
-  et il est **le plus avance en distribution** du portefeuille : v0.1.7 publiee et **signee sur
-  4 plateformes**. C'est ce constat qui a fait **elargir l'arbitrage AR-6** du lot bundle : le lot B
-  ne defriche pas, il **reutilise ce precedent**.
-- **En cours / a reprendre** : gate 🏹 Legolas **non passe**. Rien n'est pousse (tout le TCP sortant
-  du poste est coupe, loopback compris).
+- **Ce qui vient d'etre fait** : l'auto-update de cette app etait **entierement casse** et personne
+  ne le savait — le manifeste servi par `main` annoncait des artefacts sur l'**iakabox morte** (`192.168.2.11`), qui ne repond plus. Mesure au reveil :
+  ****0/4** telechargeable**. L'app **voyait** une mise a jour et **ne pouvait la telecharger sur
+  aucune plateforme**. Repare, mesure, fusionne dans `main` et pousse sur le NAS et sur GitHub.
+- **Architecture retenue** : `FORGEJO_BASE` (ou l'on **LIT** le manifeste : NAS ->
+  `raw.githubusercontent.com` -> iakabox en dernier secours) est desormais **distinct** de
+  `ARTEFACT_BASE` (ou l'on **TELECHARGE** : les releases GitHub, hote **public**). Un updater Tauri
+  ne sait pas s'authentifier : toute URL de LAN ou de depot prive est un **404 garanti** pour
+  l'utilisateur final. Les trois depots iaka sont passes **publics** le 2026-08-28 pour cette raison.
+- **Garde de parite reecrite** (`scripts/__tests__/forge-host-parity.test.mjs`), invariant
+  **remplace** et non affaibli : **I1** un seul hote designe · **I2** cet hote est **PUBLIC**,
+  propriete testee (ni RFC1918, ni loopback, ni `.local`), jamais une liste en dur · **I3** l'hote
+  mort `192.168.2.11` absent partout · **I4** **aucune plateforme annoncee sans mesure**, la preuve
+  etant `updater/mesures.json`, **fichier versionne** · **I5** au moins 2 hotes de lecture distincts.
+- **Etat final MESURE en anonyme sur ce que `main` sert** : **`TELECHARGEABLE : 4/4 — le manifeste tient sa promesse.`**.
+- **Les 4 artefacts v0.1.7 etaient deja publics et signes sur les releases GitHub** — ils etaient la
+  depuis le debut, **et personne ne les atteignait** : le manifeste ne les designait pas. Aucun build
+  n'a ete necessaire, seul le manifeste etait faux. Signatures verifiees sur **l'octet retelecharge**,
+  contre-verifiees par une seconde implementation (`pyca/cryptography`) : accord 8/8.
+- **Prochaine etape** : lot successeur des residus de garde nommes au gate — **R1** cliquet passif
+  sans borne de fraicheur, **R4** `estPrive` manque le nom d'hote nu et casse sur l'IPv6 litteral,
+  **R5** signature globale minisign non controlee, **R6** `I4bis` *vacuous* quand le registre est vide.
 - **Pieges connus** :
-  1. 🛑 **Le trou n'est bouche qu'a MOITIE, et c'est le piege principal.** Le manifeste sera
-     desormais **trouve** sur le NAS, mais `updater/latest.json` porte encore **4 URL de
-     telechargement pointant l'iakabox morte**, et `scripts/publish-update.mjs` a
-     `FORGEJO_BASE = "http://192.168.2.11:3001"`. Consequence : l'app **verra** la mise a jour et
-     **echouera a la telecharger**. Les deux fichiers etaient **hors mandat** (produits par la chaine
-     de publication) — **a rattacher au lot A/B**. Ne pas conclure « le GUI est repare ».
-  2. ⚠️ **La 3e entree (GitHub) est decorative en l'etat** : depots **prives**,
-     `raw.githubusercontent.com` repond **404** a l'updater Tauri qui ne sait pas s'authentifier.
-     A trancher. *Deduction documentaire, non verifiee en direct (reseau coupe).*
+  1. Le depot a son secret `TAURI_SIGNING_PRIVATE_KEY` sur GitHub depuis le 2026-08-13 — contrairement
+     a IakaCockpit, qui n'en a **aucun**.
+  2. **Verifier une signature sans minisign** (absent du Mac) : format `"ED"` = Ed25519 sur
+     **blake2b-512 prehashe**. Verifier la signature **du manifeste** (celle que l'updater utilise),
+     sur **l'octet retelecharge**, et **valider l'instrument sur un temoin negatif** avant de conclure.
+  3. **Un `200` ne suffit pas** : un depot prive rend 200 + une page de connexion. Seul un manifeste
+     **au contrat** (`version` + `platforms`) compte comme servant.
 
 ## Journal (versions & pauses)
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-08-28 21:55 | pause | v0.1.7 | main | Fin du lot 0 (trois canaux synchrones) + L1 (publication des artefacts) — auto-update reellement telechargeable |
 | 2026-08-28 14:32 | pause | v0.1.7 | feat/L0-trois-canaux-synchrones | Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche). |
 | 2026-08-17 01:23 | pause | v0.1.7 | main | Train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL merge dans main (gate Legolas PASS 29/29) |
 | 2026-08-10 20:16 | version | v0.1.6 | main | Auto-update de l'application livre, gate PASS borne, publie sur le canal Forgejo LAN et bascule recettee (0.1.5 -> 0.1.6) |

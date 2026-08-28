@@ -238,5 +238,15 @@
     "dirty": true,
     "files": 475,
     "note": "Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche)."
+  },
+  {
+    "date": "2026-08-28 21:55",
+    "reason": "pause",
+    "version": "v0.1.7",
+    "branch": "main",
+    "commit": "d15e2a4 fix(canal): le manifeste annonce des URL PUBLIQUES et MESUREES, plus des URL de LAN",
+    "dirty": false,
+    "files": 477,
+    "note": "Fin du lot 0 (trois canaux synchrones) + L1 (publication des artefacts) — auto-update reellement telechargeable"
   }
 ]
