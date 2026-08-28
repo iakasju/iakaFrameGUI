@@ -3,14 +3,6 @@
   "notes": "Version de maintenance, sans changement fonctionnel : mise en conformite du code Rust (formatage, clippy) et correction de sa documentation interne. Nouveaute cote distribution : premiere version publiee sur les 4 plateformes (Windows, Linux, macOS Apple Silicon et Intel), avec mise a jour automatique signee.",
   "pub_date": "2026-08-15T13:10:01.947Z",
   "platforms": {
-    "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUNIemN1bnpnaUdXcW5vemZDbmlJT0daWXVHVkFCUnM2Q3E3Q2lWeWRReU9iclllQU1PTnJtMEJEVFpOWjFIUmZnTmQ2UHdBQWpIajFQOTRYOE94aHdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NjcxCWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X2FtZDY0LkFwcEltYWdlCm5BQzhPWFRMS0tSV0czVGpYLzc1elZkSVZXaHNVK0lGaEpQMEpvVnU3ZWM5NmNiVnY5SFp5Rm51em5mRWxXWU12U1NSYjErMmMrTGdydUVoR3VFbkNnPT0K",
-      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.AppImage"
-    },
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUhWbjZDcGZiMXlWNFNkUmdWcHNaeUU3YUpTYm5ONUVEQ3dQc29vTTkvN1lwUFVmTjFxb1F2MFdSY0d5RG9XQlNEemE4eURmbExUcUJmYTZnTXFaNHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NDY0CWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X3g2NC1zZXR1cC5leGUKaEtOZE5Db0pLWXk1TllUS3psSWtGZytSc0d1bUVuNjg0MHAxRXNHaGVwc3lCblMvbXBTRFZXL2FqaFhrYlZXN081c0tPMnIvRmNDMm5pM0pwRlZyQlE9PQo=",
-      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64-setup.exe"
-    },
     "darwin-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUMrNFUvOVR3V1Uyc28vNXZEZ1hubWF1alMzY01XV2JpUzRFV3pzSEZNcW5DNkR2MFU1WkJjRk9uUmk0QVd0bEhwTGx2UkFqNHdlZHNueUM3ZGpNd2dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3MzUxCWZpbGU6aWFrYUZyYW1lR1VJLmFwcC50YXIuZ3oKUFdvY2cvRHUyQ3dXb1VtTVN2LzNEZFBuMGhHMGpLZTk2dnpvZUlCbWhObGZXSE16S2IzNlEvN3lDN2syN25RcXpLd3dqTHhOOHdiZDViSDlkdlBNQXc9PQo=",
       "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_aarch64.app.tar.gz"
@@ -18,6 +10,34 @@
     "darwin-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUpuRWhWYUFBTFJKanFSREhqNnlsZ3owQnhBUmVRT2gweklJT3hoQS9oWW5pTXJEWXJhSlQwTFN4bjFGZkJOamlBQzZ4U0U2dkx5cVMwT01HbTFsZ2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3Mzg0CWZpbGU6aWFrYUZyYW1lR1VJLmFwcC50YXIuZ3oKOWRBVEF0aUp5Wm14RTVSRkN6aVBnelZrQlJUek5kSzlCN1VXK0x2bll4SVBPZ1MyUnBTNWR5R2laKzJRc0lZckRkYmRrNUZrS2k0bDF6UEFnSldwRFE9PQo=",
       "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_x64.app.tar.gz"
+    },
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUNIemN1bnpnaUdXcW5vemZDbmlJT0daWXVHVkFCUnM2Q3E3Q2lWeWRReU9iclllQU1PTnJtMEJEVFpOWjFIUmZnTmQ2UHdBQWpIajFQOTRYOE94aHdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NjcxCWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X2FtZDY0LkFwcEltYWdlCm5BQzhPWFRMS0tSV0czVGpYLzc1elZkSVZXaHNVK0lGaEpQMEpvVnU3ZWM5NmNiVnY5SFp5Rm51em5mRWxXWU12U1NSYjErMmMrTGdydUVoR3VFbkNnPT0K",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.AppImage"
+    },
+    "linux-x86_64-appimage": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUNIemN1bnpnaUdXcW5vemZDbmlJT0daWXVHVkFCUnM2Q3E3Q2lWeWRReU9iclllQU1PTnJtMEJEVFpOWjFIUmZnTmQ2UHdBQWpIajFQOTRYOE94aHdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NjcxCWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X2FtZDY0LkFwcEltYWdlCm5BQzhPWFRMS0tSV0czVGpYLzc1elZkSVZXaHNVK0lGaEpQMEpvVnU3ZWM5NmNiVnY5SFp5Rm51em5mRWxXWU12U1NSYjErMmMrTGdydUVoR3VFbkNnPT0K",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.AppImage"
+    },
+    "linux-x86_64-deb": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMVA1aG1keGgyZVVwTnJMQThNTm1xaTg0S1RZWEhjTGhGNVVkc091b1U5L1UrbXk0dVd6ajFlSFpxekFHMGFYanNBTjRDbHZ4TmRBYTZ0YUVjMWpsTFFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NjcxCWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X2FtZDY0LmRlYgp4YzlybncvQUJQejYyTUFET3ZzeDduZEMyendrTWZ0M3hxQ2RZNStMdlJ5dCtUK0VwNDNsOWhSTTVBTDlQUDNoY3hlVkpXSDNWZ3ExcW1IeVh6d1JEZz09Cg==",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.deb"
+    },
+    "linux-x86_64-rpm": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUlFRVpiTkVMT2o3RkhlZHlIZzQrUllkRGtMOG1FUFhMSThrTWlxbU1TR3hTdjJrLzlZZnFHa0JzM1BmK1FhQ3FqTXFCTDdqcDJMSG5oUnYrRnNDS0FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NjcxCWZpbGU6aWFrYUZyYW1lR1VJLTAuMS43LTEueDg2XzY0LnJwbQoxcFU1RUFrdktoSGd6Tk1qL3JQV3RxQUtsbTE0U1dSYUV1OEkrT2Z4RXc5bGpkRWZpZWtPczNYclprdjlSL25rQkVyOTVXRDBYR3drSkhrcWxHRU5EZz09Cg==",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI-0.1.7-1.x86_64.rpm"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUhWbjZDcGZiMXlWNFNkUmdWcHNaeUU3YUpTYm5ONUVEQ3dQc29vTTkvN1lwUFVmTjFxb1F2MFdSY0d5RG9XQlNEemE4eURmbExUcUJmYTZnTXFaNHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NDY0CWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X3g2NC1zZXR1cC5leGUKaEtOZE5Db0pLWXk1TllUS3psSWtGZytSc0d1bUVuNjg0MHAxRXNHaGVwc3lCblMvbXBTRFZXL2FqaFhrYlZXN081c0tPMnIvRmNDMm5pM0pwRlZyQlE9PQo=",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64-setup.exe"
+    },
+    "windows-x86_64-msi": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMU1hS1JGWDlqdko3OFZMMUFsVFRyWld4cTA3ZnhxSU8yZnIvZjRPVjRwWWRvelZ4NlN3bzE5OGhiUVlhZnR4Q05zMEpWZXpaSEpIcVBZNkdrVFhJRHdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NDY0CWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X3g2NF9lbi1VUy5tc2kKaFlZNEJVUHNNdHlkNHVMSVQvR0FkUmoxYURaTVVoYUJBZi9GeGp0RTFUc3FiYSthaDhqUk11b2l5ZUNJQzRqSHhkeE8zN2xZLzlSUTY1eWN0VWJqQmc9PQo=",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64_en-US.msi"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUhWbjZDcGZiMXlWNFNkUmdWcHNaeUU3YUpTYm5ONUVEQ3dQc29vTTkvN1lwUFVmTjFxb1F2MFdSY0d5RG9XQlNEemE4eURmbExUcUJmYTZnTXFaNHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NDY0CWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X3g2NC1zZXR1cC5leGUKaEtOZE5Db0pLWXk1TllUS3psSWtGZytSc0d1bUVuNjg0MHAxRXNHaGVwc3lCblMvbXBTRFZXL2FqaFhrYlZXN081c0tPMnIvRmNDMm5pM0pwRlZyQlE9PQo=",
+      "url": "https://github.com/iakasju/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64-setup.exe"
     }
   }
 }
