@@ -37,7 +37,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const REPO_OWNER = "sjupin";
 export const REPO_NAME = "iakaFrameGUI";
-export const FORGEJO_BASE = "http://192.168.2.11:3001";
+// LA forge de publication. Repointée le 2026-08-28 : l'ancienne iakabox (`192.168.2.11:3001`)
+// est éteinte pour de bon — mesurée `000` (aucune réponse HTTP), y compris en ICMP. Le NAS est
+// mesuré `200` en anonyme le même jour. Toute la chaîne doit désigner cet hôte : la garde
+// `scripts/__tests__/forge-host-parity.test.mjs` refuse la divergence.
+export const FORGEJO_BASE = "http://192.168.1.139:3001";
 
 /**
  * LA branche que l'endpoint updater lit (`raw/branch/main/updater/latest.json`). Publier depuis une

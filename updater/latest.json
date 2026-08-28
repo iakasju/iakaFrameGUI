@@ -5,19 +5,19 @@
   "platforms": {
     "linux-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUNIemN1bnpnaUdXcW5vemZDbmlJT0daWXVHVkFCUnM2Q3E3Q2lWeWRReU9iclllQU1PTnJtMEJEVFpOWjFIUmZnTmQ2UHdBQWpIajFQOTRYOE94aHdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NjcxCWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X2FtZDY0LkFwcEltYWdlCm5BQzhPWFRMS0tSV0czVGpYLzc1elZkSVZXaHNVK0lGaEpQMEpvVnU3ZWM5NmNiVnY5SFp5Rm51em5mRWxXWU12U1NSYjErMmMrTGdydUVoR3VFbkNnPT0K",
-      "url": "http://192.168.2.11:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.AppImage"
+      "url": "http://192.168.1.139:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_amd64.AppImage"
     },
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUhWbjZDcGZiMXlWNFNkUmdWcHNaeUU3YUpTYm5ONUVEQ3dQc29vTTkvN1lwUFVmTjFxb1F2MFdSY0d5RG9XQlNEemE4eURmbExUcUJmYTZnTXFaNHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3NDY0CWZpbGU6aWFrYUZyYW1lR1VJXzAuMS43X3g2NC1zZXR1cC5leGUKaEtOZE5Db0pLWXk1TllUS3psSWtGZytSc0d1bUVuNjg0MHAxRXNHaGVwc3lCblMvbXBTRFZXL2FqaFhrYlZXN081c0tPMnIvRmNDMm5pM0pwRlZyQlE9PQo=",
-      "url": "http://192.168.2.11:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64-setup.exe"
+      "url": "http://192.168.1.139:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_0.1.7_x64-setup.exe"
     },
     "darwin-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUMrNFUvOVR3V1Uyc28vNXZEZ1hubWF1alMzY01XV2JpUzRFV3pzSEZNcW5DNkR2MFU1WkJjRk9uUmk0QVd0bEhwTGx2UkFqNHdlZHNueUM3ZGpNd2dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3MzUxCWZpbGU6aWFrYUZyYW1lR1VJLmFwcC50YXIuZ3oKUFdvY2cvRHUyQ3dXb1VtTVN2LzNEZFBuMGhHMGpLZTk2dnpvZUlCbWhObGZXSE16S2IzNlEvN3lDN2syN25RcXpLd3dqTHhOOHdiZDViSDlkdlBNQXc9PQo=",
-      "url": "http://192.168.2.11:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_aarch64.app.tar.gz"
+      "url": "http://192.168.1.139:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_aarch64.app.tar.gz"
     },
     "darwin-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWxlVFd2LzllMUpuRWhWYUFBTFJKanFSREhqNnlsZ3owQnhBUmVRT2gweklJT3hoQS9oWW5pTXJEWXJhSlQwTFN4bjFGZkJOamlBQzZ4U0U2dkx5cVMwT01HbTFsZ2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NjM3Mzg0CWZpbGU6aWFrYUZyYW1lR1VJLmFwcC50YXIuZ3oKOWRBVEF0aUp5Wm14RTVSRkN6aVBnelZrQlJUek5kSzlCN1VXK0x2bll4SVBPZ1MyUnBTNWR5R2laKzJRc0lZckRkYmRrNUZrS2k0bDF6UEFnSldwRFE9PQo=",
-      "url": "http://192.168.2.11:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_x64.app.tar.gz"
+      "url": "http://192.168.1.139:3001/sjupin/iakaFrameGUI/releases/download/v0.1.7/iakaFrameGUI_x64.app.tar.gz"
     }
   }
 }
