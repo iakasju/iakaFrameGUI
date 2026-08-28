@@ -1,6 +1,6 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-08-17 01:23 (motif: pause).
+> Genere par iakaframe (CLI) le 2026-08-28 14:32 (motif: pause).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
@@ -8,16 +8,18 @@
 | Champ | Valeur |
 |---|---|
 | Version | v0.1.7 |
-| Branche | main |
-| Dernier commit | 8b17618 Merge branch 'feat/gui-vendor-charon' — re-vendorage Charon + gate de phase optionnel (gate Legolas PASS, 29/29) |
-| Arbre | propre |
+| Branche | feat/L0-trois-canaux-synchrones |
+| Dernier commit | f49aa1b fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox |
+| Arbre | MODIFICATIONS NON COMMITEES |
 | Fichiers (suivis + non ignores) | 475 |
-| Note | Train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL merge dans main (gate Legolas PASS 29/29) |
+| Note | Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche). |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
+| `f49aa1b` | 2026-08-28 | fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox |
+| `e70a284` | 2026-08-17 | docs(etat-des-lieux): checkpoint post-merge du train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL |
 | `8b17618` | 2026-08-17 | Merge branch 'feat/gui-vendor-charon' — re-vendorage Charon + gate de phase optionnel (gate Legolas PASS, 29/29) |
 | `674a531` | 2026-08-17 | docs(backlog): ferme GATE-DE-PHASE-OPTIONNEL avec sa preuve, ouvre 2 successeurs |
 | `33c5b5c` | 2026-08-17 | test(workflow): les preuves de fidelite — P1 sans y toucher, P2, P3, P4 |
@@ -26,20 +28,46 @@
 | `e79816b` | 2026-08-17 | docs(backlog): rectifie GATE-DE-PHASE-OPTIONNEL (2 tests, pas 5) et ouvre la reserve d'instrument |
 | `f696571` | 2026-08-17 | test(workflow): aligne les 3 rouges NON bloques par le defaut de modele |
 | `d523b06` | 2026-08-17 | docs(backlog): ouvre le successeur CANON-VENDOR-TABLE-DERIVEE et remonte GATE-DE-PHASE-OPTIONNEL |
-| `773fa58` | 2026-08-17 | fix(tooling): le message final de gen-fixtures ne ment plus (17 -> 82 copies) |
-| `7278b7f` | 2026-08-17 | test: aligne les comptes enumerants sur les 10 roles du canon 0.39.0 |
 
 ## Reprise du travail (a completer par Cowork)
 
-- **Ce qui vient d'etre fait** : v0.1.7 publiee (release GitHub 17 assets signes, manifeste updater 4/4 plateformes contre 1/4 avant). Dette R1 close : la garde d'alignement couvre les 5 porteurs de version et le bump passe par `npm version`, qui ecrit `package.json` et `package-lock.json` d'un seul geste — la divergence devient impossible par construction. Puis un train unique de deux lots merge dans `main` (`8b17618`, gate Legolas PASS 29 CA sur 29) : le re-vendorage Charon ramene `vendor-check` a `drift: 0` (82 fixtures), et `gate?: Gate` corrige une invention du coeur qui ajoutait un feu vert humain a l'etape `surveillance` — une mission dont la nature est d'agir sans ordre.
-- **En cours / a reprendre** : rien en cours. Trois successeurs nommes attendent un cadrage : `CANON-VENDOR-TABLE-DERIVEE` (canon-side, la table de fixtures est transcrite a la main et redeviendra verte-et-aveugle au prochain oubli), `CANON-VENDOR-CHECK-RACINE-RENDUE` (l'outil n'imprime pas contre quel canon il a mesure — il ne peut donc pas dire qui a tort), et `IAKAFRAME_CANONICAL_WORKFLOW` decroche (4 phases contre 5, `prod` porte par `coordination` au lieu de `deploiement`) : un kit deploye sans workflow embarque un workflow perime.
-- **Prochaine etape concrete** : recette humaine de la bascule d'auto-update — une v0.1.6 est installee dans `/Applications`, la lancer et constater le passage en 0.1.7 (detection, telechargement, verification de signature minisign, redemarrage). C'est le seul critere que personne d'autre ne peut cocher.
-- **Pieges connus** : (1) le CLI `iakaframe` resolu par `../iakaframe/cli` ou par le binaire global pointe vers la RACINE du depot frere, qui est sur `feat/sauvegarde-portefeuille` en `0.38.0` — donc du code perime ; extraire `main` en lecture pure (`git archive`) avant toute mesure, sinon on vendore ou on mesure contre le mauvais canon (constat refait ici meme : le premier snapshot a rendu 9233 au lieu de 475). (2) `vendor-check` et `gen-fixtures` sans `--root` / `--canon` explicites retombent sur ce meme arbre et accusent le canon a tort. (3) `packages/core/package.json` reste volontairement a `0.1.0` : le versionnement unique du monorepo est un arbitrage reserve au decideur, la garde le declare dans `VERSION_NON_CARRIERS`.
+> **Le recit complet vit dans `~/work/iakaframe/specs/etat-des-lieux.md`** : lot **portefeuille**
+> traversant trois depots. Ce qui suit ne concerne que CE depot.
+
+- **Ce qui vient d'etre fait ici** : **un seul commit**, `f49aa1b`
+  (`fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox`), sur la
+  branche **`feat/L0-trois-canaux-synchrones`**, **non poussee**. Part **0.b** du lot 0 « trois
+  canaux synchrones » (decision du decideur du 2026-08-28 : iakabox, NAS et GitHub synchrones,
+  chacun le secours des autres).
+- **Le fait qui a declenche ce commit** : ce depot **n'avait JAMAIS ete repointe**. Quand la forge
+  a migre de l'iakabox `192.168.2.11` vers le NAS `192.168.1.139` le 2026-08-19, le CLI et le
+  Cockpit ont ete repointes — **pas le GUI**. Son `src-tauri/tauri.conf.json:43` designait encore,
+  seul, une machine **eteinte**. Passe a **trois URL ordonnees** (`NAS -> GitHub -> iakabox`).
+  **Aucune ligne Rust ni front touchee** : le diff est **2 lignes** dans un seul fichier JSON.
+- **Mesure faite** : front **1183 / 1183** vert (120 fichiers, `npx vitest run`). **Rust non
+  execute**, aucun chiffre `cargo` rapporte — aucune ligne Rust modifiee.
+- **Ce depot etait le seul des trois a jour sur GitHub** en debut de session (`e70a284` partout),
+  et il est **le plus avance en distribution** du portefeuille : v0.1.7 publiee et **signee sur
+  4 plateformes**. C'est ce constat qui a fait **elargir l'arbitrage AR-6** du lot bundle : le lot B
+  ne defriche pas, il **reutilise ce precedent**.
+- **En cours / a reprendre** : gate 🏹 Legolas **non passe**. Rien n'est pousse (tout le TCP sortant
+  du poste est coupe, loopback compris).
+- **Pieges connus** :
+  1. 🛑 **Le trou n'est bouche qu'a MOITIE, et c'est le piege principal.** Le manifeste sera
+     desormais **trouve** sur le NAS, mais `updater/latest.json` porte encore **4 URL de
+     telechargement pointant l'iakabox morte**, et `scripts/publish-update.mjs` a
+     `FORGEJO_BASE = "http://192.168.2.11:3001"`. Consequence : l'app **verra** la mise a jour et
+     **echouera a la telecharger**. Les deux fichiers etaient **hors mandat** (produits par la chaine
+     de publication) — **a rattacher au lot A/B**. Ne pas conclure « le GUI est repare ».
+  2. ⚠️ **La 3e entree (GitHub) est decorative en l'etat** : depots **prives**,
+     `raw.githubusercontent.com` repond **404** a l'updater Tauri qui ne sait pas s'authentifier.
+     A trancher. *Deduction documentaire, non verifiee en direct (reseau coupe).*
 
 ## Journal (versions & pauses)
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-08-28 14:32 | pause | v0.1.7 | feat/L0-trois-canaux-synchrones | Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche). |
 | 2026-08-17 01:23 | pause | v0.1.7 | main | Train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL merge dans main (gate Legolas PASS 29/29) |
 | 2026-08-10 20:16 | version | v0.1.6 | main | Auto-update de l'application livre, gate PASS borne, publie sur le canal Forgejo LAN et bascule recettee (0.1.5 -> 0.1.6) |
 | 2026-08-02 23:20 | pause | v0.1.4 | main | Session du 2026-08-02 : cycle COMPLET parcouru en une session (2 arbitrages bloques -> cadrage -> verdicts -> reecriture -> implementation -> gate vert). 6 commits, tous pousses. (1) G6 super-etage portefeuille : statut mensonger corrige et instruction CLOSE, ratifiee a posteriori sur 3 points (validation oui ; AC-2 passe a 12 types via frames/AR-1 ; AC-7 passe a 4 libraryList + pointeur ; paragraphe 5 fige en ARCHIVE HISTORIQUE, le code fait foi). (2) Q-3 : a CHANGE DE NATURE puis a ete LIVREE. Le parametre VRAM est supprime (aucun endpoint Ollama n expose la VRAM totale ; /api/ps ne rend que la VRAM consommee par les modeles charges) ; la source des candidats devient la DECOUVERTE LIVE du noeud via GET /v1/models (commande llm_models existante, aucune commande Tauri neuve) ; pre-remplissage par regle de motif clee roleKey sur 9 roles. Six questions tranchees. Fichier renomme (P-O-7) en Q3-decouverte-modeles-noeud-preremplissage-binding.md ; la reference E1:227 annoncee cassee N EXISTAIT PAS, et la vraie peremption d E1 (paragraphe 10bis affirmait Q-3 reste OUVERTE) a ete resorbee : le bloc E1 est desormais integralement tranche. IMPLEMENTATION : coeur pur packages/core/src/discovery.ts + raccord LiaisonPanel (input list + datalist, editable) + useForgeDeploy (etat volatil, jeton de course). Deux gardes non prevues par l instruction et ajoutees car elles evitent des defauts reels : le pre-remplissage ne pourvoit que les champs vides (sinon une frappe pendant le timeout de 10 s serait ecrasee) et un jeton de course empeche une reponse tardive de ressusciter un binding decoche. Quatrieme mode d echec decouvert (ollama-lan sans lanHost) converge sur le meme etat visible que les trois autres. GATE RELANCE ET VERIFIE INDEPENDAMMENT (pas repris du rapport d execution) : lint:all exit 0, vitest 1116 tests / 118 fichiers verts (avant 1065 / 115, soit +51 tests / +3 fichiers), cargo test 116 passed 0 failed, npm run build OK 159 modules. AUCUN test existant modifie, src-tauri INCHANGE (porcelain vide). RESTE OUVERT : recette humaine contre un noeud vivant (tout est prouve par test, RIEN par l usage) ; arbitrage AC-Q3-11 sur 3 litteraux de modele ANTERIEURS a Q-3 et hors perimetre (SettingsRoot.tsx:387 cote authoring, forge/mock/copilote.ts:36 etiquete mock, packages/core/src/llm.ts:25 en commentaire) - lot de nettoyage distinct volontairement non fait ; P-O-2 trou ollama-lan (elargir host_allowed est un arbitrage de SECURITE) ; 5 autres points ouverts non bloquants. VERSION NON CHANGEE (v0.1.4) : une feature est livree, le bump semver est une decision du decideur. |
