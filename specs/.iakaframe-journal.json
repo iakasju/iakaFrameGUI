@@ -228,5 +228,15 @@
     "dirty": false,
     "files": 475,
     "note": "Train GUI-VENDOR-CHARON + GATE-DE-PHASE-OPTIONNEL merge dans main (gate Legolas PASS 29/29)"
+  },
+  {
+    "date": "2026-08-28 14:32",
+    "reason": "pause",
+    "version": "v0.1.7",
+    "branch": "feat/L0-trois-canaux-synchrones",
+    "commit": "f49aa1b fix(canal): repointe l updater du GUI, jamais repointe depuis la mort de l iakabox",
+    "dirty": true,
+    "files": 475,
+    "note": "Recit de reprise redige (lot 0 - part 0.b, trou a moitie bouche)."
   }
 ]
