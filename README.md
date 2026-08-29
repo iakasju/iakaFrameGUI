@@ -17,23 +17,23 @@ Frontière avec [IakaCockpit](https://github.com/iakasju/IakaCockpit) : la forge
 ## Installation
 
 <!-- vitrine:debut:binaires -->
-La version scellée courante est **[v0.1.7](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.7)** — voir
+La version scellée courante est **[v0.1.8](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.8)** — voir
 [toutes les versions](https://github.com/iakasju/iakaFrameGUI/releases).
 
 ### Binaires prêts à l'emploi
 
 Tous les systèmes sont couverts. Prenez le fichier de votre plateforme sur la
-[page de la release](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.7) :
+[page de la release](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.8) :
 
 | Système | Fichier à télécharger |
 |---|---|
-| **Windows (installeur)** | `iakaFrameGUI_0.1.7_x64-setup.exe` |
-| **Windows (MSI)** | `iakaFrameGUI_0.1.7_x64_en-US.msi` |
-| **macOS Apple Silicon** | `iakaFrameGUI_0.1.7_aarch64.dmg` |
-| **macOS Intel** | `iakaFrameGUI_0.1.7_x64.dmg` |
-| **Linux (Debian/Ubuntu)** | `iakaFrameGUI_0.1.7_amd64.deb` |
-| **Linux (Fedora/RHEL)** | `iakaFrameGUI-0.1.7-1.x86_64.rpm` |
-| **Linux (portable)** | `iakaFrameGUI_0.1.7_amd64.AppImage` |
+| **Windows (installeur)** | `iakaFrameGUI_0.1.8_x64-setup.exe` |
+| **Windows (MSI)** | `iakaFrameGUI_0.1.8_x64_en-US.msi` |
+| **macOS Apple Silicon** | `iakaFrameGUI_0.1.8_aarch64.dmg` |
+| **macOS Intel** | `iakaFrameGUI_0.1.8_x64.dmg` |
+| **Linux (Debian/Ubuntu)** | `iakaFrameGUI_0.1.8_amd64.deb` |
+| **Linux (Fedora/RHEL)** | `iakaFrameGUI-0.1.8-1.x86_64.rpm` |
+| **Linux (portable)** | `iakaFrameGUI_0.1.8_amd64.AppImage` |
 <!-- vitrine:fin:binaires -->
 
 > **macOS** — l'application n'est pas signée par un certificat Apple. Au premier lancement,
@@ -52,7 +52,7 @@ plateforme (Xcode CLT sur macOS, WebView2 + Build Tools sur Windows, `webkit2gtk
 ```bash
 # 1. Récupérer l'archive de la version depuis la page des releases
 #    (Assets > Source code), puis la décompresser
-cd iakaFrameGUI-0.1.7
+cd iakaFrameGUI-0.1.8
 
 # 2. Installer les dépendances (monorepo npm workspaces : packages/* inclus)
 npm ci
