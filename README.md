@@ -16,21 +16,25 @@ Frontière avec [IakaCockpit](https://github.com/iakasju/IakaCockpit) : la forge
 
 ## Installation
 
-La version scellée courante est **[v0.1.4](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.4)** — voir
+<!-- vitrine:debut:binaires -->
+La version scellée courante est **[v0.1.7](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.7)** — voir
 [toutes les versions](https://github.com/iakasju/iakaFrameGUI/releases).
 
 ### Binaires prêts à l'emploi
 
 Tous les systèmes sont couverts. Prenez le fichier de votre plateforme sur la
-[page de la release](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.4) :
+[page de la release](https://github.com/iakasju/iakaFrameGUI/releases/tag/v0.1.7) :
 
 | Système | Fichier à télécharger |
 |---|---|
-| **Windows** | `iakaFrameGUI_0.1.4_x64-setup.exe` (installeur) ou `_x64_en-US.msi` |
-| **macOS Apple Silicon** | `iakaFrameGUI_v0.1.4_macos-arm64.dmg` |
-| **Linux (Debian/Ubuntu)** | `iakaFrameGUI_0.1.4_amd64.deb` |
-| **Linux (Fedora/RHEL)** | `iakaFrameGUI-0.1.4-1.x86_64.rpm` |
-| **Linux (portable)** | `iakaFrameGUI_0.1.4_amd64.AppImage` |
+| **Windows (installeur)** | `iakaFrameGUI_0.1.7_x64-setup.exe` |
+| **Windows (MSI)** | `iakaFrameGUI_0.1.7_x64_en-US.msi` |
+| **macOS Apple Silicon** | `iakaFrameGUI_0.1.7_aarch64.dmg` |
+| **macOS Intel** | `iakaFrameGUI_0.1.7_x64.dmg` |
+| **Linux (Debian/Ubuntu)** | `iakaFrameGUI_0.1.7_amd64.deb` |
+| **Linux (Fedora/RHEL)** | `iakaFrameGUI-0.1.7-1.x86_64.rpm` |
+| **Linux (portable)** | `iakaFrameGUI_0.1.7_amd64.AppImage` |
+<!-- vitrine:fin:binaires -->
 
 > **macOS** — l'application n'est pas signée par un certificat Apple. Au premier lancement,
 > faites **clic droit → Ouvrir** puis confirmez : un double-clic direct serait bloqué.
@@ -44,10 +48,11 @@ Tous les systèmes sont couverts. Prenez le fichier de votre plateforme sur la
 plateforme (Xcode CLT sur macOS, WebView2 + Build Tools sur Windows, `webkit2gtk` et
 `libayatana-appindicator` sur Linux).
 
+<!-- vitrine:debut:sources -->
 ```bash
 # 1. Récupérer l'archive de la version depuis la page des releases
 #    (Assets > Source code), puis la décompresser
-cd iakaFrameGUI-0.1.4
+cd iakaFrameGUI-0.1.7
 
 # 2. Installer les dépendances (monorepo npm workspaces : packages/* inclus)
 npm ci
@@ -58,6 +63,7 @@ npm run tauri dev
 # 4. Ou produire l'exécutable de votre plateforme
 npm run tauri build
 ```
+<!-- vitrine:fin:sources -->
 
 Le binaire est produit dans `src-tauri/target/release/bundle/`.
 
