@@ -234,21 +234,47 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
   forme**, sur le modèle d'`I4ter` — le registre versionné n'est **pas** peuplé (il est vide
   parce que 9/9 répondent 200, c'est un résultat). (CONV) la convergence des deux apps n'était
   gardée par **rien** : registre `fixtures/convergence.sha256` + garde **à deux faces** (locale
-  dans le gate, croisée `npm run test:convergence` hors gate avec SKIP propre).
+  dans le gate, croisée `npm run test:convergence` hors gate avec SKIP propre). **Complétude** :
+  retirer une ligne du registre **dans les deux dépôts** rétrécissait la couverture sans qu'aucune
+  face ne bronche (mesuré : la face croisée rendait « OK — 12 fichier(s) »). Un **cliquet de
+  complétude** ferme ce résidu ; ce qu'il ne ferme pas — un **échange** de lignes garde le compte —
+  est **déclaré**. La **commande de régénération** vit désormais en tête du registre.
   **Volet C — référentiels et canaux.** (D-6) la republication à l'identique est désormais
   **prouvée contre le fichier versionné** (`--notes` et `--pub-date` tirés de `updater/latest
-  .json` lui-même — AR-4 = O3, les vraies notes de ce dépôt ne sont pas détruites). (D-5) la
+  .json` lui-même — AR-4 = O3, les vraies notes de ce dépôt ne sont pas détruites). **Ce que
+  cette garde NE voit PAS est déclaré, et MESURÉ** : un champ qui est une **entrée tirée du
+  fichier** le **traverse par construction**. Ici : `notes`, `pub_date`, et la `signature` d'un
+  artefact désigné par **une seule** clé — mais **pas** `version`, que ce générateur **dérive** du
+  tag lu dans les URL et qui est donc **couvert** (la partition n'est **pas** la même que chez la
+  jumelle, et elle est mesurée des deux côtés, jamais recopiée). La déclaration n'est pas de la
+  prose : un test **rejoue la partition** et rougit **dans les deux sens**. **CA-17 a été rectifié
+  en conséquence.** (D-5) la
   **prétention** est corrigée, pas le script : `test:rust` exposé, limite écrite **dans le
   `package.json`**, `cargo test` en **ligne de tableau obligatoire** du verdict de gate. (D-2)
   journal de `mesurer-artefacts.mjs` sur **stderr**, document sur stdout — **mesuré** par un test
   qui exécute le script. (D-3) les deux `console.log` résiduels de `publish-update.mjs`.
-  **⛔ D-4 GELÉ ET REMONTÉ — l'étape 0.3 a mordu.** L'`action.yml` **au SHA vers lequel pointe
-  `v0`** contredit ce que L40 a lu sur `dev` : l'entrée s'y nomme **`includeUpdaterJson`**, et
-  ni `uploadUpdaterJson` ni `uploadUpdaterSignatures` n'existent. Le `uploadUpdaterJson: false`
-  du workflow est donc **ignoré en silence** par l'action qui s'exécute. Conformément à
-  l'instruction (« s'arrêter et remonter : c'est un défaut de L40, il ne se corrige pas en
-  passant »), **aucune ligne du workflow n'a été touchée** : ni pin, ni cliquet. Décision du
-  décideur attendue.
+  **(D-4) l'étape 0.3 a mordu — et le lot a TRAITÉ ce qu'elle a révélé.** L'`action.yml` **au
+  SHA vers lequel pointait `v0`** (`84b9d35b5fc46c1e45415bdb6144030364f7ebc5`, `action-v0.6.2`)
+  contredit ce que L40 a lu sur `dev` : l'entrée s'y nomme **`includeUpdaterJson`**, et ni
+  `uploadUpdaterJson` ni `uploadUpdaterSignatures` n'existent. Le `uploadUpdaterJson: false` du
+  workflow était donc **ignoré en silence** par l'action qui s'exécute. Ce qui a été fait : le
+  workflow est **épinglé sur le SHA de 40 caractères** (plus aucune occurrence de `@v0`),
+  l'entrée posée est **`includeUpdaterJson: false`** — celle que ce SHA déclare réellement — et
+  le **cliquet** vit dans `fixtures/tauri-action-pin.json`, source unique du référent, avec
+  l'ordre de **re-lire `action.yml` au nouveau SHA** avant toute levée. **13 tests** l'éprouvent
+  (`scripts/__tests__/pin-tauri-action.test.mjs`), toute mutation se faisant **dans la fixture,
+  jamais dans le workflow**. **CA-13, CA-14 et CA-15 sont couverts.**
+  **CE QUI RESTE REMONTÉ AU DÉCIDEUR :** le volet G de L40 a **cru** supprimer le `latest.json`
+  concurrent posé par l'action, et ne l'a jamais fait sur ce qui tournait. **La première release
+  qui passera par ce workflow est la première où la suppression sera réellement effective** —
+  cet effet-là n'a pas de preuve hors ligne, et il n'en est pas réclamé une ici.
+  **⚠️ Correction d'une déclaration fausse (relevé au gate).** Ce paragraphe a porté, jusqu'à ce
+  commit, la mention « **D-4 GELÉ ET REMONTÉ [...] aucune ligne du workflow n'a été touchée : ni
+  pin, ni cliquet** ». Elle était vraie quand elle a été écrite (`06f2523`) et **fausse dès le
+  commit suivant** (`9585bf9`, qui épingle et pose le cliquet) ; la dernière écriture
+  documentaire du lot (`0f64b79`) l'a laissée en place. **La doc doit dire ce que le lot a
+  fait** : la trace du gel est conservée ici plutôt qu'effacée, mais elle ne décrit plus l'état
+  du dépôt.
   **Aucun effet utilisateur** : ce lot n'a **pas de recette humaine**, sa seule preuve est la
   mesure — d'où la règle « toute garde touchée est éprouvée par une mutation qui la fait
   rougir », mutations **révoquées** avec preuve.
