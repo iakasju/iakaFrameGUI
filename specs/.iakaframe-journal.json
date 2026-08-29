@@ -268,5 +268,15 @@
     "dirty": false,
     "files": 490,
     "note": "Lot L41 gardes tiedes livre : les gardes qui ne pouvaient pas rougir rougissent. Gate PASS au second passage."
+  },
+  {
+    "date": "2026-08-29 21:34",
+    "reason": "manual",
+    "version": "v0.1.7",
+    "branch": "main",
+    "commit": "78f3940 fix(vitrine): le temoin de la promesse en PROSE mesure enfin ce qu'il nomme",
+    "dirty": false,
+    "files": 496,
+    "note": "Lot L42 installer depuis rien livre : la vitrine ne promet plus ce qu elle n a pas. NAS injoignable, push GitHub seul."
   }
 ]
