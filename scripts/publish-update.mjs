@@ -34,6 +34,9 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+// L42 — fichier CONVERGENT partage avec le depot frere : il sait extraire d'un README la version
+// qu'il ANNONCE. Reimplementer cette lecture ici aurait cree une seconde lecture du meme format.
+import { versionAnnoncee } from "./lib/vitrine.mjs";
 
 export const REPO_OWNER = "sjupin";
 export const REPO_NAME = "iakaFrameGUI";
@@ -144,6 +147,15 @@ export const VERSION_CARRIERS = {
     file: "src-tauri/Cargo.toml",
     reason: "version de la crate, GRAVEE dans le binaire — editee a la main",
   },
+  readme: {
+    file: "README.md (section Installation, zone `vitrine:binaires`)",
+    reason:
+      "LA VITRINE — la seule page que voie un inconnu arrivant sur GitHub. Elle annonce un numero " +
+      "ET un tableau de noms de fichiers versionnes, et elle etait de la prose RECOPIEE A LA MAIN : " +
+      "mesure le 2026-08-29, elle annoncait v0.1.4 quand le depot portait 0.1.7, et promettait un " +
+      "`iakaFrameGUI_v0.1.4_macos-arm64.dmg` qui n'a jamais existe sous cette forme. Depuis L42 la " +
+      "zone est GENEREE (`node scripts/vitrine.mjs --write`) : ce porteur ne s'edite plus a la main",
+  },
 };
 
 /**
@@ -230,7 +242,11 @@ export function readRepoVersions(root = ROOT) {
   const { lockRoot, lockPackages } = existsSync(lockPath)
     ? lockVersions(readFileSync(lockPath, "utf8"))
     : { lockRoot: null, lockPackages: null };
-  return { pkg, lockRoot, lockPackages, conf, cargo };
+  // L42 — la version que le README ANNONCE. `versionAnnoncee` rend `null` sur un README illisible
+  // plutot qu'une supposition : la garde dira « (illisible) », ce qui est un refus. Supposer serait
+  // le faux vert. Le cliquet cles LUES ≡ cles DECLAREES relie cette ligne au registre ci-dessus.
+  const readme = versionAnnoncee(readFileSync(join(root, "README.md"), "utf8"));
+  return { pkg, lockRoot, lockPackages, conf, cargo, readme };
 }
 
 // ---------------------------------------------------------------------------

@@ -298,14 +298,17 @@ describe("collectArtifactsFromDir — la signature est le critère d'appariement
   });
 });
 
-/** Les 5 porteurs de fichiers, tous alignés — base à laquelle chaque test ne dérange QU'UN champ. */
-const aligned = (v = "0.1.5") => ({
-  pkg: v,
-  lockRoot: v,
-  lockPackages: v,
-  conf: v,
-  cargo: v,
-});
+/**
+ * TOUS les porteurs de fichiers, alignés — base à laquelle chaque test ne dérange QU'UN champ.
+ *
+ * DÉRIVÉ de `VERSION_CARRIERS`, et plus énuméré en dur. L42 a ajouté un sixième porteur (le README)
+ * et cette base, restée à cinq clés, a fait échouer les tests qui la croyaient complète : elle
+ * n'était pas « la base alignée », elle était une COPIE PÉRIMÉE du registre. La dériver rend
+ * l'ajout d'un porteur mécaniquement pris en compte ici — et fait de ce fichier un lecteur du
+ * registre, plus un second endroit où l'énumération peut diverger.
+ */
+const aligned = (v = "0.1.5") =>
+  Object.fromEntries(Object.keys(VERSION_CARRIERS).map((k) => [k, v]));
 
 describe("assertVersionsAligned — la garde qui empêche l'updater de mentir (C7)", () => {
   it("passe quand les quatre valeurs coïncident", () => {
