@@ -278,5 +278,15 @@
     "dirty": false,
     "files": 496,
     "note": "Lot L42 installer depuis rien livre : la vitrine ne promet plus ce qu elle n a pas. NAS injoignable, push GitHub seul."
+  },
+  {
+    "date": "2026-08-29 23:51",
+    "reason": "version",
+    "version": "v0.1.8",
+    "branch": "main",
+    "commit": "1d20d2b docs(backlog): deux constats du bump v0.1.8, declares et NON corriges",
+    "dirty": false,
+    "files": 496,
+    "note": "Bump v0.1.8 gate PASS, fusionne, tag pousse, run 33276696343 lance en matrice complete."
   }
 ]

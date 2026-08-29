@@ -1,112 +1,103 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-08-29 21:34 (motif: manual).
+> Genere par iakaframe (CLI) le 2026-08-29 23:51 (motif: version).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
 
 | Champ | Valeur |
 |---|---|
-| Version | v0.1.7 |
+| Version | v0.1.8 |
 | Branche | main |
-| Dernier commit | 78f3940 fix(vitrine): le temoin de la promesse en PROSE mesure enfin ce qu'il nomme |
+| Dernier commit | 1d20d2b docs(backlog): deux constats du bump v0.1.8, declares et NON corriges |
 | Arbre | propre |
 | Fichiers (suivis + non ignores) | 496 |
-| Note | Lot L42 installer depuis rien livre : la vitrine ne promet plus ce qu elle n a pas. NAS injoignable, push GitHub seul. |
+| Note | Bump v0.1.8 gate PASS, fusionne, tag pousse, run 33276696343 lance en matrice complete. |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
+| `1d20d2b` | 2026-08-29 | docs(backlog): deux constats du bump v0.1.8, declares et NON corriges |
+| `e109102` | 2026-08-29 | chore(vitrine): le README DERIVE suit le porteur — v0.1.8, absents toujours vides |
+| `f907777` | 2026-08-29 | chore(version): 0.1.7 -> 0.1.8, les cinq porteurs de code alignes |
+| `abd7979` | 2026-08-29 | chore(iakaframe): checkpoint — lot L42 installer depuis rien livre |
 | `78f3940` | 2026-08-29 | fix(vitrine): le temoin de la promesse en PROSE mesure enfin ce qu'il nomme |
 | `be2cc86` | 2026-08-29 | docs(claude): « promis » se lit hors bloc d'absence, pas « ligne de tableau » |
 | `1c62041` | 2026-08-29 | fix(vitrine): promis, c'est promis PARTOUT — pas seulement dans un tableau |
 | `f888367` | 2026-08-29 | docs: la regle du latest, les deux faces de la vitrine, et L42 au backlog |
 | `f2f9992` | 2026-08-29 | ci(release): le latest est DESIGNE, plus subi — sans toucher au SHA epingle |
 | `94cfec5` | 2026-08-29 | chore(convergence): cinq fichiers de vitrine au registre, plancher 12 -> 17 |
-| `dd17a71` | 2026-08-29 | feat(vitrine): le README rejoint VERSION_CARRIERS — le cliquet existant fait le reste |
-| `8183040` | 2026-08-29 | feat(vitrine): face EN LIGNE du cliquet — anonyme, hors gate, SKIP explicite |
-| `60d373b` | 2026-08-29 | test(vitrine): face LOCALE du cliquet — dans le gate, hors reseau, deterministe |
-| `a86e62c` | 2026-08-29 | fix(readme): trois lignes fausses reprises, pas une |
 
 ## Reprise du travail (a completer par Cowork)
 
-- **Ce qui vient d'etre fait** : le lot **L42 « Installer depuis rien »** est livre, gate **PASS au
-  troisieme passage**, fusionne dans `main` et pousse. Son critere n'etait pas technique : **ce qu'un
-  inconnu obtient en suivant ce qu'on lui montre**. Il ne construit aucun installeur — **il rend vraie
-  la page qu'on montre**.
-- **Quatre defauts, pas trois** (le 4e trouve au cadrage) : **H-1** les 3 README annoncaient une
-  version perimee (jusqu'a **dix-neuf mineures** d'ecart pour la CLI) · **H-2** GitHub ne classe pas
-  par numero mais par un drapeau **`make_latest`** que personne n'avait jamais touche — republier une
-  version ancienne **vole** le latest, et c'est ce qui s'etait passe · **H-3** la ligne de publication
-  d'`iakaframe` s'etait tue depuis le 2026-08-04 · **H-4** la vitrine promettait des fichiers
-  **inexistants** : la release « Latest » du Cockpit ne porte **aucun `.dmg`** alors que le README en
-  promettait deux. **Un visiteur macOS repartait les mains vides.**
-- **La cause de H-4, MESUREE et non intuitee** : `v0.32.1` a ete publiee par **deux
-  `workflow_dispatch` successifs** (`platforms: windows` puis `platforms: linux`) — **aucun ne
-  selectionnait macOS**. Le dernier run a matrice complete (`v0.31.2`) avait produit les deux `.dmg`
-  sans difficulte. **Ce n'est pas un echec de build : l'artefact n'a jamais ete demande.**
-- **Trois gates, deux FAIL, et le second est le plus instructif de la journee** : le lot qui supprime
-  les gardes muettes contenait **un temoin vide** — un test nomme *« une promesse en PROSE est VUE »*
-  qui **ne pouvait pas rougir**, parce qu'il visait un artefact **deja promis par le tableau**. Il
-  aurait verdi meme si la fonction ignorait entierement la prose. Repare **et verrouille** : la
-  premiere assertion exige desormais que le nom ne soit **pas** deja promis avant la prose. Le temoin
-  ne peut plus redevenir creux en silence.
-- **Ce qu'un inconnu obtient aujourd'hui** : **iakaFrameGUI** installable **de bout en bout sur les
-  trois OS** (7 fichiers promis, 7 presents) · **IakaCockpit** Windows et Linux, l'absence macOS
-  **declaree, datee et levable** au lieu d'etre promise · **la CLI** installable par
-  `git clone && npm install -g ./cli` — **voie eprouvee deux fois**, dont sur un clone reel du depot
-  public — avec ses deux impasses (`.tgz` et « Source code », toutes deux dependantes d'une release
-  **absente**) nommees comme telles.
-- **Specifique a ce depot** : c'est le **seul des trois qu'un inconnu installe de bout en bout
-  aujourd'hui** — 7 fichiers promis, 7 presents, sur les trois OS. Son `latest` avait ete **vole** par
-  la republication de v0.1.5/v0.1.6 apres v0.1.7 ; **rendu a v0.1.7 par le decideur** (`gh release
-  edit --latest`), et un cliquet empeche desormais le vol de revenir. Son `absents` est **vide**, ce
-  qui rend sa couverture de test asymetrique avec le frere (successeur nº3).
-- **Etat des canaux — DETTE A RATTRAPER** : le **NAS `192.168.1.139` est tombe pendant la fusion**
-  (timeout 75 s, code 000). **`main` est pousse sur GitHub, en avance sur `origin`.** Rien n'est
-  perdu ; le verbe livre la veille est fait pour ca : **`iakaframe canaux --rattraper`** au retour du
-  NAS, **en avance rapide seulement**.
-- **Prochaine etape concrete** : **l'etape 5.1 de L40** — bump + tag + run CI. C'est **la seule preuve
-  manquante de toute la chaine** : on sait par lecture du bundle execute que `includeUpdaterJson: false`
-  supprimera le manifeste concurrent, **personne ne l'a vu**. Elle clot aussi CA-12 et la moitie de
-  CA-13 de L40. ⚠️ **Pour `iakaframe`, ce serait la PREMIERE execution de son workflow** : mesure
-  `actions/runs` -> **`total_count: 0`**, et le commit qui ajoute le workflow **n'est meme pas un
-  ancetre du tag `v0.20.4`** (douze jours d'ecart). **Le premier essai sera un essai.**
-- **Cinq successeurs inscrits, aucun bloquant** :
-  1. **F-2** — une promesse n'est mesurable qu'**entre backticks**. Un lien markdown dont l'URL porte
-     le nom, un `curl -LO` en bloc de code, une prose nue : **verts**. Pre-existant, aucun README
-     actuel n'en contient — *« pas un mensonge present, un piege futur »*. Mais le commentaire du code
-     promet plus que la mesure.
-  2. **F-3** — la **face en ligne n'est exercee par aucun test**. Desarmee **symetriquement dans les
-     deux depots**, tout reste vert : l'empreinte de convergence prouve l'**alteration**, pas le
-     **comportement**.
-  3. **Couverture asymetrique** — sous une meme mutation, le Cockpit rougit sur **3** tests et le GUI
-     sur **1**, parce que `absents: []` cote GUI. **Le fichier est convergent, sa couverture ne l'est
-     pas.**
-  4. **`D3-OBSERVABLE-ENREGISTREMENT`** — une phrase dit « avant que le workflow n'existe » la ou la
-     mesure dit « son enregistrement ».
-  5. **`CI-RELEASE-AUCUN-EPINGLAGE`** — le workflow d'`iakaframe` **n'epingle rien** (`checkout@v4`,
-     `setup-node@v4`, `action-gh-release@v2`, trois **tags flottants**). C'est le depot dont le CI n'a
-     jamais tourne, et le seul a ne pas avoir l'acquis de L41.
+- **Ce qui vient d'etre fait** : **v0.1.8 est publiee par le workflow corrige.** Bump `0.1.7 -> 0.1.8`
+  gate **PASS sans aucun echec**, fusionne, tag pousse par le decideur, run **`33276696343`**
+  (`event: push`) reussi sur **six jobs, matrice complete**. C'est le second volet de l'**etape 5.1**,
+  apres `IakaCockpit v0.32.2`.
+- **Le resultat, et c'est un DELTA, pas un zero a interpreter** :
+
+  | | assets | sig | latest.json | dmg |
+  |---|---|---|---|---|
+  | v0.1.5 · v0.1.6 · v0.1.7 *(avant correctif)* | **17** | 7 | **1** | 2 |
+  | **v0.1.8** *(workflow corrige)* | **16** | **7** | **0** | **2** |
+
+  **`17 -> 16`, `latest.json 1 -> 0`, `sig` et `dmg` INCHANGES.** C'est exactement le seul delta
+  legitime. **Trois releases consecutives** servaient de ligne de base, toutes a `17 / 7 / 1 / 2` :
+  *« un `16 / 7 / 0 / 2` ne peut pas etre un accident d'echantillon »*. **Preuve plus forte que celle
+  obtenue sur le Cockpit**, qui n'avait pas d'avant mesure sur le meme depot.
+- **`releases/latest` = `v0.1.8`** : le drapeau a suivi le plus haut semver (E-1 nominal).
+- **Et la mesure que PERSONNE n'avait pu faire — quota anonyme epuise des deux cotes — a enfin
+  abouti** : `vitrine:en-ligne` -> **exit 0**, `la vitrine et l'etagere concordent`. La dette de
+  publication R4, ouverte depuis le bump, est **refermee par la publication elle-meme**.
+- **Ce depot n'a PAS connu la derive du frere, et ce n'est pas de la chance.** Les **deux** champs de
+  `package-lock.json` sont des **porteurs gardes de plein droit** depuis la dette R1 — parce que la
+  meme derive a frappe **ce** depot : verifie historiquement au gate, le lock est reste fige a
+  **`0.1.4` sur v0.1.5, v0.1.6 ET v0.1.7**, trois versions publiees. `VERSION_CARRIERS` porte **6**
+  porteurs (pas 5), tous rougissent **en se nommant seuls**. **`IakaCockpit`, lui, ne garde toujours
+  pas ses deux champs de lock.**
+- **`Cargo.lock` est hors couverture, declare — et le mecanisme est MESURE** : mis a `0.1.7`,
+  `cargo metadata --offline` l'a reecrit a `0.1.8` **tout seul, exit 0, stderr vide**. « Hors
+  couverture assume », pas « trou ».
+- **Prochaine etape concrete** : **mettre a jour le constat d'absence.** Le bloc `//absents` de
+  `fixtures/vitrine-locale.json` porte *« mesure en anonyme le 2026-08-29 sur la release **v0.1.7** »*,
+  et c'est ce constat qui autorise le generateur a ecrire « tous les systemes sont couverts ». Depuis
+  `v0.1.8`, cette phrase s'appuie sur une mesure faite sur **une autre release**. **E-5 l'exigera.**
+- **Ce qui reste du, et qui ne sera pas prouve par ce run** :
+  1. **CA-5** — `v0.1.8` etant le plus haut semver, la branche **`--latest=false`** (celle qui rend le
+     vol du `latest` impossible) **n'a pas tourne**. Cadre a part : instruction
+     `iakaframe/specs/instructions/contrefactuel-du-vol-de-latest.md`, arbitrages tranches.
+  2. **Dette de canal a deux etages** : le NAS `192.168.1.139` est injoignable (000), et **meme NAS
+     revenu**, `publish-update.mjs` ne pousse que vers `origin` alors que l'endpoint reellement lu par
+     les clients est `raw.githubusercontent.com`. **Un `git push github main` supplementaire est requis,
+     qu'aucun script n'execute.** `updater/latest.json` porte encore `0.1.7`.
+  3. **`GARDE-ALIGNEMENT-SORTIE-DERIVEE`** — la garde **voit et nomme** le 6e porteur, mais sa ligne
+     `sortie :` ne prescrit **aucune** commande qui touche le README : un operateur qui la suit a la
+     lettre **boucle**. Defaut d'**actionnabilite**, pas de couverture. ⚠️ Perimetre **elargi au
+     gate** : la prose perimee (« cinq porteurs ») est en **7** endroits, pas 4 — dont une
+     **enumeration fausse** en `auto-update.md:274` qui **omet le README**.
+  4. **`ROUGE-NON-REPRODUIT-RETRAITPANEL`** — un rouge intermittent sur un test React, survenu pendant
+     une mutation d'un fichier qu'aucun test React ne lit. **Non reproduit : 8 suites completes et
+     17 executions isolees vertes**, cause **non mesuree**. Ouvert, parce qu'un rouge intermittent
+     atteindrait **le gate lui-meme**.
 - **Pieges connus** :
-  1. **GitHub ne classe pas les releases par numero.** Le `latest` suit **`make_latest`** (defaut
-     `true`, reecrit a chaque creation/mise a jour). **Publier une version ancienne vole le latest.**
-     Remede : `gh release edit &lt;tag&gt; --latest`, ou le job conditionne au plus haut semver.
-  2. **Les `.app.tar.gz` ne sont PAS des installeurs macOS** — ce sont des charges d'updater, on ne
-     les double-clique pas. Ce piege a fait compter de faux installeurs **deux fois** dans la journee.
-  3. **Un temoin qui vise un cas deja couvert par ailleurs ne prouve rien.** Verifier qu'il rougit
-     **quand on restaure le defaut**, pas seulement qu'il est vert.
-  4. **Une mutation de gate peut survivre a une interruption d'agent.** Un agent coupe a laisse
-     `npm install -g ./CLI` dans un README. **Muter et revoquer une par une**, en verifiant la
-     revocation immediatement — jamais en fin de campagne.
-  5. **Le quota de l'API GitHub anonyme est de 60/h** et s'epuise vite en recette. Un `SKIP` doit
-     rendre un **code distinct** (ici **3**), jamais 0.
+  1. **Lire les QUATRE compteurs ensemble, jamais `assets` seul.** Si `assets` tombe a 16 **et** que
+     `sig` ou `dmg` bougent, ce n'est **pas** le correctif qui a mordu — **c'est un job tombe qui
+     compense**.
+  2. **`latest.json = 0` ne prouve rien seul** : `tauri-action` ne pose son manifeste **que s'il a des
+     signatures a y mettre** (`upload-version-json.ts` : `if (!signatureFiles[0]) return;`).
+     **Toujours lire `sig` en face.**
+  3. **Publier par `workflow_dispatch` prive de plateformes** si l'on ne choisit pas `toutes`. Le
+     **push de tag** donne `SEL='toutes'` — 4 builds. **Verifie dans le workflow de CE depot**, pas
+     deduit du frere.
+  4. **`vitrine:en-ligne` interroge en ANONYME par construction** : un jeton `gh` a 5000/5000 ne
+     l'alimente pas. Quand le quota est a 403, elle rend **exit 3 = NON MESURE**, jamais un vert.
 
 ## Journal (versions & pauses)
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-08-29 23:51 | version | v0.1.8 | main | Bump v0.1.8 gate PASS, fusionne, tag pousse, run 33276696343 lance en matrice complete. |
 | 2026-08-29 21:34 | manual | v0.1.7 | main | Lot L42 installer depuis rien livre : la vitrine ne promet plus ce qu elle n a pas. NAS injoignable, push GitHub seul. |
 | 2026-08-29 10:51 | manual | v0.1.7 | main | Lot L41 gardes tiedes livre : les gardes qui ne pouvaient pas rougir rougissent. Gate PASS au second passage. |
 | 2026-08-29 01:55 | manual | v0.1.7 | main | Lot L40 cles d installeur livre et fusionne : 9 cles par app, 9/9 telechargeables. Gate PASS 16/18 CA. |
