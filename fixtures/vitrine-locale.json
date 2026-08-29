@@ -1,0 +1,41 @@
+{
+  "//": [
+    "PART LOCALE DE LA VITRINE — ce qui distingue CE depot de son frere. Volontairement HORS du",
+    "registre de convergence : `fixtures/vitrine-assets.json` (la table de motifs) est byte-identique",
+    "entre les deux applications, ce fichier-ci ne peut pas l'etre.",
+    "",
+    "Le nom du produit n'est PAS ici : il est lu dans `productName` de `src-tauri/tauri.conf.json`,",
+    "la source que le bundler emploie lui-meme pour nommer ses artefacts. Le recopier ici en ferait",
+    "une seconde source de verite, donc la premiere a diverger."
+  ],
+
+  "depot": "iakasju/iakaFrameGUI",
+
+  "//absents": [
+    "AUCUN absent declare. Mesure en anonyme le 2026-08-29 sur la release v0.1.7 : les SEPT",
+    "plateformes de la table sont presentes, y compris les DEUX `.dmg`. La liste vide n'est donc",
+    "pas un oubli — c'est un constat, et c'est ce qui autorise le generateur a ecrire « Tous les",
+    "systemes sont couverts ». Cette phrase n'est plus un slogan recopie : elle n'est emise que",
+    "lorsque cette liste est vide."
+  ],
+  "absents": [],
+
+  "gabarits": {
+    "sources": [
+      "```bash",
+      "# 1. Récupérer l'archive de la version depuis la page des releases",
+      "#    (Assets > Source code), puis la décompresser",
+      "cd {APP}-{V}",
+      "",
+      "# 2. Installer les dépendances (monorepo npm workspaces : packages/* inclus)",
+      "npm ci",
+      "",
+      "# 3. Lancer en développement",
+      "npm run tauri dev",
+      "",
+      "# 4. Ou produire l'exécutable de votre plateforme",
+      "npm run tauri build",
+      "```"
+    ]
+  }
+}
