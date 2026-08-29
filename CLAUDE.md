@@ -245,6 +245,44 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **`GARDE-ALIGNEMENT-SORTIE-DERIVEE`** — **la garde des porteurs NOMME le 6e, mais ne sait pas
+      le réparer.** *Constaté pendant le bump `v0.1.8` (2026-08-29), **déclaré et non corrigé** :
+      élargir une garde au passage d'un bump mêlerait une correction de garde à une preuve de bump.*
+      **Ce qui va bien** : `assertVersionsAligned` **voit** la dérive du README et la **nomme** —
+      mesuré en direct, `README.md (section Installation, zone` `vitrine:binaires` `) 0.1.7` face à
+      un tag `0.1.8`, exit `1`. La **couverture** n'est pas en cause.
+      **Ce qui cloche** : la ligne `sortie :` du même message ne prescrit que
+      `npm version … --no-git-tag-version` **et** l'édition à la main de `tauri.conf.json` /
+      `Cargo.toml`. **Aucune des trois ne touche le README** — le remède réel est `npm run vitrine`.
+      Un opérateur qui suit le message **à la lettre** laisse la dérive en place et relance la garde
+      en boucle. Ce dépôt tient l'**actionnabilité** du message pour un critère, pas pour un confort
+      (dette R1 : « message d'erreur **actionnable** (il dicte `npm version`) »).
+      **Même origine, compte périmé** : `auto-update.md` § 6-0, les commentaires de
+      `assertVersionsAligned` et `readRepoVersions`, et le `describe` de la sentinelle disent tous
+      **cinq** porteurs — il y en a **six** depuis L42. Le **code** dérive le nombre du registre et
+      reste juste ; c'est la **prose** qui est fausse, et c'est elle qu'on lit en panne.
+      **Condition de levée** : un lot qui rend la ligne `sortie :` **dérivée** de
+      `VERSION_CARRIERS` — chaque entrée portant, à côté de sa `reason`, **la commande qui la
+      répare** — au lieu de l'énumérer en dur. Les compteurs périmés tombent avec, sans être un
+      geste séparé.
+
+- [ ] **`ROUGE-NON-REPRODUIT-RETRAITPANEL`** — **un rouge isolé dans la suite de gate, jamais
+      revu.** *Observé le 2026-08-29 pendant les contrefactuels du bump `v0.1.8`.* Un run de
+      `npm run test` a rendu `Tests 1 failed | 1259 passed (1260)` sur
+      `src/forge/ateliers/RetraitPanel.test.tsx > … > VUE Option 1 : les skills du persona sont
+      rendus depuis skills:[] avec un « − » par titre`. **La mutation en cours à cet instant portait
+      sur `src-tauri/Cargo.lock`** — un fichier qu'aucun test React ne lit : le rouge **ne peut pas**
+      en découler.
+      **Non reproduit** : `4` suites complètes vertes (`1260/1260`) et `5` exécutions isolées du
+      fichier vertes (`8/8`) après coup, arbre propre. **Ce qui n'est donc PAS établi** : que le test
+      soit intermittent — une seule occurrence ne fait pas une loi, et la cause (ordonnancement des
+      workers vitest, ou aléa de la machine) **n'est pas mesurée**.
+      **Pourquoi l'inscrire quand même** : un rouge intermittent dans `test:all` atteindrait le
+      **gate lui-même**, qui est l'instrument dont tout le reste dépend. Le taire parce qu'il n'est
+      pas reproductible reviendrait à ne le voir qu'au moment où il coûte cher.
+      **Condition de levée** : une seconde occurrence — qui donnerait une cause à chercher — ou une
+      campagne de `N` runs consécutifs verts jugée suffisante par le gate pour clore l'observation.
+
 - [ ] **L42** — **Installer depuis rien : la vitrine dit ce que l'étagère porte**
       → **instruction (copie UNIQUE, AR-5 = (b))** :
       `/Users/sjupin/work/iakaframe/specs/instructions/installer-depuis-rien.md`
