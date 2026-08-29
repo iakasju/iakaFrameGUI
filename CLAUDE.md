@@ -60,7 +60,7 @@ non négociable : un verdict de gate porte `npm run test:rust` sur une **ligne d
 
 ### Convergence avec l'application jumelle
 
-Neuf fichiers sont **byte-identiques** avec l'autre application (gardes de canal, instrument de
+Un jeu de fichiers est **byte-identique** avec l'autre application (gardes de canal, instrument de
 mesure, table de conformité, instructions partagées). Leur registre d'empreintes vit dans
 `fixtures/convergence.sha256`, et la garde est à **deux faces** :
 
