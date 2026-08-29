@@ -554,7 +554,8 @@ async function forgejoRelease(tag, notes, token) {
   });
   if (existing.ok) {
     const rel = await existing.json();
-    console.log(`  release Forgejo ${tag} deja presente (id ${rel.id}) — reutilisee`);
+    // L41 / D-2 : le journal part sur STDERR — stdout ne porte que le manifeste (`--dry-run`).
+    console.error(`  release Forgejo ${tag} deja presente (id ${rel.id}) — reutilisee`);
     return rel;
   }
   const res = await fetch(api, {
@@ -651,7 +652,7 @@ export function commitAndPushManifest(tag, { run = gitRun, cwd = ROOT } = {}) {
       cwd,
     });
   } else {
-    console.log(`manifeste inchange — aucun commit (republication a l'identique de ${tag})`);
+    console.error(`manifeste inchange — aucun commit (republication a l'identique de ${tag})`);
   }
   run(["push", "origin", "HEAD"], { cwd });
   return { committed };
