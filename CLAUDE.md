@@ -93,6 +93,31 @@ messages de progression sortent sur **stderr** — stdout ne porte que le manife
 ```bash
 node scripts/mesurer-artefacts.mjs                     # mesure et ÉCRIT updater/mesures.json
 node scripts/mesurer-artefacts.mjs --dry-run           # mesure et affiche, sans écrire
+# --- L42 — LA VITRINE ------------------------------------------------------------------------------
+# La section « Installation » du README est GENEREE entre marqueurs (`<!-- vitrine:debut:<zone> -->`) :
+# elle ne s'edite plus a la main. La version annoncee est DERIVEE de `package.json` (l'autorite), les
+# noms de fichiers de `fixtures/vitrine-assets.json` (table BYTE-IDENTIQUE avec l'app jumelle), et le
+# nom du produit de `productName` (src-tauri/tauri.conf.json) — la source que le BUNDLER emploie
+# lui-meme pour nommer ses artefacts.
+npm run vitrine              # reecrit les zones du README depuis l'autorite
+npm run vitrine:check        # compare sans ecrire (code 1 si derive) — la meme chose que la garde
+npm run vitrine:en-ligne     # FACE EN LIGNE, HORS GATE : anonyme, sans jeton, point de vue du visiteur
+# Codes de `vitrine:en-ligne` : 0 concorde · 1 ecart(s) · 3 NON MESURE (pas de reseau — JAMAIS un vert).
+#
+# DEUX FACES, ET IL EN FAUT DEUX :
+#   — LOCALE, dans `npm run test` (scripts/__tests__/vitrine.test.mjs) : rejoue le generateur en
+#     memoire et compare au README versionne. Deterministe, hors reseau. Elle ne voit PAS un
+#     changement de convention du bundler : elle compare deux derives de la MEME table.
+#   — EN LIGNE, ci-dessus : la SEULE a confronter la table au monde reel (l'asset existe-t-il ? un
+#     asset installable est-il tu ?). Hors gate parce qu'elle depend d'un tiers.
+#
+# ⚠️ REPUBLIER UN TAG ANCIEN VOLE LE `latest`. GitHub ne classe pas par date ni par numero de
+# version : il obeit au drapeau `make_latest`, de DEFAUT `true`, REECRIT a chaque creation ou mise a
+# jour de release. C'est ainsi que iakaFrameGUI a vu `latest` designer v0.1.6 alors que v0.1.7
+# existait — v0.1.5 et v0.1.6 republiees le 18/08 apres v0.1.7 du 13/08. LE JOB `latest` DU WORKFLOW
+# EST CE QUI L'EN EMPECHE : il pose explicitement `--latest` ou `--latest=false` selon que le tag
+# publie est, ou non, le plus haut semver du depot. Ne pas le retirer, et ne pas chercher a le
+# remplacer par une entree de `tauri-action` : le SHA epingle par L41 n'en expose aucune.
 ```
 
 `updater/mesures.json` n'est **jamais** écrit à la main. Il est produit par ce script, qui
@@ -213,6 +238,52 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **L42** — **Installer depuis rien : la vitrine dit ce que l'étagère porte**
+      → **instruction (copie UNIQUE, AR-5 = (b))** :
+      `/Users/sjupin/work/iakaframe/specs/instructions/installer-depuis-rien.md`
+      *(**ce dépôt n'en a PAS de copie**, et c'est délibéré : le défaut vit dans une **convention de
+      portefeuille** appliquée à au moins quatre dépôts, pas dans deux implémentations jumelles ; et
+      le registre de convergence ne connaît que **deux** frères, donc une troisième copie serait la
+      seule **non gardée** — on installerait le défaut qu'on répare. Le chemin absolu ci-dessus est
+      **une étape du lot**, pas une politesse.)*
+      *(**implémenté côté ⚒️ Gimli — REMIS AU GATE 🏹 Legolas, non auto-validé** (2026-08-29),
+      branche `feat/L42-installer-depuis-rien`. Cadré par 🔵 Gandalf, 6 arbitrages TRANCHÉS.)*
+      **Problème** : les trois dépôts publics annonçaient dans leur README une version périmée, et
+      GitHub présentait comme « Latest » une release qui n'était pas la plus haute. Le défaut de fond
+      n'est pas l'écart de numéro : **la vitrine et l'étagère n'étaient reliées par rien** — le README
+      est de la prose recopiée, la release vient d'un CI, le `latest` est décidé par GitHub, et
+      **aucun des trois ne rougissait** quand ils divergeaient.
+      **Livré** : (V1) section *Installation* **générée** entre marqueurs, version dérivée de
+      `package.json`, noms d'artefacts dérivés de `fixtures/vitrine-assets.json` (table
+      **byte-identique** avec l'app jumelle) ; (V2) **cliquet à deux faces** — locale dans le gate
+      (`scripts/__tests__/vitrine.test.mjs`, hors réseau, déterministe) et en ligne hors gate
+      (`npm run vitrine:en-ligne`, anonyme, **`SKIP` code 3** sans réseau, jamais un vert muet) ;
+      (V3) **maîtrise du `latest`** — job `latest` du workflow, `--latest` / `--latest=false`
+      **conditionné au plus haut semver**, **sans toucher au SHA épinglé** de `tauri-action` ;
+      (V5) **inventaire honnête** — une plateforme non produite est **déclarée manquante** avec
+      motif, date et condition de levée, jamais promise.
+      **Rattachement aux gardes existantes, pas de troisième mécanisme** : le README devient un **porteur de version de plein droit** —
+      entrée `readme` dans `VERSION_CARRIERS` **avec sa raison**, câblage dans `readRepoVersions`,
+      et le **cliquet existant** (clés lues ≡ clés déclarées) le vérifie sans une ligne de plus.
+      **CA-17 prouvé par mutation** : retirer le câblage de lecture en gardant l'entrée déclarée
+      fait rougir le cliquet (`expected [ …(3) ] to deeply equal [ …(4) ]`, `readme` manquant),
+      révocation prouvée au `diff`. Au passage, le helper `aligned()` de la suite énumérait les
+      **cinq** porteurs en dur : c'était une **copie périmée du registre**, il en est désormais
+      **dérivé**.
+      **Trois lignes fausses reprises, pas une** : le nom du DMG arm64 était faux **dans sa
+      forme** (`iakaFrameGUI_v0.1.4_macos-arm64.dmg` — ni le `v`, ni `macos-arm64` : ce nom n'a
+      jamais existé), il **manquait une ligne macOS Intel** alors que la chaîne produit
+      `iakaFrameGUI_0.1.7_x64.dmg`, et la version était périmée de trois mineures. Corriger
+      « 0.1.4 → 0.1.7 » aurait laissé les deux premières fausses. Mesuré en anonyme sur `v0.1.7` :
+      **les sept plateformes de la table sont présentes**, la liste des absents est donc vide — et
+      c'est ce qui autorise le générateur à écrire « Tous les systèmes sont couverts ». Cette phrase
+      n'est plus un slogan recopié : elle n'est émise **que** si la liste des absents est vide.
+      **H-2 était déjà refermé sur ce dépôt** par le décideur (`gh release edit v0.1.7 --latest`) ;
+      ce lot livre le **cliquet** qui l'empêche de revenir, pas le geste.
+      **NON FAIT — actes de publication, refusés aux agents** : l'étape 7 (republier, re-mesurer)
+      et le contrefactuel **CA-5** (republier délibérément un tag ancien pour prouver que le
+      `latest` n'est plus volé) appartiennent au décideur. **V3 est donc câblé et lisible, mais non
+      prouvé en exécution réelle** — dit tel quel, jamais annoncé comme couvert.
 - [ ] **Gardes tièdes — une garde qui ne peut pas rougir n'est pas une garde**
   → `specs/instructions/gardes-tiedes.md` (dupliquée **verbatim** dans
   `IakaCockpit/specs/instructions/`, byte-identique — une divergence est un défaut, CA-22).
