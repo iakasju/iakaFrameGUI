@@ -21,6 +21,10 @@
     "test:coverage": "vitest run --coverage",
     "test:vendor": "node scripts/test-vendor.mjs",
     "test:convergence": "node scripts/test-convergence.mjs",
+    "vitrine": "node scripts/vitrine.mjs --write",
+    "vitrine:check": "node scripts/vitrine.mjs --check",
+    "//vitrine:en-ligne": "FACE EN LIGNE du cliquet de vitrine (L42) — HORS `test:all`, DELIBEREMENT, et pour la meme raison ecrite que `test:convergence` : sa mesure depend d'un tiers (ici l'API GitHub, interrogee en ANONYME), donc faillible sur une machine hors ligne. Sans reseau elle rend un SKIP explicite avec le code 3 — JAMAIS un vert. Sa rougeur INFORME (vitrine qui ment, ou dette de publication) et ne bloque aucun lot. Ce qui bloque, c'est la face LOCALE : `scripts/__tests__/vitrine.test.mjs`, dans `npm run test`.",
+    "vitrine:en-ligne": "node scripts/vitrine-en-ligne.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
