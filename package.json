@@ -15,9 +15,12 @@
     "lint": "eslint .",
     "lint:all": "npm run typecheck && npm run lint",
     "test": "vitest run",
+    "//test:all": "LIMITE ECRITE ICI, PAS SEULEMENT DANS CLAUDE.md (L41, defaut D-5) : `test:all` n'execute QUE la suite front (vitest). Il EXCLUT VOLONTAIREMENT `cargo test` — en dependre rendrait la mesure faillible sur toute machine sans toolchain Rust. Ce n'est donc pas un oubli, c'est un arbitrage ecrit du depot, et ce lot ne le rouvre pas (AR-6 = O2). Ce qui mentait n'etait pas ce script mais le CRITERE de L40, qui ecrivait « les suites completes sont vertes » en le nommant. CONSEQUENCE OPERATOIRE : un verdict de gate DOIT porter `npm run test:rust` sur une LIGNE DISTINCTE (cf. CLAUDE.md, section Rendre un verdict de gate). CONDITION DE LEVEE : le jour ou le depot accepte de dependre d'une toolchain Rust.",
     "test:all": "npm run test",
+    "test:rust": "cd src-tauri && cargo test",
     "test:coverage": "vitest run --coverage",
     "test:vendor": "node scripts/test-vendor.mjs",
+    "test:convergence": "node scripts/test-convergence.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

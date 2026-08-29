@@ -44,12 +44,35 @@ npm run lint           # eslint .
 npm run lint:all       # typecheck + lint   <- mesure de gate
 
 npm run test           # vitest run
-npm run test:all       # tous les tests     <- mesure de gate
+npm run test:all       # la suite FRONT seule (vitest)   <- mesure de gate, ligne 1
+npm run test:rust      # cargo test dans src-tauri/      <- mesure de gate, ligne 2 OBLIGATOIRE
 npm run test:coverage  # vitest run --coverage
+npm run test:vendor    # parité des atomes vendorés      <- HORS gate
+npm run test:convergence  # byte-identité des fichiers partagés avec l'app jumelle <- HORS gate
 ```
 
-Côté Rust, dans `src-tauri/` : `cargo test`. **Volontairement hors de `test:all`** :
-en dépendre rendrait la mesure faillible sur toute machine sans toolchain Rust.
+Côté Rust, dans `src-tauri/` : `cargo test`, exposé par **`npm run test:rust`**.
+**Volontairement hors de `test:all`** : en dépendre rendrait la mesure faillible sur toute machine
+sans toolchain Rust. Cet arbitrage est écrit **dans le `package.json` lui-même** (clé `//test:all`)
+et **ce lot ne le rouvre pas** — il corrige la **prétention**, pas le script (L41, D-5). Conséquence
+non négociable : un verdict de gate porte `npm run test:rust` sur une **ligne distincte**
+(cf. § *Rendre un verdict de gate*), et n'écrit **jamais** « les suites complètes ».
+
+### Convergence avec l'application jumelle
+
+Neuf fichiers sont **byte-identiques** avec l'autre application (gardes de canal, instrument de
+mesure, table de conformité, instructions partagées). Leur registre d'empreintes vit dans
+`fixtures/convergence.sha256`, et la garde est à **deux faces** :
+
+- **face locale**, `npm run test:all` (dans `scripts/__tests__/forge-host-parity.test.mjs`) : les
+  empreintes versionnées. Elle attrape l'édition **en place** d'une copie ;
+- **face croisée**, `npm run test:convergence` : comparaison octet à octet des deux arbres de
+  travail. **Hors gate** — elle dépend du dépôt frère, et **SKIP proprement** (exit `0`) sans lui.
+  `IAKA_CONVERGENCE_HOME` désigne un frère explicite, et il est **autoritaire**.
+
+**Règle opératoire** : tout fichier de ce registre se modifie **dans les deux dépôts au même commit
+logique**, puis on **régénère les empreintes** (commande en tête de
+`fixtures/convergence.sha256`) et on rejoue `npm run test:convergence`.
 
 ### Chaîne de publication de la mise à jour (scripts Node, hors `package.json`)
 
@@ -104,10 +127,21 @@ Tout verdict se rend donc dans ce **format contraint** — un tableau, jamais de
 |---|---|---|
 | `npm run lint:all` | `0` | `(aucune sortie)` |
 | `npm run test:all` | `0` | `Test Files 53 passed (53) / Tests 496 passed (496)` |
+| `npm run test:rust` | `0` | `test result: ok. 116 passed; 0 failed` |
+
+**`npm run test:rust` est une LIGNE OBLIGATOIRE, jamais fondue dans une autre** (L41, défaut D-5).
+Motif : `test:all` n'exécute **que** la suite front et **exclut volontairement** `cargo test` — un
+arbitrage écrit et motivé de ce dépôt (dépendre d'une toolchain Rust rendrait la mesure faillible
+sur toute machine qui ne l'a pas), inscrit aussi **dans le `package.json` lui-même**. Ce n'est donc
+pas la commande qui mentait, c'est **le critère** de L40, qui écrivait « les suites complètes sont
+vertes » en la nommant. Un verdict qui écrit « les suites complètes » **sans nommer les commandes
+une par une** vaut **FAIL** : on nomme, on ne résume pas.
 
 Règles d'usage, appliquées **sans examen du fond** :
 
 - une case **vide**, un **« OK » sans chiffre**, ou un résumé **reformulé** ⇒ **FAIL** ;
+- une formule d'ENSEMBLE (« les suites complètes », « tout est vert ») ⇒ **FAIL** : chaque
+  commande a **sa** ligne, avec **son** code de sortie et **son** chiffre ;
 - un critère **non mesuré** se déclare *non mesuré*, **jamais** *PASS* ;
 - une mesure **reprise du rapport d'un autre agent** n'est pas une mesure : on
   **re-mesure**. C'est ce geste — et lui seul — qui a révélé l'incident `8ae5748`.
@@ -178,6 +212,46 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 > `Test Files 56 passed (56) / Tests 518 passed (518)`. **`cargo test` non mesuré** à la reprise.
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
+
+- [ ] **Gardes tièdes — une garde qui ne peut pas rougir n'est pas une garde**
+  → `specs/instructions/gardes-tiedes.md` (dupliquée **verbatim** dans
+  `IakaCockpit/specs/instructions/`, byte-identique — une divergence est un défaut, CA-22).
+  *(**implémenté côté ⚒️ Gimli — REMIS AU GATE 🏹 Legolas, non auto-validé** (2026-08-29),
+  branche `feat/L41-gardes-tiedes`. Le dépôt Cockpit numérote ce lot **L41** ; celui-ci ne
+  numérote pas. Cadré par 🔵 Gandalf, 8 arbitrages TRANCHÉS par le décideur.)*
+  **Le fil** : ce lot ne corrige pas des bugs, il corrige des **gardes qui ne peuvent pas
+  échouer, ou qui échouent sur la mauvaise chose**.
+  **Volet A — les prédicats qui attestaient le faux.** (D) `estPrive` découpait sur `":"`, ce
+  qui rend `"["` sur `"[::1]:3001"` : `I2` **certifiait** qu'une boucle locale est publique.
+  Extraction d'hôte par `new URL(...).hostname` (crochets IPv6 retirés) **et** charge de la
+  preuve **inversée** (AR-2 = O3) : `estPublic` explicite, privé par défaut, le tout **extrait**
+  dans la fonction pure `scripts/lib/verifier-mesures.mjs`. (C) `mesureLe` n'était contraint que
+  par « non vide » : borne **relative au manifeste** `mesureLe ≥ pub_date` (AR-1 = O2), jamais
+  calendaire — déterministe, comparée à un fichier versionné, hors-couverture **écrit dans le
+  code**.
+  **Volet B — les jonctions non gardées.** (E) `I4bis` était **vacuous** (registre vide) :
+  supprimer l'appel laissait la suite verte, **mesuré**. Réparé par un **contrefactuel de
+  forme**, sur le modèle d'`I4ter` — le registre versionné n'est **pas** peuplé (il est vide
+  parce que 9/9 répondent 200, c'est un résultat). (CONV) la convergence des deux apps n'était
+  gardée par **rien** : registre `fixtures/convergence.sha256` + garde **à deux faces** (locale
+  dans le gate, croisée `npm run test:convergence` hors gate avec SKIP propre).
+  **Volet C — référentiels et canaux.** (D-6) la republication à l'identique est désormais
+  **prouvée contre le fichier versionné** (`--notes` et `--pub-date` tirés de `updater/latest
+  .json` lui-même — AR-4 = O3, les vraies notes de ce dépôt ne sont pas détruites). (D-5) la
+  **prétention** est corrigée, pas le script : `test:rust` exposé, limite écrite **dans le
+  `package.json`**, `cargo test` en **ligne de tableau obligatoire** du verdict de gate. (D-2)
+  journal de `mesurer-artefacts.mjs` sur **stderr**, document sur stdout — **mesuré** par un test
+  qui exécute le script. (D-3) les deux `console.log` résiduels de `publish-update.mjs`.
+  **⛔ D-4 GELÉ ET REMONTÉ — l'étape 0.3 a mordu.** L'`action.yml` **au SHA vers lequel pointe
+  `v0`** contredit ce que L40 a lu sur `dev` : l'entrée s'y nomme **`includeUpdaterJson`**, et
+  ni `uploadUpdaterJson` ni `uploadUpdaterSignatures` n'existent. Le `uploadUpdaterJson: false`
+  du workflow est donc **ignoré en silence** par l'action qui s'exécute. Conformément à
+  l'instruction (« s'arrêter et remonter : c'est un défaut de L40, il ne se corrige pas en
+  passant »), **aucune ligne du workflow n'a été touchée** : ni pin, ni cliquet. Décision du
+  décideur attendue.
+  **Aucun effet utilisateur** : ce lot n'a **pas de recette humaine**, sa seule preuve est la
+  mesure — d'où la règle « toute garde touchée est éprouvée par une mutation qui la fait
+  rougir », mutations **révoquées** avec preuve.
 
 - [ ] **Clés d'installeur du manifeste updater — le manifeste dit enfin quel paquet il sert**
   → `specs/instructions/cles-installeur-manifeste-updater.md` (dupliquée **verbatim** dans
