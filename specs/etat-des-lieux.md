@@ -64,9 +64,16 @@
   et c'est ce constat qui autorise le generateur a ecrire « tous les systemes sont couverts ». Depuis
   `v0.1.8`, cette phrase s'appuie sur une mesure faite sur **une autre release**. **E-5 l'exigera.**
 - **Ce qui reste du, et qui ne sera pas prouve par ce run** :
-  1. **CA-5** — `v0.1.8` etant le plus haut semver, la branche **`--latest=false`** (celle qui rend le
-     vol du `latest` impossible) **n'a pas tourne**. Cadre a part : instruction
+  1. **CA-5** — `v0.1.8` etant le plus haut semver, la branche **`--latest=false`** **n'a pas
+     tourne**. Cadre a part : instruction
      `iakaframe/specs/instructions/contrefactuel-du-vol-de-latest.md`, arbitrages tranches.
+     🛑 **CORRIGE LE 2026-08-30 (L43).** Il etait ecrit ici : *« celle qui rend le vol du `latest`
+     IMPOSSIBLE »*. **Elle ne le rend pas.** Elle n'**empeche** rien (la release est creee avant que
+     le job demarre) et elle ne **repare** pas : le contrefactuel joue par le decideur le 2026-08-30,
+     croise avec le run `33277643229`, **refute huit des neuf regles de repli enumerees** ; **seul le
+     NO-OP survit**, et sous cette regle le `latest` ne revient pas. Le job **DETECTE, ROUGIT et
+     DICTE** le rattrapage — c'est tout, et c'est deja beaucoup. **RESIDU** : une regle **non
+     enumeree** reste possible, et rien de ceci n'a ete mesure **sur un depot reel**.
   2. **Dette de canal a deux etages** : le NAS `192.168.1.139` est injoignable (000), et **meme NAS
      revenu**, `publish-update.mjs` ne pousse que vers `origin` alors que l'endpoint reellement lu par
      les clients est `raw.githubusercontent.com`. **Un `git push github main` supplementaire est requis,
