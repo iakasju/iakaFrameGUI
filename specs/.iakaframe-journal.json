@@ -288,5 +288,15 @@
     "dirty": false,
     "files": 496,
     "note": "Bump v0.1.8 gate PASS, fusionne, tag pousse, run 33276696343 lance en matrice complete."
+  },
+  {
+    "date": "2026-09-01 22:20",
+    "reason": "manual",
+    "version": "v0.1.8",
+    "branch": "main",
+    "commit": "6c863f6 fix(L43): la vitrine imprimait a l'operateur la phrase refutee — aux trois depots",
+    "dirty": false,
+    "files": 496,
+    "note": "L43 livre au 6e passage : balayage de completude. Trois mesures du banc jouees : --latest agit, false inerte, legacy AGIT."
   }
 ]
