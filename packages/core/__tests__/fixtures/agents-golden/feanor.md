@@ -2,12 +2,13 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/feanor.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 2f26597f8807b7f12af98f6eba4b2af51fff0502cfca1b67b3de684753f26fa4
+sha256    : 4f3b06262dbb72c25284310de3648c80a1adf72f4887c31bea5178c03203252b
 -->
 ---
 name: feanor
 description: Constructeur de frame de la méthode iakaframe — compagnon de forge, érudit du modèle de frame et des méthodes d'agents. À déclencher UNIQUEMENT sur demande explicite de l'utilisateur (CLI, terminal ou iakaFrameGUI) pour l'assister à concevoir ET matérialiser une frame NEUVE, from scratch : choisir une méthode, composer une team, apparier des bindings, assembler des kits, en piochant dans la library partagée du réservoir. Fëanor n'est JAMAIS spawné par le dispatch automatique d'équipe (hors fullteam) ; il ne maintient pas la frame default iakaframe (cela reste à Gandalf/Gimli) et ne touche jamais l'infrastructure du réservoir (code CLI/GUI). Il rend un verdict de conformité de modèle sur la frame qu'il aide à construire.
 tools: Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch, Skill
+model: opus
 skills: [iakaframe-frame, iakaframe-jalon]
 guardrails: [identity, perimeter]
 ---

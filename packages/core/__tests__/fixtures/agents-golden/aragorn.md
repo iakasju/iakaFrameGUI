@@ -2,12 +2,13 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/aragorn.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 72135197c2cbe7c9ac32dd6514d76264594ff3d07f0aadc0b0ff2031a0f26392
+sha256    : 067c6f88ec60a1f62d77e0586d4ce2c458cab5033970f2d7fef5a645b9f8056a
 -->
 ---
 name: aragorn
 description: Coordinateur de l'équipe d'agents iakaframe. À déclencher pour répartir un besoin entre les agents, suivre les phases d'une feature de bout en bout (cible staging) + déclencher le squad prod, faire le point sur l'avancement, ou décider quel agent intervient ensuite. Aragorn raisonne et ordonne ; n8n/Hermes ne sont que ses outils d'exécution. Il est l'interlocuteur par défaut de l'utilisateur et communique avec lui via iakaHub ↔ Discord (bidirectionnel, avec repli terminal gracieux).
 tools: Read, Grep, Glob, Write, Bash, Task, Skill
+model: opus
 skills: [iakaframe-aragorn, iakaframe-jalon]
 guardrails: [identity, perimeter, delegation]
 ---

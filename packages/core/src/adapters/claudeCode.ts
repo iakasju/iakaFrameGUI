@@ -9,7 +9,9 @@
  *
  * Invariants tenus (§ 7) :
  *  - **Team PURE en entrée** : aucun `runner`/`model` n'est lu ni émis (G-5). Le `model` du
- *    frontmatter subagent est **OMIS** (liaison run-time = Cockpit).
+ *    frontmatter subagent est **OMIS** (liaison run-time = Cockpit). *Invariant INCHANGÉ : le
+ *    rendu partagé sait écrire un `model` (parité CLI, chemin binding → contrat), mais la forge
+ *    — `renderAgent` — ne lui en passe jamais. Une capacité n'est pas une politique.*
  *  - **Déterminisme** : personas triées par `roleIndex` puis `id` ; skills/connecteurs triés.
  *  - **Nœud/format via P2** : `claude → claude-md → CLAUDE.md` résolu par les helpers, jamais
  *    réécrit.
@@ -50,6 +52,12 @@ export interface AgentContractInput {
   description: string;
   /** `tools:` — allowlist runner-scoped issue du **binding** (omise si vide). */
   tools: string[];
+  /**
+   * `model:` — modèle issu du **binding** (omis si vide/absent), entre `tools` et `skills`.
+   * **La forge n'en fournit JAMAIS** (G-5, cf. `renderAgent` ci-dessous) : le champ n'existe que
+   * pour le chemin **binding → contrat**, celui qui tient la parité byte-à-byte avec le CLI.
+   */
+  model?: string;
   /** `skills:` — liste RÉSOLUE (transitive) préchargée par le runner (R8 § 5.2 ; omise si vide). */
   skills?: string[];
   /** `guardrails:` — flow-list des ids de garde (vocabulaire canon `identity, perimeter`, …). */
@@ -61,8 +69,12 @@ export interface AgentContractInput {
 /**
  * **Rendu du contrat d'agent** `.claude/agents/<id>.md` — format AUTORITÉ **convergé sur le CLI**
  * (`renderAgentContract`, `generate-agents.js`). Ordre FIXE `name(=id), description, tools?,
- * guardrails` ; **pas de `model`** (le modèle vit dans le `binding.json`, hors contrat). PUR.
- * Verrouillé byte-à-byte par le golden de parité (`__tests__/parite-generateurs.test.ts`).
+ * model?, skills?, guardrails`. PUR. Verrouillé byte-à-byte par le golden de parité
+ * (`__tests__/parite-generateurs.test.ts`).
+ *
+ * `model` est un **passe-plat** : cette fonction ne le résout pas et n'en invente aucun. Fourni
+ * (chemin binding → contrat) il est émis entre `tools` et `skills` ; absent — le cas de **la
+ * forge**, cf. `renderAgent` — la ligne est **omise**. G-5 tient donc sans être rouvert.
  */
 export function renderAgentContract(input: AgentContractInput): string {
   return serializeAgentContract(
@@ -70,6 +82,7 @@ export function renderAgentContract(input: AgentContractInput): string {
       id: input.id,
       description: input.description,
       tools: input.tools,
+      model: input.model,
       skills: input.skills,
       guardrails: input.guardrails,
     },
@@ -81,7 +94,9 @@ export function renderAgentContract(input: AgentContractInput): string {
  * `.claude/agents/<id>.md` **de la forge** (team PURE) : réutilise le format autorité
  * `renderAgentContract`. `name` = **id** ; `tools` **câblés depuis le binding**
  * (`toolsForPersona`, omis si vide) ; `guardrails` = ceux de la persona (flow-list) ; **jamais de
- * `model`**. La `description` et le **corps** sont **synthétisés** ici (la team pure ne porte ni
+ * `model`** — et c'est ici, dans **la forge**, que G-5 se tient : `renderAgentContract` *sait*
+ * désormais en écrire un, cette fonction **ne lui en passe aucun**, donc l'arbre fabriqué depuis
+ * une team pure reste sans `model` (prouvé par `__tests__/adapters.test.ts`, § G-5). La `description` et le **corps** sont **synthétisés** ici (la team pure ne porte ni
  * l'un ni l'autre — la parité byte-à-byte du corps canon passe par un loader de fixture, cf.
  * `renderAgentContract` + `__tests__/parite-generateurs.test.ts`).
  */

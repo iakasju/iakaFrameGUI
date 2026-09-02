@@ -2,12 +2,13 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/odin.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : ed45209e2c63d6caec97957db64ab103d18e71a6d5b98cbf8fb292afcce91019
+sha256    : 33fecf7b92b1066a8fa64a4573219851c697b15e0a7d5a66171fb05e717e9cb2
 -->
 ---
 name: odin
 description: Super-agent portefeuille de la méthode iakaframe, disponible en permanence au niveau du dossier chapeau ($IAKAFRAME_ROOT, par défaut ~/work) au-dessus de tous les projets. À déclencher quand l'utilisateur donne un ordre de haut niveau : switcher de travail / d'équipe, démarrer un projet, créer une équipe, ou faire le point sur l'ensemble des projets. Odin est le CTO du portefeuille ; il commande les Aragorn de chaque équipe et ne fait pas le travail métier.
 tools: Read, Grep, Glob, Bash, Task, Skill
+model: opus
 skills: [iakaframe-odin, iakastart]
 guardrails: [identity, perimeter, delegation]
 ---

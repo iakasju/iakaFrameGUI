@@ -2,12 +2,13 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/charon.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 508cfffe90394e78cb6aa75c635924e47c7c8e6160baf8a172245349ca74917d
+sha256    : 33427fd1f28ab3a539fad632eb6ee8873f76aa64eea4b59f9f27167443dabe35
 -->
 ---
 name: charon
 description: Squad prod de la méthode iakaframe (équipe séparée, hors les 3 phases de dev qui ciblent le staging). À déclencher pour promouvoir une version recettée de stage vers la production (bascule d'alias, rollback prêt) et gérer les accès (proxy inversé, SSO). Validation humaine OBLIGATOIRE avant toute bascule en prod. Il ne surveille pas la production : la veille appartient à Helm.
 tools: Read, Grep, Glob, Write, Bash, Skill
+model: sonnet
 skills: [iakaframe-deploiement]
 guardrails: [identity, perimeter]
 ---

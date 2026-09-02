@@ -467,18 +467,41 @@ export function verbatimBody(text: string): string {
 /**
  * Sérialise le **contrat d'agent Claude Code** `.claude/agents/<id>.md` — **format AUTORITÉ**
  * partagé byte-à-byte avec le CLI (`renderAgentContract`, `generate-agents.js`). Ordre FIXE
- * `name, description, tools?, skills?, guardrails` : `name` = **id** ; `tools` = **scalaire virgule
- * OMIS si vide** (héritage de tous les outils) ; `skills` = **flow-list de la liste RÉSOLUE, OMISE
- * si vide** (R8 § 5.2, préchargement) ; `guardrails` = **flow-list** ; **PAS de `model`** (le
- * modèle vit dans le `binding.json`, hors contrat). Corps rendu verbatim.
+ * `name, description, tools?, model?, skills?, guardrails` : `name` = **id** ; `tools` = **scalaire
+ * virgule OMIS si vide** (héritage de tous les outils) ; `model` = **scalaire OMIS si vide**, entre
+ * `tools` et `skills` (ordre de la table officielle des champs de frontmatter subagent) ;
+ * `skills` = **flow-list de la liste RÉSOLUE, OMISE si vide** (R8 § 5.2, préchargement) ;
+ * `guardrails` = **flow-list**. Corps rendu verbatim.
+ *
+ * ⚠️ **`model?` est une CAPACITÉ, pas une politique — G-5 n'est pas rouvert.** Ce sérialiseur
+ * *sait* écrire un modèle ; l'**adaptateur** de forge (`adapters/claudeCode.ts`, fonction
+ * `renderAgent`) continue de **ne jamais lui en passer** depuis une team pure, donc l'arbre `.claude/`
+ * fabriqué par la forge reste **sans `model`** et **byte-identique** — c'est exactement ce que G-5
+ * énonce, et `__tests__/adapters.test.ts` continue de le prouver sur l'arbre généré. Le champ n'est
+ * renseigné que par le chemin **binding → contrat** (parité avec le CLI, dont `generateAgent`
+ * projette le `model` de l'assignment quand le runner est `claude-code`).
  */
 export function serializeAgentContract(
-  fm: { id: string; description: string; tools: string[]; skills?: string[]; guardrails: string[] },
+  fm: {
+    id: string;
+    description: string;
+    tools: string[];
+    model?: string;
+    skills?: string[];
+    guardrails: string[];
+  },
   body = "",
 ): string {
   const tools =
     fm.tools.length > 0
       ? ({ key: "tools", kind: "scalar", value: fm.tools.join(", ") } as Field)
+      : undefined;
+  // Omis si vide/absent : le sous-agent retombe alors sur l'ordre de résolution du runner —
+  // comportement inchangé. On n'écrit **jamais** `inherit` en repli (ce serait poser une décision
+  // là où le canon n'en a pris aucune) ; `inherit` reste une valeur **explicite** du binding.
+  const model =
+    fm.model && fm.model.length > 0
+      ? ({ key: "model", kind: "scalar", value: fm.model } as Field)
       : undefined;
   const skillsList = fm.skills ?? [];
   const skills =
@@ -490,6 +513,7 @@ export function serializeAgentContract(
       { key: "name", kind: "scalar", value: fm.id },
       { key: "description", kind: "scalar", value: fm.description },
       tools,
+      model,
       skills,
       { key: "guardrails", kind: "list", value: fm.guardrails },
     ],

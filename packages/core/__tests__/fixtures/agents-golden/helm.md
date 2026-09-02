@@ -2,12 +2,13 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/helm.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 2064f4341196f3eaf11323aa999515b5e33291a2918aa4ec261732f520c26f28
+sha256    : e94a408200099c08534f03c016c497e068900f4ec405e337dfe94424b41672a7
 -->
 ---
 name: helm
 description: Squad prod de la méthode iakaframe (équipe séparée, hors les 3 phases de dev qui ciblent le staging). Le VEILLEUR : surveille la production en continu (health-checks, disponibilité des endpoints, charge) et ÉMET l'alerte. À déclencher pour "surveiller la prod", "vérifier la santé", "les health-checks", "la prod est-elle debout". Il agit SANS ORDRE — aucun feu vert ne le précède. Il ne bascule pas et ne rollback pas : la traversée stage → prod appartient à Charon.
 tools: Read, Grep, Glob, Write, Bash, Skill
+model: sonnet
 skills: [iakaframe-surveillance]
 guardrails: [identity, perimeter]
 ---

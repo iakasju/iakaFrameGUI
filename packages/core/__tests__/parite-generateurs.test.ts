@@ -14,10 +14,20 @@
  *
  * Loader de fixture (arbitrage Odin) : la `description`, les `guardrails` (vocabulaire **canon**
  * `identity, perimeter`) et le **corps verbatim** viennent des personas canon **vendorées** ; les
- * `tools` viennent du **binding** défaut vendoré — le modèle `Persona` pur reste inchangé.
+ * `tools` **et le `model`** viennent du **binding** défaut vendoré — le modèle `Persona` pur reste
+ * inchangé.
+ *
+ * ⚠️ **`model` ≠ réouverture de G-5.** Depuis le lot « affectation du modèle par acteur », le CLI
+ * projette le `model` de l'assignment dans le contrat déployé, donc le golden en porte un. Ce test
+ * exerce le chemin **binding → contrat** et branche `modelForPersona` — la jumelle de
+ * `toolsForPersona`, qui existait déjà et n'était pas câblée. La **forge** (`generateClaudeCodeKit`
+ * → `renderAgent`), elle, continue de n'émettre **aucun** `model` depuis une team pure : c'est
+ * `adapters.test.ts` § G-5 qui le prouve, et il n'a pas bougé.
  */
 import { describe, it, expect } from "vitest";
-import { renderAgentContract, toolsForPersona, parseFrontmatter, verbatimBody } from "../src/index";
+import {
+  renderAgentContract, toolsForPersona, modelForPersona, parseFrontmatter, verbatimBody,
+} from "../src/index";
 import type { Binding } from "../src/index";
 
 // --- fixtures partagées (byte-copies du dépôt iakaframe) -----------------------------------------
@@ -73,7 +83,7 @@ const GOLDENS: Record<string, string> = {
 
 const IDS = Object.keys(PERSONAS).sort();
 
-// --- binding défaut vendoré → Binding (pour exercer `toolsForPersona` de production) -------------
+// --- binding défaut vendoré → Binding (pour exercer `toolsForPersona`/`modelForPersona`) ---------
 function loadBinding(): Binding {
   const { data } = parseFrontmatter(bindingMd);
   const rows = Array.isArray(data.assignments) ? data.assignments : [];
@@ -87,7 +97,9 @@ function loadBinding(): Binding {
       return {
         personaId: String(a.personaId ?? ""),
         runner: "claude" as const,
-        model: "",
+        // Le `model` n'est plus forcé à "" : il est LU du binding vendoré, comme les `tools`.
+        // C'est ce qui rend `modelForPersona` mesurable ci-dessous au lieu d'être neutralisée.
+        model: typeof a.model === "string" ? a.model : "",
         tools: Array.isArray(a.tools) ? (a.tools as string[]) : [],
       };
     }),
@@ -140,6 +152,7 @@ function loadCanon(id: string, binding: Binding) {
     id,
     description: typeof data.description === "string" ? data.description : "",
     tools: toolsForPersona(binding, id),
+    model: modelForPersona(binding, id),
     skills: resolveSkills(declaredSkills),
     guardrails: Array.isArray(data.guardrails) ? (data.guardrails as string[]) : [],
     body: verbatimBody(raw),
@@ -167,7 +180,7 @@ async function sha256(text: string): Promise<string> {
 describe("parité CLI ↔ GUI — golden de contrat d'agent (10 personas)", () => {
   const binding = loadBinding();
 
-  it("rendu GUI == golden CLI byte-à-byte (name=id, tools câblés, guardrails, sans model)", () => {
+  it("rendu GUI == golden CLI byte-à-byte (name=id, tools + model câblés, guardrails)", () => {
     for (const id of IDS) {
       const { useful } = splitGolden(GOLDENS[id]);
       const rendered = renderAgentContract(loadCanon(id, binding));
@@ -182,13 +195,44 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (10 personas)", () =
     }
   });
 
-  it("format autorité : name=id, guardrails flow-list, jamais de model dans le contrat", () => {
+  it("format autorité : name=id, guardrails flow-list, model ENTRE tools et skills", () => {
     for (const id of IDS) {
       const rendered = renderAgentContract(loadCanon(id, binding));
       expect(rendered).toMatch(new RegExp(`^name: ${id}$`, "m"));
       expect(rendered).toMatch(/^guardrails: \[/m);
-      expect(rendered).not.toMatch(/^model:/m);
+      // Position (parité CLI) : `tools` → `model` → `skills` → `guardrails`, sans trou.
+      expect(rendered).toMatch(/^tools: [^\n]+\nmodel: [^\n]+\nskills: \[[^\n]+\]\nguardrails: \[/m);
     }
+  });
+
+  it("model câblé depuis le binding vendoré — couverture 10/10 (attendu tiré du binding)", () => {
+    // Même construction que pour `tools` : l'attendu est tiré du binding vendoré par un chemin
+    // DISTINCT de `loadBinding`, jamais réécrit à la main.
+    const { data } = parseFrontmatter(bindingMd);
+    const rows = Array.isArray(data.assignments) ? data.assignments : [];
+    const expectedModels: Record<string, string> = {};
+    for (const r of rows) {
+      const a = r as Record<string, unknown>;
+      expectedModels[String(a.personaId ?? "")] = typeof a.model === "string" ? a.model : "";
+    }
+    expect(Object.keys(expectedModels).sort()).toEqual(IDS);
+    for (const id of IDS) {
+      expect(modelForPersona(binding, id), `${id}: model != binding`).toBe(expectedModels[id]);
+    }
+    // Ancre littérale anti-tautologie (attrape une altération de `loadBinding` qu'un test 100 %
+    // dérivé du binding ne verrait pas) + forme scalaire dans le contrat.
+    expect(modelForPersona(binding, "gandalf")).toBe("opus");
+    expect(modelForPersona(binding, "gimli")).toBe("sonnet");
+    expect(renderAgentContract(loadCanon("gimli", binding))).toMatch(/^model: sonnet$/m);
+  });
+
+  it("model vide => ligne OMISE (le contrat pur reste possible, aucun `inherit` inventé)", () => {
+    // Rétro-compat : un binding « tout vide » (kit pur) ne fait apparaître AUCUNE ligne `model`.
+    const nu: Binding = { ...binding, bindings: binding.bindings.map((b) => ({ ...b, model: "" })) };
+    const rendered = renderAgentContract(loadCanon("gimli", nu));
+    expect(rendered).not.toMatch(/^model:/m);
+    expect(rendered).not.toMatch(/inherit/);
+    expect(rendered).toMatch(/^tools: [^\n]+\nskills: \[/m); // enchaînement direct, pas de trou
   });
 
   // Attendu 10/10 TIRÉ du binding vendoré lui-même (source unique). Parse DIRECT du frontmatter,
@@ -230,7 +274,9 @@ describe("parité CLI ↔ GUI — golden de contrat d'agent (10 personas)", () =
     expect(gimli).toMatch(
       /^skills: \[iakaframe-fabrication, iakaframe-gestion-de-source, iakaframe-git, iakaframe-forgejo, iakaframe-conteneurisation, iakaframe-docker, iakaframe-jalon\]$/m,
     );
-    expect(gimli).toMatch(/tools: [^\n]+\nskills: \[[^\n]+\]\nguardrails: \[/);
+    // `model` s'intercale désormais entre `tools` et `skills` (ordre officiel des champs
+    // subagent) : la chaîne vérifiée est tools → model → skills → guardrails.
+    expect(gimli).toMatch(/tools: [^\n]+\nmodel: [^\n]+\nskills: \[[^\n]+\]\nguardrails: \[/);
     // legolas : une seule skill déclarée, sans subskill → liste résolue = [iakaframe-qualite].
     expect(renderAgentContract(loadCanon("legolas", binding))).toMatch(
       /^skills: \[iakaframe-qualite\]$/m,
