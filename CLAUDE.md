@@ -90,6 +90,23 @@ node scripts/publish-update.mjs vX.Y.Z --pub-date 2026-01-01T00:00:00Z   # date 
 le même tag avec la même date produisent un `updater/latest.json` **identique à l'octet**. Les
 messages de progression sortent sur **stderr** — stdout ne porte que le manifeste.
 
+**⚠️ RECTIFICATION DATÉE (2026-09-03, dette de canal) — la phrase promettait ce que le script ne
+pouvait pas savoir.** Jusqu'à ce lot, l'étape 5 (commit + push) ne poussait que `origin` (le NAS)
+puis imprimait « la mise a jour est desormais visible des clients » — **vraie pour le décideur sur
+son LAN, fausse pour tout autre client**, puisque le second endpoint LU par le plugin updater
+(`github`, `raw.githubusercontent.com`) n'était poussé par **aucun script** : une main humaine
+l'a fait, quatre fois dans la journée du 2026-09-03. **Le lot ne corrige pas le symptôme, il
+corrige la promesse** : le script pousse désormais **chaque canal déclaré** au registre local
+`fixtures/canaux-publication.json` (AR-3 : non partagé — le contenu diverge par nature d'un dépôt
+à l'autre), **indépendamment** (AR-4 : un canal en échec n'interrompt pas les suivants, et le code
+de sortie devient **non nul** dès qu'un canal a échoué — un `exit 0` après un push `origin` manqué
+aurait fabriqué exactement le risque du § 1.4 de l'instruction : un endpoint 1 joignable et en
+retard qui fait autorité sur tout le LAN), et la phrase finale est devenue un **compte rendu**
+dérivé des résultats de push — jamais une promesse sur ce que les clients voient. Le geste qui
+mesure CELA est **nommé**, pas appelé : `npm run canaux:en-ligne` (hors gate, réseau, trois
+états — 0 concorde, 1 écart nommé endpoint par endpoint, 3 non mesuré). Instruction :
+`iakaframe/specs/instructions/dette-de-canal-de-la-publication.md`.
+
 ```bash
 node scripts/mesurer-artefacts.mjs                     # mesure et ÉCRIT updater/mesures.json
 node scripts/mesurer-artefacts.mjs --dry-run           # mesure et affiche, sans écrire
@@ -659,6 +676,49 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
       **(côté `iakaframe`, inscrits là-bas et volontairement NON dupliqués ici)** le nit de
       formulation D3 (`cli/scripts/lib/vitrine.js:49`) et l'**absence totale d'épinglage** dans
       `.github/workflows/release.yml` → `iakaframe/BACKLOG.md`.
+
+- [ ] **Dette de canal de la publication — le script ne promet plus la visibilité, il rend compte
+      de ce qu'il a poussé**
+      → `iakaframe/specs/instructions/dette-de-canal-de-la-publication.md` (copie **UNIQUE** — le
+      défaut vit dans une convention de portefeuille appliquée à `IakaCockpit` et `iakaFrameGUI`,
+      pas dans deux implémentations jumelles à recopier verbatim ; AR-5 = (b) de L42 précédent).
+      *(**implémenté côté ⚒️ Gimli — REMIS AU GATE 🏹 Legolas, non auto-validé** (2026-09-03),
+      branche `feat/dette-de-canal-publication`. Cadré par 🔵 Gandalf, 6 arbitrages TRANCHÉS le
+      2026-09-03.)*
+      **Problème** : `publish-update.mjs` ne poussait que `origin` (le NAS) puis annonçait « la
+      mise a jour est desormais visible des clients » — vraie pour le décideur sur son LAN, fausse
+      pour tout autre client, puisque le second endpoint **lu** par le plugin updater (`github`)
+      n'était poussé par **aucun script** : une main humaine l'a fait, quatre fois dans la journée
+      du 2026-09-03. **Le vrai risque, mesuré dans la source du plugin (§ 1.4)** : le client fait
+      `break` au **premier** endpoint qui **répond**, pas au premier qui est **frais** — un endpoint
+      1 joignable et **périmé** fait donc autorité sur un endpoint 2 frais, et le résultat n'est pas
+      une erreur visible mais un **« vous êtes à jour » faux et silencieux**.
+      **Livré** : (AR-1=b) le script pousse désormais **les deux canaux**, ET la phrase devient un
+      **compte rendu** dérivé des résultats (`rendreCompte`/`formaterCompteRendu`,
+      `scripts/lib/canaux-publication.mjs`) ; (AR-3=a) registre **local**, non partagé
+      (`fixtures/canaux-publication.json`, **hors** `fixtures/convergence.sha256` — le cliquet de
+      convergence **reste à 20**) ; (AR-4=a) chaque canal réussit ou échoue **indépendamment**
+      (`pousserCanaux`, forme éprouvée de `iakaframe/cli/src/lib/canaux.js:75-83`), **code de sortie
+      non nul** dès qu'une cible a échoué ; (AR-5=a) `origin`+`github` **nommés**, `iakabox`
+      **déclaré hors couverture** avec motif et condition de levée (CA-5) ; (AR-6=a) le script
+      **NOMME** le geste de vérification (`npm run canaux:en-ligne`) et **n'appelle rien**.
+      **Garde à deux faces (§ 4)** : face 1 **dans le gate** (`rendreCompte`, jonction résultats↔
+      écran, `scripts/publish-update.test.mjs`) — **quatre mutations jouées et révoquées**
+      (message inconditionnel → 3 tests rougissent nommément ; couverture réduite à `["origin"]` →
+      2 tests rougissent nommément), révocation prouvée au `sha256` (`git checkout --` puis
+      `sha256sum` identique avant/après) ; sa limite est **déclarée dans le fichier de garde**
+      (elle ne prouve rien sur ce qu'un endpoint sert). Face 2 **hors gate**
+      (`scripts/verifier-canaux-en-ligne.mjs`, `npm run canaux:en-ligne`) — mesure **tous** les
+      endpoints (jamais `--premier`), compare la version servie **par chacun** au tag local, **trois
+      états** (0 concorde / 1 écart nommé / 3 non mesuré), le piège du cache CDN **nommé** dans le
+      fichier (« PERIME OU EN PROPAGATION », jamais tranché à l'aveugle). **Les trois états
+      vérifiés en réel** (endpoints forcés injoignables → 3 ; tag forcé à `9.9.9` → 1, écart nommé
+      par endpoint ; état nominal → 0), chaque vérification temporaire **révoquée** (`sha256`
+      identique avant/après).
+      **Non fait, dû au décideur (M-1, M-4)** : chronométrer le coût hors LAN de l'endpoint 1, et
+      faire servir un manifeste périmé pour observer le faux « à jour ». **Aucun acte de
+      publication** : ni tag, ni release, ni push exécuté par l'agent.
+
 - [ ] **Gardes tièdes — une garde qui ne peut pas rougir n'est pas une garde**
   → `specs/instructions/gardes-tiedes.md` (dupliquée **verbatim** dans
   `IakaCockpit/specs/instructions/`, byte-identique — une divergence est un défaut, CA-22).
