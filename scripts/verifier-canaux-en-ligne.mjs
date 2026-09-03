@@ -38,7 +38,7 @@
 // publication normale, mais mesuré tel quel) est nommé séparément — pas confondu avec le cas
 // périmé.
 import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const NOM = "verifier-canaux-en-ligne";
@@ -136,8 +136,9 @@ if (endpoints.length === 0) {
 
 console.log(`${NOM} — mesure EN DIRECT de ${endpoints.length} endpoint(s), tag local v${PKG_VERSION} :`);
 const mesures = [];
+// L'ordre est la substance du failover : on mesure EN SÉQUENCE, jamais en parallèle, pour que
+// chaque endpoint soit nommé dans l'ordre où le client les essaierait.
 for (const url of endpoints) {
-  // eslint-disable-next-line no-await-in-loop -- ordre = substance du failover, on NOMME chacun.
   mesures.push(await mesurerEndpoint(url));
 }
 
