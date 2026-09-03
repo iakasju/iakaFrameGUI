@@ -703,9 +703,10 @@ export function commitAndPushManifest(tag, { run = gitRun, cwd = ROOT, canaux = 
 /**
  * LA JONCTION (§ 4.1, le couplage) — compose le message final ET le code de sortie à partir des
  * résultats de push, et RIEN D'AUTRE. Extraite pour que la face 1 puisse mordre exactement ici :
- * un `main()` qui réimprimerait la phrase inconditionnelle « … est desormais visible des clients »
- * resterait invisible à un test qui ne regarde que `formaterCompteRendu` en isolation — c'est
- * cette jonction-ci, entre `commitAndPushManifest` et l'écran, que le contrefactuel de CA-2 vise.
+ * un `main()` qui réimprimerait l'ANCIENNE phrase inconditionnelle de succès (celle que CA-1
+ * interdit désormais, cf. l'en-tête du fichier) resterait invisible à un test qui ne regarde que
+ * `formaterCompteRendu` en isolation — c'est cette jonction-ci, entre `commitAndPushManifest` et
+ * l'écran, que le contrefactuel de CA-2 vise.
  *
  * @returns {{ lignes: string[], code: 0|1 }} `code` = 1 dès qu'un canal a échoué (AR-4).
  */
