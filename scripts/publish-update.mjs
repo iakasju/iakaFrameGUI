@@ -37,6 +37,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // L42 — fichier CONVERGENT partage avec le depot frere : il sait extraire d'un README la version
 // qu'il ANNONCE. Reimplementer cette lecture ici aurait cree une seconde lecture du meme format.
 import { versionAnnoncee } from "./lib/vitrine.mjs";
+// Dette de canal — registre LOCAL des canaux d'ecriture (fixtures/canaux-publication.json) et le
+// fan-out qui les pousse, chacun independamment. Fichier NON convergent (AR-3) : voir son en-tete.
+import {
+  formaterCompteRendu,
+  lireRegistreCanaux,
+  pousserCanaux,
+  unEchecAuMoins,
+} from "./lib/canaux-publication.mjs";
 
 export const REPO_OWNER = "sjupin";
 export const REPO_NAME = "iakaFrameGUI";
@@ -606,10 +614,11 @@ async function forgejoUpload(releaseId, filePath, name, token) {
 /**
  * Refuse net une publication lancée depuis une autre branche que `main`.
  *
- * Sans cette garde, lancé depuis une branche de feature, le script commitait le manifeste, le
- * poussait **sur cette branche**, puis annonçait « la mise a jour est desormais visible des
- * clients » — alors que l'endpoint interrogé est `raw/branch/main/updater/latest.json` : rien
- * n'avait bougé chez personne. Un échec silencieux annoncé comme un succès est pire qu'un échec.
+ * Sans cette garde, lancé depuis une branche de feature, le script commitait le manifeste et le
+ * poussait **sur cette branche** — alors que l'endpoint interrogé est
+ * `raw/branch/main/updater/latest.json` : rien n'aurait bougé chez personne, et (avant la dette de
+ * canal, cf. `canaux-publication.mjs`) le script l'aurait quand même annoncé comme un succès. Un
+ * échec silencieux annoncé comme un succès est pire qu'un échec.
  *
  * @returns {{ ok: true, branch: string }}
  * @throws {Error} en citant la branche vue et la branche attendue.
@@ -628,6 +637,18 @@ export function assertPublishBranch(branch, wanted = PUBLISH_BRANCH) {
 /** Le manifeste, relatif à la racine — seul chemin que ce script a le droit de commiter. */
 export const MANIFEST_PATH = "updater/latest.json";
 
+/** Le registre des canaux d'écriture — LOCAL à ce dépôt (AR-3), voir son en-tête. */
+export const CANAUX_PUBLICATION_PATH = join(ROOT, "fixtures", "canaux-publication.json");
+
+/**
+ * Les remotes DÉCLARÉS au registre, dans l'ordre où il les porte. C'est la valeur par défaut de
+ * `canaux` dans `commitAndPushManifest` : la production lit TOUJOURS le registre réel du dépôt
+ * (`ROOT`), jamais un chemin dérivé du `cwd` de test — un labo git n'a pas de `fixtures/`.
+ */
+export function canauxDeclares(chemin = CANAUX_PUBLICATION_PATH) {
+  return lireRegistreCanaux(chemin).canaux.map((c) => c.remote);
+}
+
 /**
  * Exécute un `git` dans le dépôt. `capture` rend la sortie au lieu de la laisser filer à l'écran :
  * c'est ce qui permet de *lire* l'état de l'index sans polluer le journal de publication.
@@ -641,22 +662,27 @@ export function gitRun(args, { cwd = ROOT, capture = false } = {}) {
 }
 
 /**
- * Commit du manifeste **s'il a changé**, puis push. Rejouer une publication identique doit être un
- * NO-OP propre.
+ * Commit du manifeste **s'il a changé**, puis pousse **CHAQUE canal déclaré au registre**
+ * (dette de canal — AR-1 = b) : plus un seul `git push origin HEAD`. Rejouer une publication
+ * identique doit rester un NO-OP propre côté commit.
  *
- * Ce que ça répare : la release Forgejo est explicitement idempotente (« deja presente — reutilisee »),
- * donc republier un même tag est un geste **prévu**. Mais quand le manifeste produit était identique
- * à celui déjà versionné, `git commit -- updater/latest.json` sortait `1` (« nothing added to
- * commit ») et faisait tomber le script — **après** les téléversements. Un chemin nominal se
- * terminait donc par un échec, en fin de course, alors que tout s'était bien passé.
+ * Ce que le commit répare : la release Forgejo est explicitement idempotente (« deja presente —
+ * reutilisee »), donc republier un même tag est un geste **prévu**. Mais quand le manifeste produit
+ * était identique à celui déjà versionné, `git commit -- updater/latest.json` sortait `1`
+ * (« nothing added to commit ») et faisait tomber le script — **après** les téléversements. Un
+ * chemin nominal se terminait donc par un échec, en fin de course, alors que tout s'était bien
+ * passé. On interroge donc l'index (`diff --cached` sur le seul chemin du manifeste) avant de
+ * commiter, et on pousse dans les deux cas : un run précédent a pu commiter sans réussir à
+ * pousser, et un push sans rien à envoyer est déjà un no-op côté git.
  *
- * On interroge donc l'index (`diff --cached` sur le seul chemin du manifeste) avant de commiter, et
- * on pousse dans les deux cas : un run précédent a pu commiter sans réussir à pousser, et un push
- * sans rien à envoyer est déjà un no-op côté git.
+ * Ce que le fan-out répare : `canaux` par défaut = `canauxDeclares()`, donc TOUS les remotes du
+ * registre, chacun poussé INDÉPENDAMMENT (`pousserCanaux`, AR-4) — un canal en échec n'empêche pas
+ * les suivants, et n'empêche pas non plus le retour d'un résultat exploitable pour AR-4.
  *
- * @returns {{ committed: boolean }} `false` = manifeste inchangé, aucun commit créé.
+ * @returns {{ committed: boolean, resultats: Array<{remote:string, ok:boolean, motif:string}> }}
+ *   `committed` = `false` quand le manifeste est inchangé, aucun commit créé.
  */
-export function commitAndPushManifest(tag, { run = gitRun, cwd = ROOT } = {}) {
+export function commitAndPushManifest(tag, { run = gitRun, cwd = ROOT, canaux = canauxDeclares() } = {}) {
   run(["add", MANIFEST_PATH], { cwd });
   const staged = run(["diff", "--cached", "--name-only", "--", MANIFEST_PATH], {
     cwd,
@@ -670,8 +696,22 @@ export function commitAndPushManifest(tag, { run = gitRun, cwd = ROOT } = {}) {
   } else {
     console.error(`manifeste inchange — aucun commit (republication a l'identique de ${tag})`);
   }
-  run(["push", "origin", "HEAD"], { cwd });
-  return { committed };
+  const resultats = pousserCanaux(canaux, { run, cwd });
+  return { committed, resultats };
+}
+
+/**
+ * LA JONCTION (§ 4.1, le couplage) — compose le message final ET le code de sortie à partir des
+ * résultats de push, et RIEN D'AUTRE. Extraite pour que la face 1 puisse mordre exactement ici :
+ * un `main()` qui réimprimerait l'ANCIENNE phrase inconditionnelle de succès (celle que CA-1
+ * interdit désormais, cf. l'en-tête du fichier) resterait invisible à un test qui ne regarde que
+ * `formaterCompteRendu` en isolation — c'est cette jonction-ci, entre `commitAndPushManifest` et
+ * l'écran, que le contrefactuel de CA-2 vise.
+ *
+ * @returns {{ lignes: string[], code: 0|1 }} `code` = 1 dès qu'un canal a échoué (AR-4).
+ */
+export function rendreCompte({ version, resultats }) {
+  return { lignes: formaterCompteRendu({ version, resultats }), code: unEchecAuMoins(resultats) ? 1 : 0 };
 }
 
 /** Branche git courante du dépôt (`null` en HEAD détachée ou hors dépôt). */
@@ -815,18 +855,26 @@ async function main(argv) {
   //     Le push vise `HEAD` et non `HEAD:main` **à dessein** : la garde de branche a déjà établi que
   //     HEAD est `main`, et viser HEAD garantit qu'une garde contournée ne pousserait pas une
   //     branche de feature sur la branche de publication.
-  //     Le reste du geste — dont le no-op d'une republication à l'identique — vit dans
-  //     `commitAndPushManifest`, où il est testable sans réseau ni release réelle.
+  //     Le reste du geste — dont le no-op d'une republication à l'identique, et le FAN-OUT vers
+  //     chaque canal du registre (dette de canal, AR-1 = b) — vit dans `commitAndPushManifest`,
+  //     où il est testable sans réseau ni release réelle.
+  //
+  //     (6) Le COMPTE RENDU (§ 4.3) : ce script sait ce qu'il a POUSSÉ, canal par canal — il ne
+  //     sait RIEN de ce que les clients VOIENT (AR-6 : il NOMME le geste qui le mesure, hors gate,
+  //     et ne l'appelle jamais lui-même — cache CDN, zéro dépendance, une panne réseau ne doit pas
+  //     devenir un échec de publication). Le code de sortie devient NON NUL dès qu'un canal a
+  //     échoué (AR-4) : un `exit 0` après un push `origin` manqué fabriquerait exactement la
+  //     configuration du § 1.4 — un endpoint 1 joignable et en retard qui fait autorité.
   if (args.push) {
-    const { committed } = commitAndPushManifest(args.tag);
-    console.error(
-      committed
-        ? "manifeste pousse — la mise a jour est desormais visible des clients"
-        : "rien a pousser — la mise a jour etait deja visible des clients",
-    );
+    const { resultats } = commitAndPushManifest(args.tag);
+    const { lignes, code } = rendreCompte({ version: manifest.version, resultats });
+    for (const ligne of lignes) console.error(ligne);
+    if (code !== 0) return code;
   }
   return 0;
 }
+
+export { main };
 
 // Exécution seulement quand le fichier est appelé directement (importable en test).
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
