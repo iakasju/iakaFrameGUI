@@ -29,6 +29,8 @@ import {
   VERSION_CARRIERS,
   VERSION_NON_CARRIERS,
   versionOfTag,
+  canauxDeclares,
+  rendreCompte,
 } from "./publish-update.mjs";
 
 /** Un jeu d'artefacts factices couvrant les 4 cibles historiques du workflow de release. */
@@ -465,26 +467,42 @@ describe("assertPublishBranch — publier ailleurs que sur main est sans effet",
 
 describe("commitAndPushManifest — rejouer une publication identique est un NO-OP propre", () => {
   /**
-   * Un dépôt jetable avec son `origin` local (bare, sur disque) : aucun réseau, aucun dépôt réel
+   * Un dépôt jetable avec DEUX remotes locaux (bare, sur disque) : aucun réseau, aucun dépôt réel
    * touché. C'est le seul moyen honnête de couvrir ce point — le défaut ne vivait pas dans une
    * fonction pure mais dans la plomberie git elle-même (`git commit` sort `1` quand il n'y a rien à
    * commiter, ce qui faisait tomber le script APRÈS les téléversements).
+   *
+   * DEUX remotes — `origin` ET `github` — pour que `commitAndPushManifest`, appelé SANS `canaux`
+   * explicite, exerce son défaut PRODUCTION (`canauxDeclares()`, qui lit le VRAI registre du
+   * dépôt) sur un labo qui a de quoi le satisfaire. C'est ce qui rend le test « 1 » ci-dessous une
+   * preuve d'INTÉGRATION pour CA-4 (dette de canal), pas seulement de non-régression du commit.
    */
   function labRepo() {
     const root = mkdtempSync(join(tmpdir(), "iakaframegui-lab-"));
-    const bare = join(root, "origin.git");
+    const bareOrigin = join(root, "origin.git");
+    const bareGithub = join(root, "github.git");
     const work = join(root, "work");
-    execFileSync("git", ["init", "--quiet", "--bare", "-b", "main", bare]);
+    execFileSync("git", ["init", "--quiet", "--bare", "-b", "main", bareOrigin]);
+    execFileSync("git", ["init", "--quiet", "--bare", "-b", "main", bareGithub]);
     execFileSync("git", ["init", "--quiet", "-b", "main", work]);
     const git = (...args) => execFileSync("git", args, { cwd: work, encoding: "utf8" });
     git("config", "user.email", "lab@example.invalid");
     git("config", "user.name", "lab");
-    git("remote", "add", "origin", bare);
+    git("remote", "add", "origin", bareOrigin);
+    git("remote", "add", "github", bareGithub);
     writeFileSync(join(work, "README.md"), "lab\n");
     git("add", "-A");
     git("commit", "--quiet", "-m", "seed");
     git("push", "--quiet", "-u", "origin", "HEAD");
-    return { work, git, count: () => Number(git("rev-list", "--count", "HEAD").trim()) };
+    git("push", "--quiet", "-u", "github", "HEAD");
+    return {
+      work,
+      git,
+      count: () => Number(git("rev-list", "--count", "HEAD").trim()),
+      countOn: (bare) => Number(execFileSync("git", ["rev-list", "--count", "HEAD"], { cwd: bare, encoding: "utf8" }).trim()),
+      bareOrigin,
+      bareGithub,
+    };
   }
 
   /** Écrit le manifeste au chemin exact que le script s'autorise à commiter. */
@@ -505,19 +523,25 @@ describe("commitAndPushManifest — rejouer une publication identique est un NO-
     lab = labRepo();
   });
 
-  it("1. première publication : le manifeste est commité et poussé", () => {
+  it("1. première publication : le manifeste est commité et poussé — VERS LES DEUX CANAUX DÉCLARÉS (CA-4, intégration)", () => {
     const before = lab.count();
     writeManifest(lab.work, '{"version":"0.1.5"}\n');
 
-    expect(commitAndPushManifest("v0.1.5", { run: quiet, cwd: lab.work })).toEqual({
-      committed: true,
-    });
+    // `canaux` N'EST PAS PASSÉ : c'est le défaut de PRODUCTION (`canauxDeclares()`) qui est
+    // exercé ici — la preuve que le registre RÉEL du dépôt pilote bien ce que le script pousse.
+    const res = commitAndPushManifest("v0.1.5", { run: quiet, cwd: lab.work });
+    expect(res.committed).toBe(true);
+    expect(res.resultats.map((r) => r.remote)).toEqual(canauxDeclares());
+    expect(res.resultats.every((r) => r.ok)).toBe(true);
     expect(lab.count()).toBe(before + 1);
     expect(lab.git("log", "-1", "--pretty=%s").trim()).toBe(
       "chore(release): manifeste de mise a jour v0.1.5",
     );
     // Le commit ne porte QUE le manifeste (garde de chemin déjà en place, re-vérifiée ici).
     expect(lab.git("show", "--name-only", "--pretty=", "HEAD").trim()).toBe(MANIFEST_PATH);
+    // Les DEUX remotes reçoivent réellement le commit — pas seulement `origin` (le défaut réparé).
+    expect(lab.countOn(lab.bareOrigin)).toBe(before + 1);
+    expect(lab.countOn(lab.bareGithub)).toBe(before + 1);
   });
 
   it("2. rejeu à l'identique : aucun commit, aucune exception, pas d'abandon en fin de course", () => {
@@ -526,9 +550,9 @@ describe("commitAndPushManifest — rejouer une publication identique est un NO-
     // Le geste que la release Forgejo autorise explicitement (« deja presente — reutilisee ») :
     // republier le même tag. Avant correction, `git commit -- updater/latest.json` sortait `1`
     // (« nothing added to commit ») et faisait tomber le script — APRÈS les téléversements.
-    expect(commitAndPushManifest("v0.1.5", { run: quiet, cwd: lab.work })).toEqual({
-      committed: false,
-    });
+    const res = commitAndPushManifest("v0.1.5", { run: quiet, cwd: lab.work });
+    expect(res.committed).toBe(false);
+    expect(res.resultats.every((r) => r.ok)).toBe(true);
     expect(lab.count()).toBe(after);
     expect(lab.git("status", "--porcelain").trim()).toBe("");
   });
@@ -537,11 +561,98 @@ describe("commitAndPushManifest — rejouer une publication identique est un NO-
     const after = lab.count();
     writeManifest(lab.work, '{"version":"0.1.6"}\n');
 
-    expect(commitAndPushManifest("v0.1.6", { run: quiet, cwd: lab.work })).toEqual({
-      committed: true,
-    });
+    const res = commitAndPushManifest("v0.1.6", { run: quiet, cwd: lab.work });
+    expect(res.committed).toBe(true);
+    expect(res.resultats.every((r) => r.ok)).toBe(true);
     expect(lab.count()).toBe(after + 1);
   });
+
+  it("4. UN SEUL canal (origin) échoue : le fan-out CONTINUE, github reçoit quand même (AR-4, forme)", () => {
+    writeManifest(lab.work, '{"version":"0.1.7"}\n');
+    // `run` factice : échoue SEULEMENT sur `git push origin HEAD`, délègue le reste au vrai git.
+    const echecOrigin = (args, opts) => {
+      if (args[0] === "push" && args[1] === "origin") {
+        throw new Error("Command failed: git push origin HEAD — injoignable (simulation)");
+      }
+      return quiet(args, opts);
+    };
+    const before = lab.countOn(lab.bareGithub);
+    const res = commitAndPushManifest("v0.1.7", { run: echecOrigin, cwd: lab.work });
+
+    // CA-3 — jouer le cas `origin` EN ÉCHEC EXPLICITEMENT (c'est celui qui produit le § 1.4).
+    const origin = res.resultats.find((r) => r.remote === "origin");
+    const github = res.resultats.find((r) => r.remote === "github");
+    expect(origin.ok).toBe(false);
+    expect(origin.motif).toMatch(/injoignable/);
+    expect(github.ok).toBe(true);
+    // Le canal en échec n'a PAS interrompu les suivants (AR-4, forme éprouvée de `pousserFanout`).
+    expect(lab.countOn(lab.bareGithub)).toBe(before + 1);
+  });
+});
+
+describe("rendreCompte — LA JONCTION (§ 4.1) entre les résultats de push et l'écran (CA-1, CA-2, CA-3)", () => {
+  it("CA-1 — aucune des lignes rendues ne promet ce que le script ignore", () => {
+    const { lignes } = rendreCompte({
+      version: "0.32.2",
+      resultats: [
+        { remote: "origin", ok: true, motif: "" },
+        { remote: "github", ok: true, motif: "" },
+      ],
+    });
+    const texte = lignes.join("\n");
+    expect(texte).not.toMatch(/visible des clients/i);
+    expect(texte).toContain("manifeste v0.32.2");
+    expect(texte).toContain("origin");
+    expect(texte).toContain("github");
+    expect(texte).toContain("iakaframe endpoints --app .");
+  });
+
+  it("CA-2 — le CODE DE SORTIE est 0 quand TOUS les canaux ont réussi", () => {
+    expect(
+      rendreCompte({
+        version: "0.32.2",
+        resultats: [
+          { remote: "origin", ok: true, motif: "" },
+          { remote: "github", ok: true, motif: "" },
+        ],
+      }).code,
+    ).toBe(0);
+  });
+
+  it("CA-3 — UN SEUL canal en échec (origin) : le message le NOMME, nomme github comme poussé, exit ≠ 0", () => {
+    const { lignes, code } = rendreCompte({
+      version: "0.32.2",
+      resultats: [
+        { remote: "origin", ok: false, motif: "injoignable" },
+        { remote: "github", ok: true, motif: "" },
+      ],
+    });
+    const texte = lignes.join("\n");
+    expect(texte).toMatch(/origin.*ECHEC.*injoignable/s);
+    expect(texte).toMatch(/github\s+pousse/);
+    expect(code).toBe(1);
+  });
+
+  it("AR-4 — un SEUL échec suffit à rendre le code de sortie NON NUL, quel que soit le nombre de canaux", () => {
+    expect(
+      rendreCompte({
+        version: "0.1.0",
+        resultats: [
+          { remote: "origin", ok: true, motif: "" },
+          { remote: "github", ok: false, motif: "refus" },
+        ],
+      }).code,
+    ).toBe(1);
+  });
+
+  // ── CONTREFACTUEL (§ 4.1, règle 1 du chantier) — TRACÉ, PAS AUTOMATISÉ ──────────────────────
+  // La preuve que cette jonction MORD est apportée en dehors de la suite : `rendreCompte` a été
+  // temporairement remplacée par une version qui ignore `resultats` et rend toujours la phrase
+  // inconditionnelle « … est desormais visible des clients » avec `code: 0`. Sous cette mutation,
+  // LES TROIS TESTS CA-1/CA-2 CI-DESSUS restent conçus pour ROUGIR (CA-1 sur le texte promis, CA-3
+  // et AR-4 sur le code de sortie) — vérifié, puis révoqué par `git checkout -- publish-update.mjs`
+  // (diff vide, sha256 identique à l'avant-mutation). Rejouer une garde EN L'ÉTAT ne prouve rien
+  // sur elle-même : c'est la mutation qui la fait rougir qui compte (règle 1 du chantier).
 });
 
 describe("--check-only ne mesure QUE l'alignement (C7)", () => {
