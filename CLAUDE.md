@@ -419,6 +419,22 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **`FACE-EN-LIGNE-DES-CANAUX-NON-EXERCEE`** — **la face en ligne des canaux n'est exercée par
+      aucun test.** *Successeur **inscrit** par le lot « Gardes de la vitrine » (2026-09-05,
+      instruction `specs/instructions/gardes-de-la-vitrine.md` côté IakaCockpit, arbitrage AR-3 =
+      **non** : hors de ce lot, mais **l'inscrire EST le geste**).*
+      **Mesuré** : le nom `scripts/verifier-canaux-en-ligne.mjs` n'apparaît que dans **deux
+      commentaires** (`scripts/__tests__/publish-push.test.mjs`,
+      `scripts/__tests__/forge-host-parity.test.mjs`) — **aucun test ne l'exécute**. Le désarmer
+      symétriquement dans les deux dépôts laisse **tout vert** : l'empreinte de convergence prouve
+      l'**altération**, jamais le **comportement**.
+      **C'est exactement le défaut F-3** que le lot du 2026-09-05 vient de fermer pour la face en
+      ligne de la **vitrine** : même nature, même remède, même forme de garde (script **top-level**
+      donc **sous-processus** obligatoire, réseau neutralisé par un `fetch` de substitution, limite
+      de ce que la garde prouve **écrite dans le fichier**). ≈ 1 j-homme.
+      **Pourquoi c'est écrit ici** : F-2 et F-3 étaient restés **six jours** au seul état de mémoire
+      d'un rapport de gate. On inscrit pour ne pas refaire le même oubli.
+
 - [ ] **`GARDE-ALIGNEMENT-SORTIE-DERIVEE`** — **la garde des porteurs NOMME le 6e, mais ne sait pas
       le réparer.** *Constaté pendant le bump `v0.1.8` (2026-08-29), **déclaré et non corrigé** :
       élargir une garde au passage d'un bump mêlerait une correction de garde à une preuve de bump.*
