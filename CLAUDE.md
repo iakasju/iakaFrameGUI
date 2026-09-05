@@ -419,6 +419,28 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **`ENDPOINT-PERIME-FAIT-AUTORITE`** — **la fenêtre de propagation du CDN n'est pas mesurée,
+      donc « périmé » et « en propagation » ne sont pas départageables.** *Successeur **nommé** par
+      le lot « Garde de la face en ligne des canaux » (2026-09-05, instruction
+      `specs/instructions/garde-de-la-face-en-ligne-des-canaux.md` côté IakaCockpit) et écrit dans
+      le code (`scripts/verifier-canaux-en-ligne.mjs`, fichier **convergent**). **Non traité.***
+      L'un des endpoints est servi derrière un **CDN** : une mesure lancée juste après une
+      publication peut rendre l'**ancien** contenu, donc un endpoint en retard **n'est pas
+      nécessairement menteur**. Le script **NOMME** l'ambiguïté (`PERIME OU EN PROPAGATION`) au lieu
+      de trancher, et ce non-tranchement est **épinglé sur les deux moitiés de la formule** par un
+      test. Trancher exigerait la **fenêtre de propagation réelle** — réseau et temps réel, donc
+      **hors de portée d'un test de gate**. Mesure à faire, pas dette de code.
+
+- [ ] **`ENDPOINT-404-COMPTE-COMME-INTERROGE`** — **la ligne de sortie affirme plus que la mesure.**
+      *Successeur **trouvé et reproduit en direct** par le gate 🏹 Legolas du 2026-09-05, jamais
+      nommé par aucune instruction ; **hors périmètre** du lot qui l'a révélé.*
+      Avec un endpoint rendant `404` à côté d'un endpoint concordant, le script sort **0** en
+      affirmant « chaque endpoint **interrogé** sert la même version » — or le `404` **est**
+      « interrogé » au sens du code (`mesure:true`) et **ne sert rien**. « Interrogé » n'avait été
+      défini **que par opposition à injoignable** : le cas joignable-mais-vide n'est couvert par
+      aucune des deux définitions. **Même famille que F-2**, sur le script que le lot venait
+      d'exercer. À ne pas traiter « en passant ».
+
 - [ ] **`FACE-EN-LIGNE-DES-CANAUX-NON-EXERCEE`** — **la face en ligne des canaux n'est exercée par
       aucun test.** *Successeur **inscrit** par le lot « Gardes de la vitrine » (2026-09-05,
       instruction `specs/instructions/gardes-de-la-vitrine.md` côté IakaCockpit, arbitrage AR-3 =
