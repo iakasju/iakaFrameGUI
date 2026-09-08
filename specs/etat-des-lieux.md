@@ -1,6 +1,6 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-09-03 21:26 (motif: manual).
+> Genere par iakaframe (CLI) le 2026-09-08 09:34 (motif: pause).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
@@ -9,25 +9,25 @@
 |---|---|
 | Version | v0.1.8 |
 | Branche | main |
-| Dernier commit | e47cf14 chore: checkpoint — dette de canal fermee, endpoint iakabox retire |
+| Dernier commit | f6459b9 merge: CONVERGENCE-TROIS-FRERES lot 1 — freres nommes, face croisee N-1, rendreSecurite, release brouillon jusqu a matrice verte (gate Legolas PASS, byte-identique avec la soeur) |
 | Arbre | propre |
-| Fichiers (suivis + non ignores) | 503 |
-| Note | LOT A livre : mode guide du terminal, 3 paliers, --guide sur 10 cibles, regle unique de non-interactivite. Palier 2 NON RECETTE (geste humain, 2 OS). |
+| Fichiers (suivis + non ignores) | 512 |
+| Note | CONVERGENCE-TROIS-FRERES lot 1 livre et fusionne (Odin, gate Legolas PASS transverse, byte-identique avec la soeur) : freres.json nomme les 3 freres, face croisee N-1 avec SKIP nomme, intersection, rendreSecurite + absences_de_signature (mesure structurelle), release.yml = brouillon dans prepare + releaseId + publier strict par id + latest derriere + 2 gardes (statique + execution shell), cliquet bloc-latest refixe, registre 26 -> 29. Reste au decideur : prochain tag = premier run reel de la politique brouillon ici ; secrets Apple/Windows ; CONVERGENCE-RELEASE-YML-ALIGNEMENT. Lot 2 = iakaInstall. |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
-| `e47cf14` | 2026-09-03 | chore: checkpoint — dette de canal fermee, endpoint iakabox retire |
-| `496348d` | 2026-09-03 | merge: la dette de canal de la publication (gate Legolas PASS) |
-| `77a7a91` | 2026-09-03 | fix(docs): rectifie EN DATANT les deux dernieres traces d'un cliquet a 20 |
-| `87b4224` | 2026-09-03 | fix(convergence): cliquet 20 -> 23 — les trois fichiers de la dette de canal etaient inscrits SOUS le plancher |
-| `2a408c3` | 2026-09-03 | fix(convergence): inscrit les 3 fichiers generiques de la dette de canal (cliquet 20 -> 23) |
-| `cdf8534` | 2026-09-03 | docs(tests): CA-6 — ecrit la limite de la face 1 DANS le fichier de garde |
-| `d52fdad` | 2026-09-03 | fix(update): reformule le commentaire de rendreCompte — CA-1 zero occurrence stricte du fichier |
-| `4589c5c` | 2026-09-03 | fix(update): lint propre du script de face 2 (import inutilise, eslint-disable mort) |
-| `eb293c7` | 2026-09-03 | docs: rectifie la promesse de visibilite (datee) et inscrit la dette de canal au backlog |
-| `4d3c2e9` | 2026-09-03 | feat(update): face 2 hors gate — verifie ce que chaque endpoint sert reellement |
+| `f6459b9` | 2026-09-08 | merge: CONVERGENCE-TROIS-FRERES lot 1 — freres nommes, face croisee N-1, rendreSecurite, release brouillon jusqu a matrice verte (gate Legolas PASS, byte-identique avec la soeur) |
+| `44841b9` | 2026-09-08 | docs(qualite): gate CONVERGENCE-TROIS-FRERES lot 1 — PASS |
+| `99a2b59` | 2026-09-08 | docs: consigne CONVERGENCE-TROIS-FRERES (lot 1) — backlog, decisions, instruction jumelle |
+| `b413d71` | 2026-09-08 | feat(convergence): resolution nommee N-1 + rendreSecurite remontee (lot 1) |
+| `1cf20bf` | 2026-09-08 | feat(release): brouillon jusqu'a matrice verte — jumelle iakaInstall |
+| `07b1ffe` | 2026-09-05 | merge: garde de la face en ligne des canaux — et un defaut de classement corrige (gate PASS) |
+| `0b7ea34` | 2026-09-05 | docs(backlog): inscrit les deux successeurs de la face en ligne des canaux (CA-10) |
+| `3835ea9` | 2026-09-05 | chore(convergence): inscrit canaux-en-ligne au registre, cliquet 24 -> 26 |
+| `1488856` | 2026-09-05 | test(canaux-en-ligne): garde la face en ligne des canaux (20 tests, unitaires + sous-processus) |
+| `f7249c0` | 2026-09-05 | refactor(canaux-en-ligne): extrait le classement de verifier-canaux-en-ligne.mjs et corrige le 2XX-inutilisable |
 
 ## Reprise du travail (a completer par Cowork)
 
@@ -143,6 +143,7 @@ d'avant**, remede verifie.
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-09-08 09:34 | pause | v0.1.8 | main | CONVERGENCE-TROIS-FRERES lot 1 livre et fusionne (Odin, gate Legolas PASS transverse, byte-identique avec la soeur) : freres.json nomme les 3 freres, face croisee N-1 avec SKIP nomme, intersection, rendreSecurite + absences_de_signature (mesure structurelle), release.yml = brouillon dans prepare + releaseId + publier strict par id + latest derriere + 2 gardes (statique + execution shell), cliquet bloc-latest refixe, registre 26 -> 29. Reste au decideur : prochain tag = premier run reel de la politique brouillon ici ; secrets Apple/Windows ; CONVERGENCE-RELEASE-YML-ALIGNEMENT. Lot 2 = iakaInstall. |
 | 2026-09-03 21:26 | manual | v0.1.8 | main | LOT A livre : mode guide du terminal, 3 paliers, --guide sur 10 cibles, regle unique de non-interactivite. Palier 2 NON RECETTE (geste humain, 2 OS). |
 | 2026-09-03 18:54 | manual | v0.1.8 | main | Dette de canal fermee : fan-out sur les deux canaux, exit non nul si une cible echoue, face 2 hors gate. Endpoint iakabox retire. Cliquet 20->23. |
 | 2026-09-03 14:51 | manual | v0.1.8 | main | Mode guide du CLI livre (lots 0+B) : 33 commandes /iaka-*, registre unique, aide derivee. Amendement A : la garde de vocabulaire echoue. A-1 clos. |
