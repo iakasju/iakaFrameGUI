@@ -1,6 +1,6 @@
 # Etat des lieux - iakaFrameGUI
 
-> Genere par iakaframe (CLI) le 2026-09-08 10:30 (motif: pause).
+> Genere par iakaframe (CLI) le 2026-09-09 22:48 (motif: pause).
 > A regenerer a chaque changement de version et a chaque pause/reprise.
 
 ## Etat courant
@@ -9,25 +9,25 @@
 |---|---|
 | Version | v0.1.8 |
 | Branche | main |
-| Dernier commit | 14001a1 merge: CONVERGENCE-REGISTRE-EXCLU-DE-LUI-MEME — le registre est l instrument, pas l objet (gate Legolas PASS transverse 3 depots) |
+| Dernier commit | 1f12dfb merge: CONVERGENCE-RELEASE-YML-ALIGNEMENT — deps Linux sorties dans .github/deps-linux.txt, release.yml byte-identique au registre (gate Legolas PASS transverse) |
 | Arbre | propre |
-| Fichiers (suivis + non ignores) | 514 |
-| Note | CONVERGENCE A TROIS FRERES ACHEVEE le 2026-09-08 (Odin) : registre exclu de sa propre comparaison (instrument, pas objet ; correctif byte-identique dans les 3 depots, test rouge d abord), iakaInstall entre a la convergence avec un registre local de 7 entrees (intersection, AR-C3b). Les six sens de test:convergence rendent 0 ecart. Gates Legolas PASS transverses. Reste au decideur : prochain tag de chaque soeur = 1er run reel de leur politique brouillon (IakaCockpit annonce 0.33.0 sans tag) ; CONVERGENCE-RELEASE-YML-ALIGNEMENT ; remontee du bloc contrefactuel de vitrine-en-ligne.test.mjs chez les soeurs. |
+| Fichiers (suivis + non ignores) | 518 |
+| Note | CONVERGENCE-RELEASE-YML-ALIGNEMENT achevee le 2026-09-09 (Odin) : les dependances Linux vivent dans .github/deps-linux.txt (local, hors registre ; Cockpit 8 dont cpal/whisper-rs, GUI 5, iakaInstall 5), release.yml des soeurs byte-identique et au registre (32), garde deps-linux + jambe d execution etendue byte-identiques dans les 3 depots (iakaInstall registre 9). Six sens de test:convergence a 0 ecart apres fusion. Gates Legolas PASS. Reste au decideur : run de preuve (dispatch Linux sur tag de test puis tag reel, remote github) ; successeurs CONVERGENCE-RELEASE-YML-TROIS-FRERES, remontee du bloc contrefactuel. |
 
 ## Commits recents
 
 | Hash | Date | Sujet |
 |---|---|---|
+| `1f12dfb` | 2026-09-09 | merge: CONVERGENCE-RELEASE-YML-ALIGNEMENT — deps Linux sorties dans .github/deps-linux.txt, release.yml byte-identique au registre (gate Legolas PASS transverse) |
+| `2f117ae` | 2026-09-09 | docs(qualite): gate CONVERGENCE-RELEASE-YML-ALIGNEMENT — PASS |
+| `92f133d` | 2026-09-08 | fix(release): converger release.yml avec IakaCockpit, sortir les deps Linux locales |
+| `c441506` | 2026-09-08 | chore(iakaframe): update etat des lieux + commit global (pause) |
 | `14001a1` | 2026-09-08 | merge: CONVERGENCE-REGISTRE-EXCLU-DE-LUI-MEME — le registre est l instrument, pas l objet (gate Legolas PASS transverse 3 depots) |
 | `f2e0704` | 2026-09-08 | docs(qualite): gate convergence lot 2 + registre exclu — PASS |
 | `f33cf6a` | 2026-09-08 | docs: CONVERGENCE-REGISTRE-EXCLU-DE-LUI-MEME soldee (correctif a trois depots) |
 | `05df974` | 2026-09-08 | chore(convergence): registre refixe apres correctif de test-convergence.mjs |
 | `61addb8` | 2026-09-08 | fix(convergence): exclure le registre de la comparaison croisee (il est l'instrument, pas l'objet) |
 | `8c50fd9` | 2026-09-08 | test(convergence): frere au registre sous-ensemble strict est ROUGE (registre compare a tort) |
-| `ec290ec` | 2026-09-08 | chore(iakaframe): update etat des lieux + commit global (pause) |
-| `f6459b9` | 2026-09-08 | merge: CONVERGENCE-TROIS-FRERES lot 1 — freres nommes, face croisee N-1, rendreSecurite, release brouillon jusqu a matrice verte (gate Legolas PASS, byte-identique avec la soeur) |
-| `44841b9` | 2026-09-08 | docs(qualite): gate CONVERGENCE-TROIS-FRERES lot 1 — PASS |
-| `99a2b59` | 2026-09-08 | docs: consigne CONVERGENCE-TROIS-FRERES (lot 1) — backlog, decisions, instruction jumelle |
 
 ## Reprise du travail (a completer par Cowork)
 
@@ -143,6 +143,7 @@ d'avant**, remede verifie.
 
 | Date | Motif | Version | Branche | Note |
 |---|---|---|---|---|
+| 2026-09-09 22:48 | pause | v0.1.8 | main | CONVERGENCE-RELEASE-YML-ALIGNEMENT achevee le 2026-09-09 (Odin) : les dependances Linux vivent dans .github/deps-linux.txt (local, hors registre ; Cockpit 8 dont cpal/whisper-rs, GUI 5, iakaInstall 5), release.yml des soeurs byte-identique et au registre (32), garde deps-linux + jambe d execution etendue byte-identiques dans les 3 depots (iakaInstall registre 9). Six sens de test:convergence a 0 ecart apres fusion. Gates Legolas PASS. Reste au decideur : run de preuve (dispatch Linux sur tag de test puis tag reel, remote github) ; successeurs CONVERGENCE-RELEASE-YML-TROIS-FRERES, remontee du bloc contrefactuel. |
 | 2026-09-08 10:30 | pause | v0.1.8 | main | CONVERGENCE A TROIS FRERES ACHEVEE le 2026-09-08 (Odin) : registre exclu de sa propre comparaison (instrument, pas objet ; correctif byte-identique dans les 3 depots, test rouge d abord), iakaInstall entre a la convergence avec un registre local de 7 entrees (intersection, AR-C3b). Les six sens de test:convergence rendent 0 ecart. Gates Legolas PASS transverses. Reste au decideur : prochain tag de chaque soeur = 1er run reel de leur politique brouillon (IakaCockpit annonce 0.33.0 sans tag) ; CONVERGENCE-RELEASE-YML-ALIGNEMENT ; remontee du bloc contrefactuel de vitrine-en-ligne.test.mjs chez les soeurs. |
 | 2026-09-08 09:34 | pause | v0.1.8 | main | CONVERGENCE-TROIS-FRERES lot 1 livre et fusionne (Odin, gate Legolas PASS transverse, byte-identique avec la soeur) : freres.json nomme les 3 freres, face croisee N-1 avec SKIP nomme, intersection, rendreSecurite + absences_de_signature (mesure structurelle), release.yml = brouillon dans prepare + releaseId + publier strict par id + latest derriere + 2 gardes (statique + execution shell), cliquet bloc-latest refixe, registre 26 -> 29. Reste au decideur : prochain tag = premier run reel de la politique brouillon ici ; secrets Apple/Windows ; CONVERGENCE-RELEASE-YML-ALIGNEMENT. Lot 2 = iakaInstall. |
 | 2026-09-03 21:26 | manual | v0.1.8 | main | LOT A livre : mode guide du terminal, 3 paliers, --guide sur 10 cibles, regle unique de non-interactivite. Palier 2 NON RECETTE (geste humain, 2 OS). |
