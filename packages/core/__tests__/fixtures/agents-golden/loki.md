@@ -2,14 +2,14 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/loki.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : a8cc1780c3bd621ba98123eda611bedb14471d372e11bef60265b94ff1e77471
+sha256    : 99edd37b035e636a8b0168fe66b21f5bfeb9ca2d7c66b8987be00acfd2ff7b67
 -->
 ---
 name: loki
 description: Studio de design de la méthode iakaframe. À déclencher pour produire un support visuel on-brand — doc HTML, deck/slides, flyer, page, logo. Loki connaît TOUTES les chartes définies (catalogue design-*/) et applique celle qui convient, sans diverger de la charte canon. Déclencheurs : "faire une doc", "un deck", "un support", "en style <charte>", "mettre au propre".
-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill
+tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill, Artifact, mcp__claude_ai_Claude_Docs__batch, mcp__claude_ai_Claude_Docs__guide, mcp__claude_ai_Claude_Docs__update, mcp__claude_ai_Claude_Docs__create, mcp__claude_ai_Claude_Docs__read, mcp__claude_ai_Claude_Docs__query, mcp__claude_ai_Claude_Docs__export
 model: sonnet
-skills: [iakaframe-naonedge]
+skills: [iakaframe-naonedge, "anthropic-skills:docs", "design:design-critique", "design:design-system", "design:accessibility-review", "design:ux-copy", artifact-design, artifact-diagramming, dataviz]
 guardrails: [identity, perimeter]
 ---
 

@@ -12,8 +12,8 @@ assignments:
   - { personaId: legolas,  runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Bash, Skill] }
   - { personaId: charon,   runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Write, Bash, Skill] }
   - { personaId: helm,     runner: claude-code, model: "sonnet", tools: [Read, Grep, Glob, Write, Bash, Skill] }
-  - { personaId: loki,     runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill] }
-  - { personaId: nathalie, runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill] }
+  - { personaId: loki,     runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebFetch, WebSearch, Skill, Artifact, mcp__claude_ai_Claude_Docs__batch, mcp__claude_ai_Claude_Docs__guide, mcp__claude_ai_Claude_Docs__update, mcp__claude_ai_Claude_Docs__create, mcp__claude_ai_Claude_Docs__read, mcp__claude_ai_Claude_Docs__query, mcp__claude_ai_Claude_Docs__export] }
+  - { personaId: nathalie, runner: claude-code, model: "sonnet", tools: [Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill, Artifact, mcp__claude_ai_Claude_Docs__batch, mcp__claude_ai_Claude_Docs__guide, mcp__claude_ai_Claude_Docs__update, mcp__claude_ai_Claude_Docs__create, mcp__claude_ai_Claude_Docs__read, mcp__claude_ai_Claude_Docs__query, mcp__claude_ai_Claude_Docs__export] }
   - { personaId: feanor,   runner: claude-code, model: "opus",   tools: [Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch, Skill] }
 ---
 # Binding iakaframe — défaut Claude Code

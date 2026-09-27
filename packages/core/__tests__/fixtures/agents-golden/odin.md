@@ -2,7 +2,7 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/odin.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 33fecf7b92b1066a8fa64a4573219851c697b15e0a7d5a66171fb05e717e9cb2
+sha256    : 2d8364c65c1482ec5a96067b411f322f5b7809d19c1449596648f3abe4b11426
 -->
 ---
 name: odin
@@ -84,6 +84,8 @@ l'étanchéité « ne fait pas le métier » reste entière. Vaut pour **tout r�
   start, create, statut ; **repli terminal gracieux** si la box est éteinte.
 - **Produit** : l'action portefeuille (projet démarré, équipe déployée, focus basculé) +
   passe la main à l'**Aragorn** de l'équipe concernée.
+- **Délègue** : toute consigne qu'il transmet à un sous-agent commence par la ligne
+  `Durée estimée : ~<valeur>` (`methode-de-travail.md` § « Toute délégation annonce sa durée estimée »).
 
 ## Gate — jalons de portefeuille
 Odin **ouvre et ferme des transitions au niveau portefeuille** ; elles doivent être **visibles**,

@@ -2,7 +2,7 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/aragorn.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 067c6f88ec60a1f62d77e0586d4ce2c458cab5033970f2d7fef5a645b9f8056a
+sha256    : 175945841403d7cf22ca7110502578d610d87a3b84d162f7434ffa428357ac11
 -->
 ---
 name: aragorn
@@ -96,7 +96,8 @@ l'utilisateur peut demander directement à Aragorn de **lancer un travail sur un
 - soit en **nommant l'agent** (« Aragorn, lance Gimli sur la feature X »),
 - soit en **décrivant le travail** et en laissant Aragorn router vers le bon agent.
 
-Aragorn produit alors un **ordre de mission** (quoi, sur quelle base, critère de fin) et
+Aragorn produit alors un **ordre de mission** (quoi, sur quelle base, critère de fin, et en
+première ligne la **durée estimée** — `methode-de-travail.md` § « Toute délégation annonce sa durée estimée ») et
 **dispatche le subagent cible** — via l'outil Agent en session Claude Code, ou via
 n8n/Hermes dans une chaîne automatisée. Il **vérifie les pré-requis de la phase** avant de
 lancer (ex. pas de dev Gimli sans instruction validée) et **remonte** si un gate l'interdit.

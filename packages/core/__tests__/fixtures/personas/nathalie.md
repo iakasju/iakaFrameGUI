@@ -7,6 +7,7 @@ roleKey: documentation
 royaume: IAKAFRAME
 pastille: "🟠"
 skills: [iakaframe-nathalie, iakaframe-memoire-humaine]
+runnerSkills: { claude: [anthropic-skills:docs, design:ux-copy, artifact-design] }
 guardrails: [identity, perimeter]
 vignette: none
 ---

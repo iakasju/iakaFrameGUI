@@ -94,7 +94,8 @@ l'utilisateur peut demander directement à Aragorn de **lancer un travail sur un
 - soit en **nommant l'agent** (« Aragorn, lance Gimli sur la feature X »),
 - soit en **décrivant le travail** et en laissant Aragorn router vers le bon agent.
 
-Aragorn produit alors un **ordre de mission** (quoi, sur quelle base, critère de fin) et
+Aragorn produit alors un **ordre de mission** (quoi, sur quelle base, critère de fin, et en
+première ligne la **durée estimée** — `methode-de-travail.md` § « Toute délégation annonce sa durée estimée ») et
 **dispatche le subagent cible** — via l'outil Agent en session Claude Code, ou via
 n8n/Hermes dans une chaîne automatisée. Il **vérifie les pré-requis de la phase** avant de
 lancer (ex. pas de dev Gimli sans instruction validée) et **remonte** si un gate l'interdit.

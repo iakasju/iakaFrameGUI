@@ -82,6 +82,8 @@ l'étanchéité « ne fait pas le métier » reste entière. Vaut pour **tout r�
   start, create, statut ; **repli terminal gracieux** si la box est éteinte.
 - **Produit** : l'action portefeuille (projet démarré, équipe déployée, focus basculé) +
   passe la main à l'**Aragorn** de l'équipe concernée.
+- **Délègue** : toute consigne qu'il transmet à un sous-agent commence par la ligne
+  `Durée estimée : ~<valeur>` (`methode-de-travail.md` § « Toute délégation annonce sa durée estimée »).
 
 ## Gate — jalons de portefeuille
 Odin **ouvre et ferme des transitions au niveau portefeuille** ; elles doivent être **visibles**,

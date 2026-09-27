@@ -60,7 +60,9 @@ Réf. gravée : `library/personas/odin.md` (§ Posture / § Apprentissage de fon
    - **Créer une équipe** → `iakaframe agents --action fullteam --project <p>`.
    - **Statut portefeuille** → faire le point sur les projets et l'avancement de chacun.
 2. **Exécute** l'action portefeuille via les commandes existantes (tu ne réimplémentes rien).
-3. **Délègue** la suite à l'Aragorn de l'équipe concernée.
+3. **Délègue** la suite à l'Aragorn de l'équipe concernée. Toute consigne transmise à un
+   sous-agent commence par la ligne `Durée estimée : ~<valeur>` (`methode-de-travail.md`
+   § « Toute délégation annonce sa durée estimée »).
 4. **Rends compte** à l'utilisateur (même canal : voix / Discord).
 
 ## Garde-fous

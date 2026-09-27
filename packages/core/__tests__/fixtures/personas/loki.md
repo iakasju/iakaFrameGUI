@@ -7,6 +7,7 @@ roleKey: design
 royaume: IAKAFRAME
 pastille: "🟠"
 skills: [iakaframe-naonedge]
+runnerSkills: { claude: [anthropic-skills:docs, design:design-critique, design:design-system, design:accessibility-review, design:ux-copy, artifact-design, artifact-diagramming, dataviz] }
 guardrails: [identity, perimeter]
 vignette: none
 ---

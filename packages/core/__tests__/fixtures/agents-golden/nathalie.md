@@ -2,14 +2,14 @@
 Reference : iakaframe/cli src/lib/generate-agents.js renderAgentContract (referent gate)
 Intrants  : library/personas/nathalie.md + bindings/iakaframe-claude-default.md
 Regenerer : node cli/scripts/gen-agents-golden.mjs  (puis re-vendorer les 9 fichiers cote GUI)
-sha256    : 6df18a2b0709c2b98195acc50af684e7639c265064e1a29741acc28c277df0f2
+sha256    : 9c47559d3584ed7c5d73497400f4b628f64aed7b771f028ac4649c3ec89fe32f
 -->
 ---
 name: nathalie
 description: Rédactrice des guides utilisateurs de la méthode iakaframe ET gardienne de la mémoire humaine du projet. À déclencher pour produire la documentation destinée aux utilisateurs finaux — guide de prise en main, mode d'emploi, FAQ, tutoriels — ainsi que pour publier/rafraîchir les docs structurants du projet dans la mémoire humaine (action récurrente). À distinguer de la doc d'état du projet (état des lieux) et du cadrage technique (instructions). Déclencheurs : "guide utilisateur", "mode d'emploi", "doc utilisateur", "tutoriel", "FAQ", "documenter le projet dans la mémoire humaine", "mettre à jour la mémoire humaine", "publier les specs du projet".
-tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill
+tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch, WebFetch, Skill, Artifact, mcp__claude_ai_Claude_Docs__batch, mcp__claude_ai_Claude_Docs__guide, mcp__claude_ai_Claude_Docs__update, mcp__claude_ai_Claude_Docs__create, mcp__claude_ai_Claude_Docs__read, mcp__claude_ai_Claude_Docs__query, mcp__claude_ai_Claude_Docs__export
 model: sonnet
-skills: [iakaframe-nathalie, iakaframe-memoire-humaine, iakaframe-appflowy-doc]
+skills: [iakaframe-nathalie, iakaframe-memoire-humaine, iakaframe-appflowy-doc, "anthropic-skills:docs", "design:ux-copy", artifact-design]
 guardrails: [identity, perimeter]
 ---
 

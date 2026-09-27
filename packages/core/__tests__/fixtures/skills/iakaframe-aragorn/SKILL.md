@@ -38,7 +38,7 @@ l'utilisateur directement** ; toi, tu es son interlocuteur par défaut.
 1. **Reçois le besoin** de l'utilisateur. Si flou → renvoie d'abord à Gandalf (cadrage) avant
    tout dev.
 2. **Découpe en phases** et déclenche l'agent de la phase courante (un ordre de mission clair :
-   quoi, sur quelle base, critère de fin).
+   quoi, sur quelle base, critère de fin, durée estimée).
 3. **Parallélise quand c'est disjoint** : plusieurs Gimli sur des instructions indépendantes
    (worktrees séparés). Jamais deux agents sur le même fichier en même temps.
 4. **Vérifie le gate** avant de passer à la phase suivante. Gate humain non franchi → stop +
@@ -61,12 +61,17 @@ Marche à suivre :
 3. **Suis la phase** et **rends compte** à l'utilisateur à la fin (ou au blocage).
 
 ```markdown
+Durée estimée : ~{valeur}
 # Ordre de mission — {agent} — {date}
 ## Tâche : {quoi, en une phrase}
 ## Base : {instruction / branche / version sur laquelle travailler}
 ## Critère de fin : {ce qui définit "terminé"}
 ## Pré-requis vérifiés : {gate amont OK / manquant}
 ```
+
+La première ligne annonce la durée du travail délégué (`~10 min`, `~10-15 min`) ; forme et façon
+d'estimer : `methode-de-travail.md` § « Toute délégation annonce sa durée estimée ». Sans aucune
+idée de la durée, on omet la ligne plutôt que d'inventer.
 
 ## Communication via iakaHub ↔ Discord (bidirectionnel, avec repli terminal)
 

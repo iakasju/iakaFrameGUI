@@ -144,16 +144,26 @@ function resolveSkills(declared: string[]): string[] {
 }
 
 // --- loader de fixture canon : persona .md → entrée de renderAgentContract ------------------------
+// skills-propres-au-runner.md (Q1-Q6 validées 27/09) : `runnerSkills.claude` s'ajoute APRÈS les
+// skills résolues du réservoir (jamais lu par `resolveSkills`), dédoublonné (1re occurrence) —
+// miroir du SEUL point d'injection côté CLI (`generateAgent`, generate-agents.js).
 function loadCanon(id: string, binding: Binding) {
   const raw = PERSONAS[id];
   const { data } = parseFrontmatter(raw);
   const declaredSkills = Array.isArray(data.skills) ? (data.skills as string[]) : [];
+  const resolvedSkills = resolveSkills(declaredSkills);
+  const runnerSkills = data.runnerSkills as Record<string, unknown> | undefined;
+  const runnerSkillsClaude = runnerSkills && Array.isArray(runnerSkills.claude)
+    ? (runnerSkills.claude as string[])
+    : [];
+  const skills = [...resolvedSkills];
+  for (const s of runnerSkillsClaude) if (!skills.includes(s)) skills.push(s);
   return {
     id,
     description: typeof data.description === "string" ? data.description : "",
     tools: toolsForPersona(binding, id),
     model: modelForPersona(binding, id),
-    skills: resolveSkills(declaredSkills),
+    skills,
     guardrails: Array.isArray(data.guardrails) ? (data.guardrails as string[]) : [],
     body: verbatimBody(raw),
   };
