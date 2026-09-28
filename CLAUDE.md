@@ -563,6 +563,42 @@ reprise** dans le `.md` (ce qui vient d'être fait, ce qui reste, prochaine éta
 
 ### Ouvert — à trancher ou à cadrer (avant tout code)
 
+- [ ] **`EOL-DEPOT-ENTIER`** — **sur un poste Windows (`core.autocrlf=true`), 16 tests de
+      `test:all` rougissent pour des fins de ligne CRLF, pas pour du code.** *Constaté par le tri
+      🏹 Legolas du 2026-09-29 pendant le Lot G1 (`synchro-multi-depots.md`), HEAD `8aec477`,
+      **hors du périmètre de G1** : le `.gitattributes` posé par `8aec477` ne couvre que
+      `packages/core/__tests__/fixtures/**/*.md`.* **Mesuré** : `git ls-files --eol` → **428**
+      fichiers `i/lf w/crlf` (dont `.github/workflows/release.yml`, `README.md`, `package.json`,
+      `Cargo.lock`, `updater/*.json`, `fixtures/*.json`, `scripts/**`,
+      `src/forge/__fixtures__/*.md`). **Preuve** : sur un clone à `core.autocrlf=false`, les 16
+      passent au vert. Tests nommés : `bloc-latest` CA-11, CA-12 ; `release-publication` CA-R2
+      (i), (ii), CA-R3, CA-R7, CA-R10 ; `vitrine` CA-1, AR-C5 macOS, AR-C5 Windows ;
+      `manifeste-reproductible` CA-16 ; `forge-host-parity` CONV (face locale — l'empreinte porte
+      sur les octets CRLF) ; `publish-update` CA-15 (cliquet, contrefactuel) ;
+      `frameFidelite` AC-3c ; `identity` AC-2. **Remède candidat, à cadrer** :
+      `* text=auto eol=lf` (ou les chemins ci-dessus) + ré-extraction. ⚠️ Des fichiers sont au
+      registre de convergence (byte-identité avec l'app jumelle) : trancher d'abord si la
+      règle se pose **dans les deux dépôts au même commit logique**.
+
+- [ ] **`TESTS-NON-PORTABLES-WINDOWS`** — **15 tests du harnais ne peuvent pas tourner sous
+      Windows ; aucun ne révèle un bug du produit.** *Constaté par le même tri 🏹 Legolas
+      (2026-09-29), indépendant des fins de ligne (persistent à `core.autocrlf=false`).*
+      **(a) 12 tests** — `canaux-en-ligne` CA-1, CA-2 cas 1, cas 3, cas MIXTE, AR-2 ×2 ;
+      `vitrine-en-ligne` CA-3/CA-6, CA-4 ×3 ; `canal-mesure` D-2 ×2 : le sous-processus est
+      lancé par `node --import <chemin C:\…\stub-fetch.mjs>`, rejeté par Node
+      (`ERR_UNSUPPORTED_ESM_URL_SCHEME … absolute paths must be valid file:// URLs`) ; le script
+      sous test ne démarre jamais. Remède évident : `pathToFileURL(...).href`.
+      **(b) 3 tests** — `release-publier-shell` NOMINAL, CONTREFACTUEL (i), (ii) : le faux `sudo`
+      (script sans extension, shebang `node`) appelle `spawnSync("apt-get")` sans shell →
+      `ENOENT` sous Windows, `xargs` rend `123`. **Cause établie par lecture (l. 293-300), non
+      isolée par run** ; second suspect : `PATH` construit avec `:` et un chemin `C:\`.
+      ⚠️ Ces fichiers sont **convergents** : toute correction se fait dans les deux dépôts au
+      même commit logique, puis régénération des empreintes.
+      **Tant que ces deux dettes sont ouvertes**, `test:all` exit `0` n'est **pas atteignable sur
+      un poste Windows** : un verdict de gate y compare **par noms** à la baseline déterministe
+      (31 noms) et **ne compte pas** les timeouts d'UI React à froid, intermittents
+      (`STACK_TRACE_ERROR`, 5 à 9,7 s), observés sur clone frais seulement.
+
 - [ ] **`ENDPOINT-PERIME-FAIT-AUTORITE`** — **la fenêtre de propagation du CDN n'est pas mesurée,
       donc « périmé » et « en propagation » ne sont pas départageables.** *Successeur **nommé** par
       le lot « Garde de la face en ligne des canaux » (2026-09-05, instruction
